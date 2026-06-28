@@ -17,7 +17,7 @@ const benefits = [
 
 export default function LoginPage() {
   return (
-    <main className="content">
+    <main className="content cascade-page">
       <section className="hero">
         <div className="hero-copy">
           <p className="eyebrow"><span className="eyebrow-dot" aria-hidden="true" /> Try for free</p>

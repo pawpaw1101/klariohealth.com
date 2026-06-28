@@ -52,7 +52,7 @@ const steps = [
 
 export default function FeaturesPage() {
   return (
-    <main className="content">
+    <main className="content cascade-page">
       <section className="hero">
         <div className="hero-copy">
           <p className="eyebrow"><span className="eyebrow-dot" aria-hidden="true" /> Features</p>

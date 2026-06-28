@@ -174,6 +174,50 @@ html:not(.is-touch) label {
   background: rgba(45, 212, 191, 0.08);
 }
 
+#klario-cursor.is-loading {
+  width: 30px;
+  height: 30px;
+  margin: -15px 0 0 -15px;
+  border-color: transparent;
+  background: transparent;
+}
+
+#klario-cursor.is-loading::before,
+#klario-cursor.is-loading::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+#klario-cursor.is-loading::before {
+  inset: 0;
+  background: conic-gradient(
+    from 0deg,
+    rgba(13, 148, 136, 0),
+    rgba(13, 148, 136, 0.18) 70deg,
+    rgba(13, 148, 136, 0.82) 190deg,
+    rgba(13, 148, 136, 0) 360deg
+  );
+  mask: radial-gradient(circle, transparent 43%, #000 47%, #000 64%, transparent 68%);
+  -webkit-mask: radial-gradient(circle, transparent 43%, #000 47%, #000 64%, transparent 68%);
+  animation: cursor-whirlpool 0.72s linear infinite;
+}
+
+#klario-cursor.is-loading::after {
+  inset: 8px;
+  border: 1.5px solid rgba(13, 148, 136, 0.54);
+  border-left-color: transparent;
+  border-bottom-color: rgba(13, 148, 136, 0.12);
+  animation: cursor-whirlpool 0.52s linear infinite reverse;
+}
+
+@keyframes cursor-whirlpool {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 html.is-touch #klario-cursor {
   display: none;
 }
@@ -2177,6 +2221,136 @@ button:disabled {
   background: rgba(255, 255, 255, 0.68);
 }
 
+.cascade-page {
+  display: grid;
+  gap: 18vh;
+  max-width: none;
+  padding: 14px clamp(14px, 2vw, 32px) 144px;
+}
+
+.cascade-page > .hero,
+.cascade-page > .section,
+.cascade-page > .cta-banner,
+.app-cascade-shell > .app-page-title,
+.app-cascade-shell > .workspace-bar,
+.app-cascade-shell > .metric-grid,
+.app-cascade-shell > .section,
+.app-cascade-shell > .record-list,
+.app-cascade-shell > .upload-layout,
+.app-cascade-shell > .timeline-list,
+.app-cascade-shell > .trends-layout,
+.app-cascade-shell > .grid {
+  --cascade-top: 22px;
+  --cascade-z: 1;
+  position: sticky;
+  top: var(--cascade-top);
+  z-index: var(--cascade-z);
+  overflow: hidden;
+  width: 100%;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 26px;
+  background:
+    linear-gradient(135deg, rgba(240, 253, 250, 0.58), transparent 48%),
+    linear-gradient(315deg, rgba(239, 246, 255, 0.64), transparent 38%),
+    rgba(255, 255, 255, 0.93);
+  padding: clamp(28px, 5vw, 64px);
+  box-shadow:
+    0 24px 80px rgba(15, 23, 42, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.74);
+}
+
+.cascade-page > .hero,
+.cascade-page > .section {
+  min-height: min(82vh, 860px);
+  align-content: center;
+}
+
+.cascade-page > .cta-banner {
+  min-height: 58vh;
+  align-content: center;
+  margin-top: 0;
+  background: linear-gradient(135deg, #042f2e, #155e75 52%, var(--color-blue));
+}
+
+.cascade-page > .hero::before {
+  inset: 0;
+  height: auto;
+  border-radius: inherit;
+  background:
+    linear-gradient(135deg, rgba(240, 253, 250, 0.78), transparent 52%),
+    linear-gradient(315deg, rgba(239, 246, 255, 0.72), transparent 42%);
+}
+
+.cascade-page > .section + .section,
+.cascade-page > .hero + .section {
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.cascade-page > :nth-child(1),
+.app-cascade-shell > :nth-child(1) {
+  --cascade-top: 18px;
+  --cascade-z: 1;
+}
+
+.cascade-page > :nth-child(2),
+.app-cascade-shell > :nth-child(2) {
+  --cascade-top: 34px;
+  --cascade-z: 2;
+}
+
+.cascade-page > :nth-child(3),
+.app-cascade-shell > :nth-child(3) {
+  --cascade-top: 50px;
+  --cascade-z: 3;
+}
+
+.cascade-page > :nth-child(4),
+.app-cascade-shell > :nth-child(4) {
+  --cascade-top: 66px;
+  --cascade-z: 4;
+}
+
+.cascade-page > :nth-child(5),
+.app-cascade-shell > :nth-child(5) {
+  --cascade-top: 82px;
+  --cascade-z: 5;
+}
+
+.cascade-page > :nth-child(6),
+.app-cascade-shell > :nth-child(6) {
+  --cascade-top: 98px;
+  --cascade-z: 6;
+}
+
+.app-cascade-shell {
+  display: grid;
+  gap: clamp(36px, 10vh, 112px);
+}
+
+.app-cascade-shell > .app-page-title {
+  min-height: 34vh;
+  display: grid;
+  align-content: center;
+}
+
+.app-cascade-shell > .workspace-bar,
+.app-cascade-shell > .metric-grid,
+.app-cascade-shell > .record-list,
+.app-cascade-shell > .upload-layout,
+.app-cascade-shell > .timeline-list,
+.app-cascade-shell > .trends-layout,
+.app-cascade-shell > .grid {
+  margin-bottom: 0;
+}
+
+.app-cascade-shell > .section {
+  min-height: 52vh;
+}
+
+.app-cascade-shell > .metric-grid {
+  align-content: center;
+}
+
 /* ==========================================================================
    Responsive
    ========================================================================== */
@@ -2190,7 +2364,12 @@ button:disabled {
   .trends-layout,
   .liquid-hero,
   .cascade-card,
-  .cascade-card-showcase {
+  .cascade-card-showcase,
+  .cascade-page > .hero,
+  .cascade-page > .section,
+  .cascade-page > .cta-banner,
+  .app-cascade-shell > .upload-layout,
+  .app-cascade-shell > .trends-layout {
     grid-template-columns: 1fr;
   }
 
@@ -2243,6 +2422,28 @@ button:disabled {
   }
 
   .cascade-card {
+    position: relative;
+    top: auto;
+    min-height: auto;
+  }
+
+  .cascade-page,
+  .app-cascade-shell {
+    gap: 32px;
+  }
+
+  .cascade-page > .hero,
+  .cascade-page > .section,
+  .cascade-page > .cta-banner,
+  .app-cascade-shell > .app-page-title,
+  .app-cascade-shell > .workspace-bar,
+  .app-cascade-shell > .metric-grid,
+  .app-cascade-shell > .section,
+  .app-cascade-shell > .record-list,
+  .app-cascade-shell > .upload-layout,
+  .app-cascade-shell > .timeline-list,
+  .app-cascade-shell > .trends-layout,
+  .app-cascade-shell > .grid {
     position: relative;
     top: auto;
     min-height: auto;

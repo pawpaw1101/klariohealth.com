@@ -56,6 +56,62 @@ export function AmbientEffects() {
     };
   }, [pathname]);
 
+  useEffect(() => {
+    let loadingFallback = 0;
+
+    const stopLoading = () => {
+      window.clearTimeout(loadingFallback);
+      cursorRef.current?.classList.remove("is-loading");
+      document.documentElement.classList.remove("is-route-loading");
+    };
+
+    const startLoading = () => {
+      const cursor = cursorRef.current;
+      cursor?.classList.add("is-visible", "is-loading");
+      document.documentElement.classList.add("is-route-loading");
+      window.clearTimeout(loadingFallback);
+      loadingFallback = window.setTimeout(stopLoading, 4500);
+    };
+
+    const onClick = (event: MouseEvent) => {
+      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+      const target = event.target;
+      const link = target instanceof Element ? target.closest<HTMLAnchorElement>("a[href]") : null;
+      if (!link || link.target || link.hasAttribute("download")) return;
+
+      const href = link.getAttribute("href");
+      if (!href || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:")) return;
+
+      const next = new URL(href, window.location.href);
+      const current = new URL(window.location.href);
+      if (next.origin !== current.origin) return;
+      if (next.pathname === current.pathname && next.search === current.search) return;
+
+      startLoading();
+    };
+
+    window.addEventListener("klario:navigation-start", startLoading);
+    window.addEventListener("pageshow", stopLoading);
+    document.addEventListener("click", onClick, true);
+
+    return () => {
+      window.removeEventListener("klario:navigation-start", startLoading);
+      window.removeEventListener("pageshow", stopLoading);
+      document.removeEventListener("click", onClick, true);
+      window.clearTimeout(loadingFallback);
+    };
+  }, []);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      cursorRef.current?.classList.remove("is-loading");
+      document.documentElement.classList.remove("is-route-loading");
+    }, 140);
+
+    return () => window.clearTimeout(timeout);
+  }, [pathname]);
+
   return (
     <>
       <canvas id="klario-webgl" ref={webglRef} aria-hidden="true" />

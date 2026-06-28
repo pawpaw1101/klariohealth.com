@@ -46,7 +46,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </nav>
       </header>
-      <main className="app-shell">{children}</main>
+      <main className="app-shell app-cascade-shell">{children}</main>
     </>
   );
 }

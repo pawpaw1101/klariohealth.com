@@ -13,6 +13,7 @@ export function LoginForm() {
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
+    window.dispatchEvent(new Event("klario:navigation-start"));
     window.setTimeout(() => router.push("/app/dashboard"), 420);
   };
 

@@ -35,7 +35,7 @@ const problemCards = [
 
 export default function AboutPage() {
   return (
-    <main className="content">
+    <main className="content cascade-page">
       <section className="hero">
         <div className="hero-copy">
           <p className="eyebrow"><span className="eyebrow-dot" aria-hidden="true" /> About Klario</p>
