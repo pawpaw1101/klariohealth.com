@@ -4,18 +4,27 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Klario | Medical Report Tracking</title>
+  <meta name="description" content="Klario turns medical reports into clear charts, timelines, and actionable health insights — for you and your whole family.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header class="site-header">
     <nav class="navbar" aria-label="Main navigation">
       <div class="nav-left">
-        <a class="button logo-button" href="index.html">[logo]</a>
-        <a class="button" href="about.html">About</a>
-        <a class="button" href="features.html">Features</a>
+        <a class="logo" href="index.html">
+          <span class="logo-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 15l3-4 3 3 5-7"/></svg>
+          </span>
+          <span class="logo-text">Klario</span>
+        </a>
+        <a class="nav-link" href="about.html">About</a>
+        <a class="nav-link" href="features.html">Features</a>
       </div>
       <div class="nav-right">
-        <a class="button" href="login.html">Try for free</a>
+        <a class="button button-primary" href="login.html">Try for free</a>
       </div>
     </nav>
   </header>
@@ -23,13 +32,26 @@
   <main class="content">
     <section class="hero">
       <div class="hero-copy">
-        <p class="eyebrow">Klario</p>
+        <p class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span> Medical report tracking</p>
         <h1>Medical reports, finally clear.</h1>
-        <p>Klario is a medical report tracking app that helps users upload reports, parse results, follow biomarker changes, and understand their health data over time.</p>
-        <p>Instead of sorting through stacks of old blood tests, Klario keeps reports, charts, timelines, and family records in one place.</p>
+        <p class="hero-lead">Upload lab results once. Klario parses them, plots your biomarkers over time, and explains what changed — so you can see whether your health is improving, not just guess from a stack of PDFs.</p>
         <div class="button-row">
-          <a class="button" href="login.html">Try for free</a>
-          <a class="button" href="features.html">View features</a>
+          <a class="button button-primary" href="login.html">Try for free</a>
+          <a class="button button-secondary" href="features.html">View features</a>
+        </div>
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <span class="hero-stat-value">Upload</span>
+            <span class="hero-stat-label">Photo, PDF, or email</span>
+          </div>
+          <div class="hero-stat">
+            <span class="hero-stat-value">Track</span>
+            <span class="hero-stat-label">Biomarker trends over time</span>
+          </div>
+          <div class="hero-stat">
+            <span class="hero-stat-value">Family</span>
+            <span class="hero-stat-label">Humans and pets, one app</span>
+          </div>
         </div>
       </div>
       <figure class="hero-image">
@@ -38,8 +60,11 @@
     </section>
 
     <section class="section">
-      <h2>Screenshots</h2>
-      <p class="section-intro">Early prototype screens from the iOS app. Some screenshots still show the earlier BioLens name, but the product is now Klario.</p>
+      <div class="section-header">
+        <p class="section-label">Product preview</p>
+        <h2>Screenshots</h2>
+        <p class="section-intro">Early prototype screens from the iOS app. Some still show the earlier BioLens name — the product is now Klario, with the same vision: every report, every trend, in one place.</p>
+      </div>
       <div class="grid screenshot-grid">
         <figure class="screenshot-card">
           <img src="assets/screenshots/klario-dashboard-dark.jpeg" alt="Klario family health workspace dashboard prototype">
@@ -69,35 +94,97 @@
     </section>
 
     <section class="section">
-      <h2>Snapshots of features</h2>
-      <p class="section-intro">The web app should make the same core product visible from a browser: upload reports, review extracted data, track biomarkers, and manage family records.</p>
+      <div class="section-header">
+        <p class="section-label">Why Klario</p>
+        <h2>Snapshots of features</h2>
+        <p class="section-intro">The same core product in your browser: upload reports, review extracted data, track biomarkers, and manage family records without digging through folders.</p>
+      </div>
       <div class="grid feature-grid">
         <article class="card">
+          <span class="feature-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </span>
           <h3>Upload reports</h3>
-          <p>Users can add lab reports by photo, file upload, PDF import, pasted text, or email forwarding.</p>
+          <p>Add lab reports by photo, file upload, PDF import, pasted text, or email forwarding.</p>
         </article>
         <article class="card">
+          <span class="feature-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </span>
           <h3>Track biomarker trends</h3>
-          <p>Klario turns repeated test results into charts so users can see when a value started moving up or down.</p>
+          <p>Turn repeated test results into charts so you can see exactly when a value started moving up or down.</p>
         </article>
         <article class="card">
+          <span class="feature-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </span>
           <h3>Review important changes</h3>
-          <p>Out-of-range labs and ambiguous extracted values can be placed into a review queue before they are saved.</p>
+          <p>Out-of-range labs and ambiguous extracted values go into a review queue before they are saved.</p>
         </article>
         <article class="card">
+          <span class="feature-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </span>
           <h3>Understand the record</h3>
-          <p>Plain-language explanations help users understand what a record means and why it may matter.</p>
+          <p>Plain-language explanations help you understand what a result means and why it may matter.</p>
         </article>
         <article class="card">
+          <span class="feature-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </span>
           <h3>Family tracking</h3>
-          <p>Users can manage records for parents, children, partners, and pets from one account.</p>
+          <p>Manage records for parents, children, partners, and pets from one account.</p>
         </article>
         <article class="card">
+          <span class="feature-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </span>
           <h3>Long-term history</h3>
           <p>A timeline keeps reports, visits, medications, vaccines, and lab panels in chronological order.</p>
         </article>
       </div>
     </section>
+
+    <section class="cta-banner">
+      <h2>See your health story, not just the latest report.</h2>
+      <p>Start tracking biomarkers, building timelines, and organizing family records — free to try.</p>
+      <div class="button-row">
+        <a class="button button-primary" href="login.html">Try for free</a>
+        <a class="button button-secondary" href="about.html">Our story</a>
+      </div>
+    </section>
   </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <a class="logo" href="index.html">
+          <span class="logo-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 15l3-4 3 3 5-7"/></svg>
+          </span>
+          <span class="logo-text">Klario</span>
+        </a>
+        <p>Medical report tracking that turns scattered lab results into clear timelines, trends, and family health insights.</p>
+      </div>
+      <div>
+        <p class="footer-heading">Product</p>
+        <ul class="footer-links">
+          <li><a href="features.html">Features</a></li>
+          <li><a href="about.html">About</a></li>
+          <li><a href="login.html">Try for free</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="footer-heading">Prototype</p>
+        <ul class="footer-links">
+          <li><a href="app/dashboard.html">Web app</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 Klario. For organization and education — not a substitute for professional medical advice.</p>
+    </div>
+  </footer>
+  <script src="js/klario-effects.js" defer></script>
 </body>
 </html>
