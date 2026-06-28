@@ -1,15 +1,17 @@
 import Link from "next/link";
-import { BioIcon } from "@/components/bio-icon";
+import type { MouseEventHandler } from "react";
+import { NavIcon } from "@/components/nav-icon";
 
 type BrandProps = {
   href?: string;
+  onClick?: MouseEventHandler<HTMLAnchorElement>;
 };
 
-export function Brand({ href = "/" }: BrandProps) {
+export function Brand({ href = "/", onClick }: BrandProps) {
   return (
-    <Link className="logo" href={href} aria-label="Klario home">
+    <Link className="logo" href={href} onClick={onClick} aria-label="Klario home">
       <span className="logo-mark" aria-hidden="true">
-        <BioIcon name="icon_signal_insights" size={20} />
+        <NavIcon name="logo" size={20} />
       </span>
       <span className="logo-text">Klario</span>
     </Link>

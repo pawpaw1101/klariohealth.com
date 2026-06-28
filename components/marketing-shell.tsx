@@ -1,35 +1,73 @@
 "use client";
 
+import { MouseEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { publicNav } from "@/lib/klario-data";
-import { BioIcon } from "@/components/bio-icon";
 import { Brand } from "@/components/brand";
+import { NavIcon, type NavIconName } from "@/components/nav-icon";
 
 export function MarketingShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const navItems = [
-    { label: "Home", href: "/", icon: "icon_tab_dashboard" },
-    ...publicNav.map((item) => ({ ...item, icon: item.href === "/about" ? "icon_family_header" : "icon_signal_insights" })),
-    { label: "App", href: "/app/dashboard", icon: "icon_doc_import_panel" }
+  const [homeNavActive, setHomeNavActive] = useState(false);
+  const navItems: Array<{ label: string; href: string; icon: NavIconName }> = [
+    { label: "Home", href: "/#cascade", icon: "home" },
+    ...publicNav.map((item) => ({ ...item, icon: item.href === "/about" ? "info" as const : "sparkles" as const })),
+    { label: "App", href: "/app/dashboard", icon: "app" }
   ];
+
+  useEffect(() => {
+    if (pathname !== "/") {
+      setHomeNavActive(false);
+      return;
+    }
+
+    const updateHomeState = () => {
+      const cascade = document.getElementById("cascade");
+      setHomeNavActive(Boolean(cascade && cascade.getBoundingClientRect().top <= 120));
+    };
+
+    updateHomeState();
+    window.addEventListener("scroll", updateHomeState, { passive: true });
+    window.addEventListener("resize", updateHomeState);
+    window.addEventListener("hashchange", updateHomeState);
+
+    return () => {
+      window.removeEventListener("scroll", updateHomeState);
+      window.removeEventListener("resize", updateHomeState);
+      window.removeEventListener("hashchange", updateHomeState);
+    };
+  }, [pathname]);
+
+  const handleLogoClick = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (pathname !== "/") return;
+
+    event.preventDefault();
+    window.history.replaceState(null, "", "/");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    setHomeNavActive(false);
+  };
 
   return (
     <>
       <header className="site-header floating-glass-nav">
         <nav className="navbar" aria-label="Main navigation">
           <div className="nav-left">
-            <Brand />
-            {navItems.map((item) => (
-              <Link key={item.href} className={`nav-link${pathname === item.href ? " is-active" : ""}`} href={item.href} title={item.label}>
-                <BioIcon name={item.icon} size={17} />
-                <span className="nav-label">{item.label}</span>
-              </Link>
-            ))}
+            <Brand onClick={handleLogoClick} />
+            {navItems.map((item) => {
+              const isActive = item.href === "/#cascade" ? pathname === "/" && homeNavActive : pathname === item.href;
+
+              return (
+                <Link key={item.href} className={`nav-link${isActive ? " is-active" : ""}`} href={item.href} title={item.label}>
+                  <NavIcon name={item.icon} size={17} />
+                  <span className="nav-label">{item.label}</span>
+                </Link>
+              );
+            })}
           </div>
           <div className="nav-right">
             <Link className={`button button-primary nav-action${pathname === "/login" ? " is-active" : ""}`} href="/login" title="Try for free">
-              <BioIcon name="icon_action_continue" size={17} />
+              <NavIcon name="arrow" size={17} />
               <span className="nav-label">Try for free</span>
             </Link>
           </div>
@@ -39,7 +77,7 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
       <footer className="site-footer">
         <div className="footer-inner">
           <div className="footer-brand">
-            <Brand />
+            <Brand onClick={handleLogoClick} />
             <p>Medical report tracking that turns scattered lab results into clear timelines, trends, and family health insights.</p>
           </div>
           <div>

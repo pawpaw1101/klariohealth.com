@@ -305,13 +305,20 @@ function initCursor(cursor: HTMLDivElement, mouse: MouseState, disabled: boolean
   let cy = 0;
   let tx = window.innerWidth / 2;
   let ty = window.innerHeight / 2;
-  let raf = 0;
+
+  const render = () => {
+    cx = tx;
+    cy = ty;
+    cursor.style.transform = `translate(${cx}px, ${cy}px)`;
+  };
 
   const onMove = (event: MouseEvent) => {
     tx = event.clientX;
     ty = event.clientY;
     mouse.x = event.clientX / window.innerWidth;
     mouse.y = event.clientY / window.innerHeight;
+    cursor.classList.add("is-visible");
+    render();
   };
 
   const onOver = (event: MouseEvent) => {
@@ -320,19 +327,10 @@ function initCursor(cursor: HTMLDivElement, mouse: MouseState, disabled: boolean
     cursor.classList.toggle("is-hover", isHovering);
   };
 
-  const tick = () => {
-    raf = requestAnimationFrame(tick);
-    cx += (tx - cx) * 0.14;
-    cy += (ty - cy) * 0.14;
-    cursor.style.transform = `translate(${cx}px, ${cy}px)`;
-  };
-
   document.addEventListener("mousemove", onMove);
   document.addEventListener("mouseover", onOver);
-  tick();
 
   return () => {
-    cancelAnimationFrame(raf);
     document.removeEventListener("mousemove", onMove);
     document.removeEventListener("mouseover", onOver);
   };

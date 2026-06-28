@@ -57,7 +57,7 @@ const showcaseItems = [
 export default function HomePage() {
   return (
     <main className="liquid-page">
-      <section className="liquid-hero" aria-labelledby="home-hero-title">
+      <section className="liquid-hero" id="hero" aria-labelledby="home-hero-title">
         <FluidHeroCanvas />
         <div className="liquid-hero-sheen" aria-hidden="true" />
         <div className="liquid-hero-copy">
