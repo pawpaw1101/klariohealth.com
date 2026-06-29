@@ -444,7 +444,7 @@ img {
 }
 
 .nav-icon {
-  display: inline-block;
+  display: block;
   flex: 0 0 auto;
 }
 
@@ -649,6 +649,7 @@ li + li {
 }
 
 .logo-mark svg {
+  display: block;
   width: 20px;
   height: 20px;
 }
@@ -1895,6 +1896,7 @@ button:disabled {
   justify-content: center;
   border-radius: 50%;
   padding: 0;
+  line-height: 0;
 }
 
 .floating-glass-nav .nav-left,
@@ -2478,11 +2480,11 @@ button:disabled {
 
 .app-cascade-shell {
   display: grid;
-  gap: clamp(30px, 7vh, 84px);
+  gap: clamp(12px, 2.5vh, 28px);
 }
 
 .app-cascade-shell > .app-page-title {
-  min-height: 34vh;
+  min-height: auto;
   display: grid;
   align-content: center;
 }
@@ -2498,7 +2500,7 @@ button:disabled {
 }
 
 .app-cascade-shell > .section {
-  min-height: 52vh;
+  min-height: auto;
 }
 
 .app-cascade-shell > .metric-grid {
@@ -2586,6 +2588,10 @@ button:disabled {
     gap: 32px;
   }
 
+  .app-cascade-shell {
+    gap: 14px;
+  }
+
   .cascade-page > .hero,
   .cascade-page > .section,
   .cascade-page > .cta-banner,
@@ -2650,10 +2656,12 @@ button:disabled {
 
   .mobile-nav-head .logo {
     margin: 0;
+    align-self: center;
   }
 
   .mobile-nav-toggle {
     display: inline-flex;
+    align-self: center;
   }
 
   .floating-glass-nav .logo {
