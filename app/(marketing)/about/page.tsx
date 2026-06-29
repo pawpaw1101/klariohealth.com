@@ -51,21 +51,40 @@ export default function AboutPage() {
       </section>
 
       <section className="section">
-        <div className="story-block">
-          <h2>Who we are</h2>
+        <div className="story-block story-block-rich story-block-who">
+          <div className="story-card-heading">
+            <span className="feature-icon" aria-hidden="true"><BioIcon name="icon_signal_confidence" size={24} /></span>
+            <p className="section-label">Who we are</p>
+            <h2>Personal health records, made easier to follow.</h2>
+          </div>
           <div className="story-block-content">
             <p>Klario is being built for people who want a clearer view of their health records without manually comparing every report line by line.</p>
             <p>The product brings report storage, parsing, timelines, family profiles, and understandable insights into one app, designed for everyday tracking, not clinical complexity.</p>
+            <div className="story-pill-row" aria-label="Klario focus areas">
+              <span>Reports</span>
+              <span>Trends</span>
+              <span>Family profiles</span>
+              <span>Plain-language context</span>
+            </div>
           </div>
         </div>
       </section>
 
       <section className="section">
-        <div className="story-block">
-          <h2>How we started</h2>
+        <div className="story-block story-block-rich story-block-started">
+          <div className="story-card-heading">
+            <span className="feature-icon" aria-hidden="true"><BioIcon name="icon_tab_trends" size={24} /></span>
+            <p className="section-label">How we started</p>
+            <h2>One family question became the product brief.</h2>
+          </div>
           <div className="story-block-content">
             <p>The idea came from a cofounder trying to find the exact moment an aging parent's blood sugar started spiking.</p>
             <p>That meant sorting through hundreds of blood tests and trying to remember small details that could have major consequences. Klario was created so that kind of answer can be found with a chart, a timeline, and the right context.</p>
+            <div className="story-timeline" aria-label="How the need became Klario">
+              <span>Scattered tests</span>
+              <span>Manual comparison</span>
+              <span>Clear timeline</span>
+            </div>
           </div>
         </div>
       </section>
@@ -88,11 +107,18 @@ export default function AboutPage() {
       </section>
 
       <section className="section">
-        <div className="story-block">
-          <h2>Our solution</h2>
+        <div className="story-block story-block-rich story-block-solution">
+          <div className="story-card-heading">
+            <span className="feature-icon" aria-hidden="true"><BioIcon name="icon_signal_insights" size={24} /></span>
+            <p className="section-label">Our solution</p>
+            <h2>Turn every report into something you can act on.</h2>
+          </div>
           <div className="story-block-content">
             <p>Klario lets users upload medical reports, extracts the key values, plots them over time, and gives understandable explanations so users can see what changed and when.</p>
             <p>It is built for personal tracking and family organization. Klario is educational and organizational support, not a replacement for professional medical advice.</p>
+            <div className="solution-flow" aria-label="Klario workflow">
+              {["Upload", "Extract", "Review", "Track"].map((step) => <span key={step}>{step}</span>)}
+            </div>
             <div className="button-row">
               <Link className="button button-primary" href="/features">Explore features</Link>
               <Link className="button button-secondary" href="/login">Try for free</Link>

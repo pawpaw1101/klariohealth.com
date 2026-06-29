@@ -10,6 +10,7 @@ import { NavIcon, type NavIconName } from "@/components/nav-icon";
 export function MarketingShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [homeNavActive, setHomeNavActive] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const navItems: Array<{ label: string; href: string; icon: NavIconName }> = [
     { label: "Home", href: "/#cascade", icon: "home" },
     ...publicNav.map((item) => ({ ...item, icon: item.href === "/about" ? "info" as const : "sparkles" as const })),
@@ -17,6 +18,8 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
   ];
 
   useEffect(() => {
+    setMenuOpen(false);
+
     if (pathname !== "/") {
       setHomeNavActive(false);
       return;
@@ -40,6 +43,8 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
   }, [pathname]);
 
   const handleLogoClick = (event: MouseEvent<HTMLAnchorElement>) => {
+    setMenuOpen(false);
+
     if (pathname !== "/") return;
 
     event.preventDefault();
@@ -50,15 +55,27 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <header className="site-header floating-glass-nav">
+      <header className={`site-header floating-glass-nav${menuOpen ? " is-mobile-open" : ""}`}>
         <nav className="navbar" aria-label="Main navigation">
+          <div className="mobile-nav-head">
+            <Brand onClick={handleLogoClick} />
+            <button
+              className="mobile-nav-toggle"
+              type="button"
+              aria-expanded={menuOpen}
+              aria-label={menuOpen ? "Close navigation" : "Open navigation"}
+              onClick={() => setMenuOpen((current) => !current)}
+            >
+              <NavIcon name={menuOpen ? "close" : "menu"} size={20} />
+            </button>
+          </div>
           <div className="nav-left">
             <Brand onClick={handleLogoClick} />
             {navItems.map((item) => {
               const isActive = item.href === "/#cascade" ? pathname === "/" && homeNavActive : pathname === item.href;
 
               return (
-                <Link key={item.href} className={`nav-link${isActive ? " is-active" : ""}`} href={item.href} title={item.label}>
+                <Link key={item.href} className={`nav-link${isActive ? " is-active" : ""}`} href={item.href} title={item.label} onClick={() => setMenuOpen(false)}>
                   <NavIcon name={item.icon} size={17} />
                   <span className="nav-label">{item.label}</span>
                 </Link>
@@ -66,7 +83,7 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
             })}
           </div>
           <div className="nav-right">
-            <Link className={`button button-primary nav-action${pathname === "/login" ? " is-active" : ""}`} href="/login" title="Try for free">
+            <Link className={`button button-primary nav-action${pathname === "/login" ? " is-active" : ""}`} href="/login" title="Try for free" onClick={() => setMenuOpen(false)}>
               <NavIcon name="arrow" size={17} />
               <span className="nav-label">Try for free</span>
             </Link>

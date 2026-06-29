@@ -380,7 +380,9 @@ function initCursor(cursor: HTMLDivElement, mouse: MouseState, disabled: boolean
   const onOver = (event: MouseEvent) => {
     const target = event.target;
     const isHovering = target instanceof Element && Boolean(target.closest("a, button, .button, .card, .screenshot-card, .metric, .record, input, textarea, select, label"));
+    const isOnHero = target instanceof Element && Boolean(target.closest(".liquid-hero, .hero"));
     cursor.classList.toggle("is-hover", isHovering);
+    cursor.classList.toggle("is-on-hero", isOnHero);
   };
 
   document.addEventListener("mousemove", onMove);

@@ -146,9 +146,9 @@ html:not(.is-touch) label {
   width: 16px;
   height: 16px;
   margin: -8px 0 0 -8px;
-  border: 1.5px solid rgba(20, 184, 166, 0.58);
+  border: 1.5px solid rgba(13, 148, 136, 0.86);
   border-radius: 50%;
-  background: rgba(20, 184, 166, 0.06);
+  background: rgba(255, 255, 255, 0.5);
   opacity: 0;
   pointer-events: none;
   transition:
@@ -158,7 +158,9 @@ html:not(.is-touch) label {
     margin 0.18s ease,
     border-color 0.18s ease,
     background 0.18s ease;
-  mix-blend-mode: multiply;
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.72),
+    0 8px 26px rgba(15, 23, 42, 0.22);
   will-change: transform;
 }
 
@@ -172,6 +174,19 @@ html:not(.is-touch) label {
   margin: -15px 0 0 -15px;
   border-color: rgba(13, 148, 136, 0.75);
   background: rgba(45, 212, 191, 0.08);
+}
+
+#klario-cursor.is-on-hero {
+  border-color: rgba(255, 255, 255, 0.96);
+  background: rgba(20, 184, 166, 0.38);
+  box-shadow:
+    0 0 0 2px rgba(13, 148, 136, 0.7),
+    0 0 28px rgba(255, 255, 255, 0.45);
+}
+
+#klario-cursor.is-on-hero.is-hover {
+  border-color: rgba(255, 255, 255, 1);
+  background: rgba(20, 184, 166, 0.28);
 }
 
 #klario-cursor.is-loading {
@@ -997,6 +1012,130 @@ button[type="submit"]:hover {
   margin-top: 16px;
 }
 
+.story-block-rich {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  grid-template-columns: minmax(260px, 0.82fr) minmax(0, 1.18fr);
+  align-items: center;
+  border-color: rgba(20, 184, 166, 0.14);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(240, 253, 250, 0.58)),
+    rgba(255, 255, 255, 0.92);
+}
+
+.story-block-rich::before {
+  content: "";
+  position: absolute;
+  inset: auto -12% -28% 42%;
+  z-index: -1;
+  height: 62%;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(20, 184, 166, 0.2), transparent 64%);
+  pointer-events: none;
+}
+
+.story-block-started {
+  background:
+    linear-gradient(135deg, rgba(239, 246, 255, 0.82), rgba(255, 255, 255, 0.92)),
+    rgba(255, 255, 255, 0.9);
+}
+
+.story-block-solution {
+  background:
+    linear-gradient(135deg, rgba(236, 253, 245, 0.88), rgba(239, 246, 255, 0.84)),
+    rgba(255, 255, 255, 0.92);
+}
+
+.story-card-heading {
+  display: grid;
+  align-content: start;
+  justify-items: start;
+}
+
+.story-card-heading .feature-icon {
+  margin-bottom: 20px;
+  background: rgba(20, 184, 166, 0.12);
+}
+
+.story-card-heading .section-label {
+  margin-bottom: 12px;
+}
+
+.story-card-heading h2 {
+  max-width: 12ch;
+  font-size: clamp(2rem, 4vw, 4.3rem);
+  line-height: 1;
+}
+
+.story-pill-row,
+.solution-flow,
+.story-timeline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.solution-flow {
+  counter-reset: solution-step;
+}
+
+.story-pill-row span,
+.solution-flow span,
+.story-timeline span {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  border: 1px solid rgba(20, 184, 166, 0.2);
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.72);
+  padding: 8px 12px;
+  color: var(--color-teal-900);
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.story-timeline {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.story-timeline::before {
+  content: "";
+  position: absolute;
+  top: 17px;
+  right: 10%;
+  left: 10%;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(20, 184, 166, 0.24), rgba(59, 130, 246, 0.3));
+}
+
+.story-timeline span {
+  position: relative;
+  justify-content: center;
+}
+
+.solution-flow span {
+  counter-increment: solution-step;
+}
+
+.solution-flow span::before {
+  content: counter(solution-step);
+  display: inline-grid;
+  width: 22px;
+  height: 22px;
+  margin-right: 8px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-teal-600);
+  color: var(--color-white);
+  font-size: 0.72rem;
+}
+
 /* ==========================================================================
    CTA Banner
    ========================================================================== */
@@ -1743,6 +1882,21 @@ button:disabled {
   padding: 10px 12px;
 }
 
+.mobile-nav-head {
+  display: none;
+}
+
+.mobile-nav-toggle {
+  display: none;
+  width: 42px;
+  height: 42px;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  padding: 0;
+}
+
 .floating-glass-nav .nav-left,
 .floating-glass-nav .nav-right,
 .floating-glass-nav .app-nav {
@@ -1838,7 +1992,7 @@ button:disabled {
 .liquid-page {
   position: relative;
   z-index: 1;
-  padding: 14px 14px 144px;
+  padding: 14px 14px 112px;
 }
 
 .liquid-hero {
@@ -2047,11 +2201,11 @@ button:disabled {
 .cascade-stack {
   position: relative;
   display: grid;
-  gap: 18vh;
+  gap: clamp(28px, 8vh, 86px);
   width: 100%;
   max-width: none;
-  margin: 18vh auto 0;
-  padding-bottom: 14vh;
+  margin: clamp(34px, 7vh, 82px) auto 0;
+  padding-bottom: clamp(48px, 7vh, 88px);
 }
 
 .cascade-card {
@@ -2223,9 +2377,9 @@ button:disabled {
 
 .cascade-page {
   display: grid;
-  gap: 18vh;
+  gap: clamp(32px, 8vh, 88px);
   max-width: none;
-  padding: 14px clamp(14px, 2vw, 32px) 144px;
+  padding: 14px clamp(14px, 2vw, 32px) 112px;
 }
 
 .cascade-page > .hero,
@@ -2324,7 +2478,7 @@ button:disabled {
 
 .app-cascade-shell {
   display: grid;
-  gap: clamp(36px, 10vh, 112px);
+  gap: clamp(30px, 7vh, 84px);
 }
 
 .app-cascade-shell > .app-page-title {
@@ -2450,8 +2604,8 @@ button:disabled {
   }
 
   .cascade-stack {
-    gap: 32px;
-    margin-top: 32px;
+    gap: 22px;
+    margin-top: 22px;
   }
 }
 
@@ -2474,55 +2628,101 @@ button:disabled {
   .floating-glass-nav {
     bottom: 12px;
     border-radius: 22px;
+    width: min(390px, calc(100% - 24px));
   }
 
   .floating-glass-nav .navbar {
     min-height: 0;
     padding: 9px;
-    overflow-x: auto;
-    flex-direction: row;
+    overflow: visible;
+    flex-direction: column-reverse;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 8px;
+  }
+
+  .mobile-nav-head {
+    display: flex;
     align-items: center;
-    justify-content: flex-start;
-    scrollbar-width: none;
+    justify-content: space-between;
+    gap: 10px;
   }
 
-  .floating-glass-nav .navbar::-webkit-scrollbar {
-    display: none;
+  .mobile-nav-head .logo {
+    margin: 0;
   }
 
-  .floating-glass-nav .nav-left,
-  .floating-glass-nav .nav-right,
-  .floating-glass-nav .app-nav {
-    width: auto;
-    flex: 0 0 auto;
-    overflow-x: auto;
-    justify-content: flex-start;
-    scrollbar-width: none;
-  }
-
-  .floating-glass-nav .nav-left::-webkit-scrollbar,
-  .floating-glass-nav .nav-right::-webkit-scrollbar,
-  .floating-glass-nav .app-nav::-webkit-scrollbar {
-    display: none;
+  .mobile-nav-toggle {
+    display: inline-flex;
   }
 
   .floating-glass-nav .logo {
     flex: 0 0 auto;
-    margin-left: 42px;
+    margin-left: 0;
     margin-right: 0;
+  }
+
+  .floating-glass-nav .nav-left > .logo,
+  .floating-glass-nav .app-nav > .logo {
+    display: none;
   }
 
   .floating-glass-nav .logo-text {
     display: none;
   }
 
+  .floating-glass-nav .nav-left,
+  .floating-glass-nav .nav-right,
+  .floating-glass-nav .app-nav {
+    width: 100%;
+    max-height: 0;
+    overflow: hidden;
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 7px;
+    opacity: 0;
+    transform: translateY(8px);
+    transition:
+      max-height 280ms cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 180ms ease,
+      transform 220ms ease;
+  }
+
+  .floating-glass-nav.is-mobile-open .nav-left,
+  .floating-glass-nav.is-mobile-open .nav-right,
+  .floating-glass-nav.is-mobile-open .app-nav {
+    max-height: 520px;
+    opacity: 1;
+    transform: translateY(0);
+  }
+
   .floating-glass-nav .nav-link,
-  .floating-glass-nav .button {
+  .floating-glass-nav .button,
+  .floating-glass-nav .nav-action {
+    width: 100%;
+    max-width: none;
+    min-height: 44px;
+    justify-content: flex-start;
     flex: 0 0 auto;
   }
 
+  .floating-glass-nav .nav-label,
+  .floating-glass-nav .nav-link.is-active .nav-label,
+  .floating-glass-nav .nav-action.is-active .nav-label {
+    max-width: 180px;
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .floating-glass-nav:not(.is-mobile-open) .nav-link,
+  .floating-glass-nav:not(.is-mobile-open) .nav-action {
+    pointer-events: none;
+  }
+
   .liquid-page {
-    padding: 10px 10px 132px;
+    padding: 10px 10px 116px;
   }
 
   .liquid-hero {
@@ -2604,6 +2804,22 @@ button:disabled {
 
   .story-block {
     padding: 24px;
+  }
+
+  .story-block-rich {
+    gap: 24px;
+  }
+
+  .story-card-heading h2 {
+    max-width: 14ch;
+  }
+
+  .story-timeline {
+    grid-template-columns: 1fr;
+  }
+
+  .story-timeline::before {
+    display: none;
   }
 
   .footer-inner {

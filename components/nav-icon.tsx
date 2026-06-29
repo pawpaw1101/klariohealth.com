@@ -12,6 +12,8 @@ export type NavIconName =
   | "info"
   | "logo"
   | "logout"
+  | "menu"
+  | "close"
   | "sparkles"
   | "trends"
   | "upload"
@@ -122,6 +124,19 @@ const paths: Record<NavIconName, ReactNode> = {
       <path d="M15 12H3" />
       <path d="M21 19V5a2 2 0 0 0-2-2h-5" />
       <path d="M14 21h5a2 2 0 0 0 2-2" />
+    </>
+  ),
+  menu: (
+    <>
+      <path d="M4 7h16" />
+      <path d="M4 12h16" />
+      <path d="M4 17h16" />
+    </>
+  ),
+  close: (
+    <>
+      <path d="M6 6 18 18" />
+      <path d="m18 6-12 12" />
     </>
   ),
   sparkles: (
