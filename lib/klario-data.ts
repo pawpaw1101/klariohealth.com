@@ -9,6 +9,8 @@ export const appNav = [
   { label: "Upload", href: "/app/upload" },
   { label: "Timeline", href: "/app/timeline" },
   { label: "Trends", href: "/app/trends" },
+  { label: "Attention", href: "/app/attention" },
+  { label: "Invites", href: "/app/invites" },
   { label: "Family", href: "/app/family" }
 ];
 

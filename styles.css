@@ -120,22 +120,31 @@ body {
   z-index: 0;
 }
 
+#klario-webgl.is-home-hidden {
+  display: none;
+}
+
 /* ==========================================================================
    Custom Cursor
    ========================================================================== */
 
-html:not(.is-touch) {
+html.has-custom-cursor:not(.is-touch) {
   cursor: none;
 }
 
-html:not(.is-touch) a,
-html:not(.is-touch) button,
-html:not(.is-touch) .button,
-html:not(.is-touch) input,
-html:not(.is-touch) textarea,
-html:not(.is-touch) select,
-html:not(.is-touch) label {
+html.has-custom-cursor:not(.is-touch) a,
+html.has-custom-cursor:not(.is-touch) button,
+html.has-custom-cursor:not(.is-touch) .button,
+html.has-custom-cursor:not(.is-touch) input,
+html.has-custom-cursor:not(.is-touch) textarea,
+html.has-custom-cursor:not(.is-touch) select,
+html.has-custom-cursor:not(.is-touch) label {
   cursor: none;
+}
+
+html:not(.has-custom-cursor) .liquid-hero,
+html:not(.has-custom-cursor) .liquid-hero * {
+  cursor: default;
 }
 
 #klario-cursor {
@@ -1482,6 +1491,40 @@ textarea {
   margin: 4px 0 0;
 }
 
+.app-status-banner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border: 1px solid rgba(37, 99, 235, 0.16);
+  border-radius: var(--radius-lg);
+  background: rgba(239, 246, 255, 0.82);
+  padding: 16px 18px;
+  color: var(--text-secondary);
+  box-shadow: var(--shadow-xs);
+}
+
+.app-status-banner strong {
+  display: block;
+  color: var(--text-primary);
+}
+
+.app-status-banner p {
+  margin: 4px 0 0;
+}
+
+.app-status-banner.is-signed-out,
+.app-status-banner.is-offline {
+  border-color: rgba(249, 115, 22, 0.2);
+  background: rgba(255, 247, 237, 0.86);
+}
+
+.app-disclaimer {
+  text-align: center;
+}
+
 .control-label {
   display: block;
   margin-bottom: 8px;
@@ -1558,6 +1601,16 @@ textarea {
   border-color: rgba(20, 184, 166, 0.2);
   background: var(--color-teal-50);
   color: var(--color-teal-800);
+}
+
+.form-alert {
+  margin: 0;
+  border: 1px solid rgba(249, 115, 22, 0.22);
+  border-radius: var(--radius-sm);
+  background: var(--color-coral-soft);
+  padding: 10px 12px;
+  color: #c2410c;
+  font-size: 0.875rem;
 }
 
 .record-meta {
@@ -2006,11 +2059,43 @@ button:disabled {
   align-items: center;
   border: 1px solid rgba(255, 255, 255, 0.48);
   border-radius: 30px;
-  background: var(--color-slate-950);
+  background:
+    linear-gradient(105deg, #07101d 0%, #173940 28%, #21918a 58%, #b4ddce 100%);
   padding: clamp(28px, 5vw, 72px);
   box-shadow: 0 28px 90px rgba(15, 23, 42, 0.18);
   color: var(--color-white);
   isolation: isolate;
+}
+
+.liquid-hero::before,
+.liquid-hero::after {
+  content: "";
+  position: absolute;
+  inset: -12%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.liquid-hero::before {
+  background:
+    radial-gradient(circle at 58% 42%, rgba(184, 229, 214, 0.52), rgba(184, 229, 214, 0.04) 34%, transparent 62%),
+    radial-gradient(circle at 82% 18%, rgba(151, 230, 213, 0.44), rgba(151, 230, 213, 0) 34%),
+    radial-gradient(circle at 38% 76%, rgba(29, 152, 148, 0.5), rgba(29, 152, 148, 0) 42%),
+    linear-gradient(100deg, rgba(3, 7, 18, 0.88), rgba(4, 47, 46, 0.62) 26%, rgba(18, 131, 125, 0.48) 52%, rgba(205, 233, 218, 0.72));
+  filter: saturate(1.08);
+  transform: translate3d(0, 0, 0) scale(1.02);
+  animation: liquidHeroWash 9s linear infinite;
+  will-change: transform, filter;
+}
+
+.liquid-hero::after {
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 760' preserveAspectRatio='none'%3E%3Cfilter id='b'%3E%3CfeGaussianBlur stdDeviation='.9'/%3E%3C/filter%3E%3Cg fill='none' stroke='%23b9fff0' stroke-linecap='round' filter='url(%23b)'%3E%3Cpath opacity='.14' stroke-width='3' d='M-190 78 C8 26 134 50 286 -6 S548 -54 706 4 S990 96 1370 -16'/%3E%3Cpath opacity='.17' stroke-width='3.5' d='M-188 126 C16 72 142 96 300 38 S560 -12 720 48 S1002 142 1368 28'/%3E%3Cpath opacity='.2' stroke-width='4' d='M-184 174 C24 118 154 142 312 82 S574 34 736 94 S1014 190 1362 74'/%3E%3Cpath opacity='.23' stroke-width='4.5' d='M-180 224 C34 166 166 188 328 128 S586 82 752 144 S1026 238 1360 122'/%3E%3Cpath opacity='.26' stroke-width='5' d='M-176 274 C42 214 180 236 344 176 S604 132 768 194 S1042 288 1358 172'/%3E%3Cpath opacity='.28' stroke-width='5.5' d='M-174 326 C50 264 194 286 360 226 S620 184 786 244 S1058 338 1362 224'/%3E%3Cpath opacity='.3' stroke-width='6' d='M-174 380 C52 316 210 338 378 278 S638 238 804 298 S1074 392 1368 280'/%3E%3Cpath opacity='.28' stroke-width='5.5' d='M-176 434 C50 370 226 392 396 334 S656 292 824 352 S1090 446 1372 336'/%3E%3Cpath opacity='.26' stroke-width='5' d='M-180 488 C46 424 238 448 414 390 S676 350 844 408 S1108 500 1378 394'/%3E%3Cpath opacity='.23' stroke-width='4.5' d='M-184 544 C40 478 250 506 432 448 S696 408 866 464 S1126 558 1384 454'/%3E%3Cpath opacity='.2' stroke-width='4' d='M-188 600 C34 534 264 564 452 508 S716 470 888 524 S1142 614 1390 516'/%3E%3Cpath opacity='.16' stroke-width='3.5' d='M-192 656 C28 590 280 624 472 570 S740 532 912 586 S1162 672 1396 580'/%3E%3Cpath opacity='.13' stroke-width='3' d='M-196 714 C22 650 296 686 494 634 S764 596 936 648 S1184 730 1402 646'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: cover;
+  opacity: 0.96;
+  transform: translate3d(-2%, -4%, 0) scale(1.14) rotate(-13deg);
+  animation: liquidHeroContours 11s linear infinite;
+  will-change: transform;
 }
 
 .fluid-hero-canvas,
@@ -2019,20 +2104,25 @@ button:disabled {
   inset: 0;
   width: 100%;
   height: 100%;
+  pointer-events: none;
 }
 
 .fluid-hero-canvas {
-  z-index: -3;
+  z-index: 1;
+  opacity: 0.86;
+  mix-blend-mode: soft-light;
 }
 
 .liquid-hero-sheen {
-  z-index: -2;
+  z-index: 2;
   background:
-    linear-gradient(90deg, rgba(2, 6, 23, 0.78), rgba(2, 6, 23, 0.36) 42%, rgba(2, 6, 23, 0.08)),
-    linear-gradient(0deg, rgba(2, 6, 23, 0.38), rgba(2, 6, 23, 0) 42%);
+    linear-gradient(90deg, rgba(2, 6, 23, 0.52), rgba(2, 6, 23, 0.22) 25%, rgba(2, 6, 23, 0.05) 54%, rgba(2, 6, 23, 0)),
+    linear-gradient(0deg, rgba(2, 6, 23, 0.14), rgba(2, 6, 23, 0) 52%);
 }
 
 .liquid-hero-copy {
+  position: relative;
+  z-index: 3;
   align-self: center;
   max-width: 760px;
 }
@@ -2055,7 +2145,7 @@ button:disabled {
   position: absolute;
   right: clamp(24px, 4vw, 56px);
   bottom: clamp(28px, 5vw, 56px);
-  z-index: 2;
+  z-index: 4;
   display: inline-flex;
   width: 52px;
   height: 52px;
@@ -2091,6 +2181,55 @@ button:disabled {
       0 0 0 10px rgba(255, 255, 255, 0.08),
       inset 0 1px 0 rgba(255, 255, 255, 0.48);
     transform: rotate(90deg) translateX(5px);
+  }
+}
+
+@keyframes liquidHeroWash {
+  0% {
+    transform: translate3d(-1.5%, -1%, 0) scale(1.04);
+    filter: saturate(1.04) hue-rotate(-4deg);
+  }
+
+  25% {
+    transform: translate3d(0.8%, -0.4%, 0) scale(1.07);
+    filter: saturate(1.14) hue-rotate(1deg);
+  }
+
+  50% {
+    transform: translate3d(2.2%, 1.1%, 0) scale(1.09);
+    filter: saturate(1.18) hue-rotate(4deg);
+  }
+
+  75% {
+    transform: translate3d(0.2%, 1.8%, 0) scale(1.06);
+    filter: saturate(1.1) hue-rotate(8deg);
+  }
+
+  100% {
+    transform: translate3d(-1.5%, -1%, 0) scale(1.04);
+    filter: saturate(1.04) hue-rotate(-4deg);
+  }
+}
+
+@keyframes liquidHeroContours {
+  0% {
+    transform: translate3d(-4%, -5%, 0) scale(1.17) rotate(-13deg);
+  }
+
+  25% {
+    transform: translate3d(-2%, -3.4%, 0) scale(1.19) rotate(-12deg);
+  }
+
+  50% {
+    transform: translate3d(1.5%, -4%, 0) scale(1.21) rotate(-11deg);
+  }
+
+  75% {
+    transform: translate3d(-1%, -6%, 0) scale(1.18) rotate(-14deg);
+  }
+
+  100% {
+    transform: translate3d(-4%, -5%, 0) scale(1.17) rotate(-13deg);
   }
 }
 
@@ -2388,6 +2527,7 @@ button:disabled {
 .cascade-page > .section,
 .cascade-page > .cta-banner,
 .app-cascade-shell > .app-page-title,
+.app-cascade-shell > .app-status-banner,
 .app-cascade-shell > .workspace-bar,
 .app-cascade-shell > .metric-grid,
 .app-cascade-shell > .section,
@@ -2489,6 +2629,7 @@ button:disabled {
   align-content: center;
 }
 
+.app-cascade-shell > .app-status-banner,
 .app-cascade-shell > .workspace-bar,
 .app-cascade-shell > .metric-grid,
 .app-cascade-shell > .record-list,
@@ -2596,6 +2737,7 @@ button:disabled {
   .cascade-page > .section,
   .cascade-page > .cta-banner,
   .app-cascade-shell > .app-page-title,
+  .app-cascade-shell > .app-status-banner,
   .app-cascade-shell > .workspace-bar,
   .app-cascade-shell > .metric-grid,
   .app-cascade-shell > .section,
@@ -2774,11 +2916,13 @@ button:disabled {
   }
 
   .workspace-bar,
+  .app-status-banner,
   .record-with-action {
     align-items: flex-start;
     flex-direction: column;
   }
 
+  .app-status-banner .button,
   .workspace-bar .button,
   .record-with-action .button,
   .search-field,

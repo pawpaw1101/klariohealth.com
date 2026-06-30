@@ -6,9 +6,10 @@ import { useRouter } from "next/navigation";
 import { BioIcon } from "@/components/bio-icon";
 import { useKlarioApi } from "@/components/klario-api-provider";
 
-export function LoginForm() {
+export function RegisterForm() {
   const router = useRouter();
-  const { login } = useKlarioApi();
+  const { registerAndLogin } = useKlarioApi();
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -20,11 +21,11 @@ export function LoginForm() {
     setError("");
 
     try {
-      await login({ email, password });
+      await registerAndLogin({ full_name: fullName, email, password });
       window.dispatchEvent(new Event("klario:navigation-start"));
       window.setTimeout(() => router.push("/app/dashboard"), 420);
-    } catch (loginError) {
-      setError(loginError instanceof Error ? loginError.message : "Please check your information and try again.");
+    } catch (registerError) {
+      setError(registerError instanceof Error ? registerError.message : "Please check your information and try again.");
       setIsSubmitting(false);
     }
   };
@@ -32,9 +33,21 @@ export function LoginForm() {
   return (
     <form className="form-panel form-grid" onSubmit={onSubmit}>
       <div>
-        <label htmlFor="email">Email</label>
+        <label htmlFor="full_name">Full name</label>
         <input
-          id="email"
+          id="full_name"
+          name="full_name"
+          autoComplete="name"
+          placeholder="Jane Doe"
+          value={fullName}
+          onChange={(event) => setFullName(event.target.value)}
+          required
+        />
+      </div>
+      <div>
+        <label htmlFor="register_email">Email</label>
+        <input
+          id="register_email"
           name="email"
           type="email"
           autoComplete="email"
@@ -45,13 +58,15 @@ export function LoginForm() {
         />
       </div>
       <div>
-        <label htmlFor="password">Password</label>
+        <label htmlFor="register_password">Password</label>
         <input
-          id="password"
+          id="register_password"
           name="password"
           type="password"
-          autoComplete="current-password"
-          placeholder="Enter your password"
+          autoComplete="new-password"
+          minLength={8}
+          maxLength={128}
+          placeholder="Minimum 8 characters"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           required
@@ -61,18 +76,18 @@ export function LoginForm() {
       <button type="submit" disabled={isSubmitting}>
         {isSubmitting ? (
           <>
-            <BioIcon name="icon_action_confirm_safe" size={17} />
-            Opening app
+            <BioIcon name="icon_action_loading" size={17} />
+            Creating account
           </>
         ) : (
           <>
-            Continue to web app
+            Create account
             <BioIcon name="icon_action_continue" size={17} />
           </>
         )}
       </button>
       <p className="note">
-        New here? <Link href="/register">Create an account</Link>. Account creation and secure login happen before your private workspace opens.
+        Already have an account? <Link href="/login">Sign in</Link>. Klario signs you in after registration because the backend returns the user, not a token.
       </p>
     </form>
   );

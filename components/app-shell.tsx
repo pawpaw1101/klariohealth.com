@@ -16,6 +16,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     "/app/upload": "upload",
     "/app/timeline": "calendar",
     "/app/trends": "trends",
+    "/app/attention": "info",
+    "/app/invites": "sparkles",
     "/app/family": "family"
   };
 

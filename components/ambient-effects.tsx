@@ -20,15 +20,19 @@ export function AmbientEffects() {
   useEffect(() => {
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const isTouch = window.matchMedia("(pointer: coarse)").matches;
+    const hasHeroWebGL = pathname === "/";
     document.documentElement.classList.toggle("is-touch", isTouch);
 
     const cleanups: Array<() => void> = [];
-    if (webglRef.current) cleanups.push(initWebGL(webglRef.current, mouseRef.current, reducedMotion));
+    if (webglRef.current) {
+      webglRef.current.style.display = hasHeroWebGL ? "none" : "";
+      if (!hasHeroWebGL) cleanups.push(initWebGL(webglRef.current, mouseRef.current, reducedMotion));
+    }
     if (particlesRef.current) cleanups.push(initParticles(particlesRef.current, mouseRef.current, reducedMotion || isTouch));
     if (cursorRef.current) cleanups.push(initCursor(cursorRef.current, mouseRef.current, reducedMotion || isTouch));
 
     return () => cleanups.forEach((cleanup) => cleanup());
-  }, []);
+  }, [pathname]);
 
   useEffect(() => {
     let revealCleanup: () => void = () => undefined;
@@ -114,7 +118,7 @@ export function AmbientEffects() {
 
   return (
     <>
-      <canvas id="klario-webgl" ref={webglRef} aria-hidden="true" />
+      <canvas id="klario-webgl" className={pathname === "/" ? "is-home-hidden" : undefined} ref={webglRef} aria-hidden="true" />
       <canvas id="klario-particles" ref={particlesRef} aria-hidden="true" />
       <div id="klario-cursor" ref={cursorRef} aria-hidden="true" />
     </>
@@ -266,6 +270,7 @@ function initWebGL(canvas: HTMLCanvasElement, mouse: MouseState, reducedMotion: 
   return () => {
     cancelAnimationFrame(raf);
     window.removeEventListener("resize", resize);
+    gl.getExtension("WEBGL_lose_context")?.loseContext();
   };
 }
 
@@ -354,6 +359,7 @@ function initParticles(canvas: HTMLCanvasElement, mouse: MouseState, disabled: b
 function initCursor(cursor: HTMLDivElement, mouse: MouseState, disabled: boolean) {
   if (disabled) {
     cursor.style.display = "none";
+    document.documentElement.classList.remove("has-custom-cursor");
     return () => undefined;
   }
 
@@ -367,6 +373,11 @@ function initCursor(cursor: HTMLDivElement, mouse: MouseState, disabled: boolean
     cy = ty;
     cursor.style.transform = `translate(${cx}px, ${cy}px)`;
   };
+
+  document.documentElement.classList.add("has-custom-cursor");
+  cursor.style.display = "";
+  cursor.classList.add("is-visible");
+  render();
 
   const onMove = (event: MouseEvent) => {
     tx = event.clientX;
@@ -389,6 +400,7 @@ function initCursor(cursor: HTMLDivElement, mouse: MouseState, disabled: boolean
   document.addEventListener("mouseover", onOver);
 
   return () => {
+    document.documentElement.classList.remove("has-custom-cursor");
     document.removeEventListener("mousemove", onMove);
     document.removeEventListener("mouseover", onOver);
   };
