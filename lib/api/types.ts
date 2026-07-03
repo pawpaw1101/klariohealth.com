@@ -1,3 +1,23 @@
+export interface OtpRequest {
+  email: string;
+  purpose: "login" | "register";
+  password?: string;
+  full_name?: string;
+}
+
+export interface OtpRequestResponse {
+  message: string;
+  expires_in_minutes: number;
+  otp_code?: string | null;
+}
+
+export interface OtpVerifyRequest {
+  email: string;
+  code: string;
+  purpose: "login" | "register";
+  full_name?: string;
+}
+
 export interface RegisterRequest {
   email: string;
   password: string;
@@ -7,6 +27,20 @@ export interface RegisterRequest {
 export interface LoginRequest {
   email: string;
   password: string;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface PasswordResetRequest {
+  token: string;
+  new_password: string;
+}
+
+export interface PasswordResetResponse {
+  message: string;
+  reset_token?: string | null;
 }
 
 export interface TokenResponse {

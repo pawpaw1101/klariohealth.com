@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@supabase/server": "^1.2.0",
     "@tanstack/react-query": "^5.101.2",
     "next": "latest",
     "react": "latest",

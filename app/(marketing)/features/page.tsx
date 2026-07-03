@@ -89,7 +89,7 @@ export default function FeaturesPage() {
         </div>
       </section>
 
-      <section className="section">
+      <section className="section" id="how-it-works">
         <SectionHeader
           label="Workflow"
           title="How it works"

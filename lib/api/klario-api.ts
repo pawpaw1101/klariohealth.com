@@ -14,6 +14,7 @@ import type {
   FamilyMember,
   FamilyRole,
   FamilyRoleType,
+  ForgotPasswordRequest,
   FamilyUpdateRequest,
   InviteAcceptRequest,
   InviteCreateRequest,
@@ -23,8 +24,13 @@ import type {
   MemberAttentionListResponse,
   MemberCreateRequest,
   MemberUpdateRequest,
+  OtpRequest,
+  OtpRequestResponse,
+  OtpVerifyRequest,
   ParseJob,
   ParseJobCreateResponse,
+  PasswordResetRequest,
+  PasswordResetResponse,
   ParsedResult,
   ParserRun,
   RegisterRequest,
@@ -42,8 +48,16 @@ import type {
 } from "@/lib/api/types";
 
 export const authApi = {
-  register: (body: RegisterRequest) => apiFetch<User>("/auth/register", { method: "POST", body, auth: false }),
-  login: (body: LoginRequest) => apiFetch<TokenResponse>("/auth/login", { method: "POST", body, auth: false }),
+  register: (body: RegisterRequest) =>
+    apiFetch<OtpRequestResponse>("/auth/register", { method: "POST", body, auth: false }),
+  login: (body: LoginRequest) =>
+    apiFetch<OtpRequestResponse>("/auth/login", { method: "POST", body, auth: false }),
+  requestOtp: (body: OtpRequest) => apiFetch<OtpRequestResponse>("/auth/otp/request", { method: "POST", body, auth: false }),
+  verifyOtp: (body: OtpVerifyRequest) => apiFetch<TokenResponse>("/auth/otp/verify", { method: "POST", body, auth: false }),
+  forgotPassword: (body: ForgotPasswordRequest) =>
+    apiFetch<PasswordResetResponse>("/auth/forgot-password", { method: "POST", body, auth: false }),
+  resetPassword: (body: PasswordResetRequest) =>
+    apiFetch<PasswordResetResponse>("/auth/reset-password", { method: "POST", body, auth: false }),
   me: () => apiFetch<User>("/users/me")
 };
 

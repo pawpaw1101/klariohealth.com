@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import {
+  ApiError,
   clearKlarioSession,
   getAuthToken,
   getEnvironmentLabel,
@@ -21,11 +22,15 @@ import type {
   FamilyRoleType,
   LoginRequest,
   MemberCreateRequest,
+  OtpRequestResponse,
+  OtpVerifyRequest,
   RegisterRequest,
   User
 } from "@/lib/api/types";
 
 type ApiStatus = "checking" | "signed-out" | "live" | "offline";
+
+const SESSION_EXPIRED_MESSAGE = "Your session expired. Please sign in again.";
 
 type KlarioApiContextValue = {
   status: ApiStatus;
@@ -42,8 +47,9 @@ type KlarioApiContextValue = {
   isSignedIn: boolean;
   setActiveFamilyId: (familyId: string | null) => Promise<void>;
   setActiveMemberId: (memberId: string | null) => void;
-  login: (credentials: LoginRequest) => Promise<User>;
-  registerAndLogin: (request: RegisterRequest) => Promise<User>;
+  login: (credentials: LoginRequest) => Promise<OtpRequestResponse>;
+  completeOtpLogin: (request: OtpVerifyRequest) => Promise<User>;
+  register: (request: RegisterRequest) => Promise<OtpRequestResponse>;
   logout: () => void;
   refresh: () => Promise<void>;
   createFamily: (request: FamilyCreateRequest) => Promise<Family>;
@@ -93,6 +99,23 @@ function KlarioSessionProvider({ children }: { children: React.ReactNode }) {
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
+  const clearSessionState = useCallback(
+    (nextMessage: string) => {
+      clearKlarioSession();
+      queryClient.clear();
+      setStatus("signed-out");
+      setUser(null);
+      setFamilies([]);
+      setMembers([]);
+      setRoles([]);
+      setActiveFamilyIdState(null);
+      setActiveMemberIdState(null);
+      setLastSyncAt(null);
+      setMessage(nextMessage);
+    },
+    [queryClient]
+  );
+
   const loadFamilyContext = useCallback(
     async (familyId: string | null, currentUser: User | null) => {
       if (!familyId) {
@@ -119,7 +142,10 @@ function KlarioSessionProvider({ children }: { children: React.ReactNode }) {
       const nextMembers = memberResult.status === "fulfilled" ? memberResult.value : [];
       const nextRoles = roleResult.status === "fulfilled" ? roleResult.value : [];
       const storedMemberId = getStoredActiveMemberId();
-      const nextMemberId = nextMembers.some((member) => member.id === storedMemberId) ? storedMemberId : nextMembers[0]?.id ?? null;
+      const selfMember = nextMembers.find((member) => member.relationship === "self");
+      const nextMemberId = nextMembers.some((member) => member.id === storedMemberId)
+        ? storedMemberId
+        : selfMember?.id ?? nextMembers[0]?.id ?? null;
 
       setMembers(nextMembers);
       setRoles(nextRoles);
@@ -169,19 +195,33 @@ function KlarioSessionProvider({ children }: { children: React.ReactNode }) {
         staleTime: 0
       });
       await loadWorkspace(currentUser);
-    } catch {
+    } catch (restoreError) {
+      if (restoreError instanceof ApiError && restoreError.status === 401) {
+        clearSessionState(SESSION_EXPIRED_MESSAGE);
+        return;
+      }
       setStatus("offline");
-      setMessage("Klario API is not reachable. Showing local demo data until the backend is available.");
+      setMessage("Could not reach the API. Check that the backend is running.");
     }
-  }, [loadWorkspace, queryClient]);
+  }, [clearSessionState, loadWorkspace, queryClient]);
 
   useEffect(() => {
     void restore();
   }, [restore]);
 
-  const login = useCallback(
-    async (credentials: LoginRequest) => {
-      const tokenResponse = await authApi.login(credentials);
+  useEffect(() => {
+    const expireSession = () => clearSessionState(SESSION_EXPIRED_MESSAGE);
+    window.addEventListener("klario:session-expired", expireSession);
+    return () => window.removeEventListener("klario:session-expired", expireSession);
+  }, [clearSessionState]);
+
+  const login = useCallback(async (credentials: LoginRequest) => {
+    return authApi.login(credentials);
+  }, []);
+
+  const completeOtpLogin = useCallback(
+    async (request: OtpVerifyRequest) => {
+      const tokenResponse = await authApi.verifyOtp(request);
       setAuthToken(tokenResponse.access_token);
       const currentUser = await queryClient.fetchQuery({
         queryKey: ["auth", "me"],
@@ -194,27 +234,13 @@ function KlarioSessionProvider({ children }: { children: React.ReactNode }) {
     [loadWorkspace, queryClient]
   );
 
-  const registerAndLogin = useCallback(
-    async (request: RegisterRequest) => {
-      await authApi.register(request);
-      return login({ email: request.email, password: request.password });
-    },
-    [login]
-  );
+  const register = useCallback(async (request: RegisterRequest) => {
+    return authApi.register(request);
+  }, []);
 
   const logout = useCallback(() => {
-    clearKlarioSession();
-    queryClient.clear();
-    setStatus("signed-out");
-    setUser(null);
-    setFamilies([]);
-    setMembers([]);
-    setRoles([]);
-    setActiveFamilyIdState(null);
-    setActiveMemberIdState(null);
-    setLastSyncAt(null);
-    setMessage("Signed out.");
-  }, [queryClient]);
+    clearSessionState("Signed out.");
+  }, [clearSessionState]);
 
   const setActiveFamilyId = useCallback(
     async (familyId: string | null) => {
@@ -237,14 +263,22 @@ function KlarioSessionProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    await queryClient.invalidateQueries();
-    const currentUser = await queryClient.fetchQuery({
-      queryKey: ["auth", "me"],
-      queryFn: authApi.me,
-      staleTime: 0
-    });
-    await loadWorkspace(currentUser);
-  }, [loadWorkspace, logout, queryClient]);
+    try {
+      await queryClient.invalidateQueries();
+      const currentUser = await queryClient.fetchQuery({
+        queryKey: ["auth", "me"],
+        queryFn: authApi.me,
+        staleTime: 0
+      });
+      await loadWorkspace(currentUser);
+    } catch (refreshError) {
+      if (refreshError instanceof ApiError && refreshError.status === 401) {
+        clearSessionState(SESSION_EXPIRED_MESSAGE);
+        return;
+      }
+      throw refreshError;
+    }
+  }, [clearSessionState, loadWorkspace, logout, queryClient]);
 
   const createFamily = useCallback(
     async (request: FamilyCreateRequest) => {
@@ -312,7 +346,8 @@ function KlarioSessionProvider({ children }: { children: React.ReactNode }) {
       setActiveFamilyId,
       setActiveMemberId,
       login,
-      registerAndLogin,
+      completeOtpLogin,
+      register,
       logout,
       refresh,
       createFamily,
@@ -329,11 +364,12 @@ function KlarioSessionProvider({ children }: { children: React.ReactNode }) {
       invalidateWorkspaceData,
       lastSyncAt,
       login,
+      completeOtpLogin,
       logout,
       members,
       message,
       refresh,
-      registerAndLogin,
+      register,
       roles,
       setActiveFamilyId,
       setActiveMemberId,

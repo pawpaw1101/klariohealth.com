@@ -14,7 +14,7 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
   const navItems: Array<{ label: string; href: string; icon: NavIconName }> = [
     { label: "Home", href: "/#cascade", icon: "home" },
     ...publicNav.map((item) => ({ ...item, icon: item.href === "/about" ? "info" as const : "sparkles" as const })),
-    { label: "App", href: "/app/dashboard", icon: "app" }
+    { label: "How it works", href: "/features#how-it-works", icon: "sparkles" as const }
   ];
 
   useEffect(() => {
@@ -108,7 +108,8 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
           <div>
             <p className="footer-heading">Workspace</p>
             <ul className="footer-links">
-              <li><Link href="/app/dashboard">Web app</Link></li>
+              <li><Link href="/login">Sign in</Link></li>
+              <li><Link href="/register">Create account</Link></li>
             </ul>
           </div>
         </div>

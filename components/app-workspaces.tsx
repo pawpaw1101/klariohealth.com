@@ -7,14 +7,6 @@ import { BioIcon } from "@/components/bio-icon";
 import { useKlarioApi } from "@/components/klario-api-provider";
 import { PageTitle, SectionHeader } from "@/components/section";
 import {
-  appMetrics,
-  biomarkerTrends,
-  documents,
-  familyProfiles,
-  timelineEvents,
-  uploadMethods
-} from "@/lib/klario-data";
-import {
   attentionApi,
   canManageInvites,
   canManageMembers,
@@ -39,10 +31,10 @@ import type {
   ParsedResult,
   TrendMetricPreview
 } from "@/lib/api/types";
+import { dashboardQuickLinks } from "@/lib/klario-data";
 
 export function DashboardWorkspace() {
   const api = useKlarioApi();
-  const [demoProfile, setDemoProfile] = useState("Joel");
   const familyId = api.activeFamily?.id;
   const memberId = api.activeMember?.id;
   const hasLiveContext = api.status === "live" && Boolean(familyId && memberId);
@@ -53,24 +45,29 @@ export function DashboardWorkspace() {
     enabled: hasLiveContext
   });
 
-  const activeLabel = api.activeMember?.display_name ?? (demoProfile === "All" ? "everyone" : demoProfile);
-  const profileDocuments = documents.filter((document) => document.owner === demoProfile || demoProfile === "All");
-  const needsReview = documents.filter((document) => document.status === "Needs review");
+  const activeLabel = api.activeMember?.display_name ?? "your profile";
+  const dashboard = dashboardQuery.data;
 
-  const metrics = dashboardQuery.data
+  const metrics = dashboard
     ? [
-        { value: String(dashboardQuery.data.health_summary.score), label: "Health score", body: dashboardQuery.data.health_summary.score_note },
-        { value: String(dashboardQuery.data.health_summary.normal_count), label: "In range", body: "Results inside available reference ranges." },
-        { value: String(dashboardQuery.data.health_summary.attention_count), label: "Needs attention", body: "Items waiting for review or confirmation." },
-        { value: String(dashboardQuery.data.latest_reports.length), label: "Latest reports", body: "Recently imported reports for this member." }
+        { value: String(dashboard.health_summary.score), label: "Health score", body: dashboard.health_summary.score_note },
+        { value: String(dashboard.health_summary.normal_count), label: "In range", body: "Results inside available reference ranges." },
+        { value: String(dashboard.health_summary.attention_count), label: "Needs attention", body: "Items waiting for review or confirmation." },
+        { value: String(dashboard.health_summary.critical_count), label: "Critical flags", body: "Values marked as high priority." }
       ]
-    : appMetrics;
+    : [
+        { value: "—", label: "Health score", body: "Upload a report to generate your summary." },
+        { value: "—", label: "In range", body: "Parsed values will appear here." },
+        { value: "—", label: "Needs attention", body: "Review items will appear here." },
+        { value: "—", label: "Critical flags", body: "High-priority flags will appear here." }
+      ];
 
   return (
     <>
-      <PageTitle title="Dashboard" body={`Health summary for ${activeLabel}.`} />
+      <PageTitle title="Home" body={`Your health overview for ${activeLabel}.`} />
       <ApiStatusBanner />
-      <div className="workspace-bar">
+
+      <div className="workspace-bar dashboard-home-bar">
         <div>
           <span className="control-label">Active profile</span>
           {api.members.length ? (
@@ -87,20 +84,38 @@ export function DashboardWorkspace() {
               ))}
             </div>
           ) : (
-            <div className="profile-pills" role="list" aria-label="Demo family profiles">
-              {["All", ...familyProfiles.slice(0, 4).map((profile) => profile.name)].map((profile) => (
-                <button key={profile} className={`pill-button${demoProfile === profile ? " is-active" : ""}`} type="button" onClick={() => setDemoProfile(profile)}>
-                  {profile}
-                </button>
-              ))}
-            </div>
+            <p className="note">Your account includes a default family profile after signup.</p>
           )}
+          {api.activeFamily ? <p className="note">{api.activeFamily.name}</p> : null}
         </div>
         <Link className="button button-primary" href="/app/upload">
           <BioIcon name="icon_doc_add_empty" size={17} />
-          Add report
+          Upload report
         </Link>
       </div>
+
+      {dashboard ? (
+        <section className="dashboard-summary card preference-card" aria-label="Health summary">
+          <div className="dashboard-summary-copy">
+            <p className="section-label">Summary</p>
+            <h2>{dashboard.health_summary.status_sentence}</h2>
+            <p>{dashboard.health_summary.score_note}</p>
+          {dashboard.health_summary.last_report ? (
+              <p className="note">
+                Last report: <strong>{dashboard.health_summary.last_report.title}</strong> · {formatDate(dashboard.health_summary.last_report.date)}
+              </p>
+            ) : null}
+          </div>
+          {dashboard.health_summary.last_report?.document_id || dashboard.latest_reports[0]?.document_id ? (
+            <Link
+              className="button button-secondary"
+              href={`/app/reports/${dashboard.health_summary.last_report?.document_id ?? dashboard.latest_reports[0]!.document_id}`}
+            >
+              View latest report
+            </Link>
+          ) : null}
+        </section>
+      ) : null}
 
       <section className="metric-grid" aria-label="Workspace summary">
         {metrics.map((metric) => (
@@ -112,13 +127,47 @@ export function DashboardWorkspace() {
         ))}
       </section>
 
-      {dashboardQuery.data ? (
+      <section className="section">
+        <SectionHeader title="Navigate" intro="Jump to any workspace area from your home screen." />
+        <div className="grid two-column-grid dashboard-quick-links">
+          {dashboardQuickLinks.map((item) => (
+            <Link className="card preference-card dashboard-link-card" href={item.href} key={item.href}>
+              <span className="feature-icon" aria-hidden="true"><BioIcon name={item.icon} size={24} /></span>
+              <h3>{item.label}</h3>
+              <p>{item.body}</p>
+              <span className="inline-action">Open</span>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {dashboard ? (
         <>
+          {dashboard.trend_previews.length ? (
+            <section className="section">
+              <SectionHeader title="Trend previews" intro="Recent biomarker movement for this member." />
+              <div className="grid two-column-grid">
+                {dashboard.trend_previews.slice(0, 4).map((trend) => (
+                  <Link className="card preference-card dashboard-link-card" href={`/app/trends/${trend.canonical_metric_id}`} key={trend.canonical_metric_id}>
+                    <h3>{trend.display_name}</h3>
+                    <p>
+                      Latest: {trend.latest_value ?? "—"}
+                      {trend.unit ? ` ${trend.unit}` : ""}
+                      {trend.delta_from_previous != null ? ` · ${trend.delta_from_previous > 0 ? "+" : ""}${trend.delta_from_previous} from previous` : ""}
+                    </p>
+                    <Sparkline points={trend.sparkline.map((point) => point.value ?? 0)} />
+                    <span className="inline-action">Open trend</span>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
           <section className="section">
-            <SectionHeader title="Needs attention" intro="Items from the backend attention list that may need confirmation." />
+            <SectionHeader title="Needs attention" intro="Items that may need confirmation before they enter the record." />
             <div className="record-list">
-              {dashboardQuery.data.needs_attention.length ? (
-                dashboardQuery.data.needs_attention.slice(0, 4).map((item) => (
+              {dashboard.needs_attention.length ? (
+                dashboard.needs_attention.slice(0, 4).map((item) => (
                   <article className="record record-with-action" key={item.id}>
                     <div>
                       <div className="record-meta">
@@ -140,48 +189,21 @@ export function DashboardWorkspace() {
           <section className="section">
             <SectionHeader title="Recent reports" intro="Latest imported documents for the selected family member." />
             <div className="record-list">
-              {dashboardQuery.data.latest_reports.length ? (
-                dashboardQuery.data.latest_reports.slice(0, 4).map((report) => <LatestReportRecord key={report.document_id} report={report} />)
+              {dashboard.latest_reports.length ? (
+                dashboard.latest_reports.slice(0, 4).map((report) => <LatestReportRecord key={report.document_id} report={report} />)
               ) : (
-                <EmptyState title="No reports yet" body="Upload a report to begin building the member record." />
+                <EmptyState title="No reports yet" body="Upload a report to begin building the member record." actionLabel="Upload report" actionHref="/app/upload" />
               )}
             </div>
           </section>
         </>
       ) : (
-        <>
-          <section className="section">
-            <SectionHeader title="Needs review" intro="Values that should be confirmed before they become part of the longitudinal record." />
-            <div className="record-list">
-              {needsReview.map((document) => (
-                <article className="record record-with-action" key={document.title}>
-                  <div>
-                    <h3>{document.title}</h3>
-                    <p>{document.source}. {document.summary}</p>
-                  </div>
-                  <Link className="button button-secondary" href="/app/documents">Review report</Link>
-                </article>
-              ))}
-            </div>
-          </section>
-
-          <section className="section">
-            <SectionHeader title="Recent documents" intro="Demo data is shown until a live family/member is selected." />
-            <div className="record-list">
-              {profileDocuments.slice(0, 3).map((document) => (
-                <article className="record" key={`${document.owner}-${document.title}`}>
-                  <div className="record-meta">
-                    <span>{document.owner}</span>
-                    <span>{document.date}</span>
-                    <span className={statusClass(document.status)}>{document.status}</span>
-                  </div>
-                  <h3>{document.title}</h3>
-                  <p>{document.source}. {document.summary}</p>
-                </article>
-              ))}
-            </div>
-          </section>
-        </>
+        <EmptyState
+          title="Your workspace is ready"
+          body="Upload your first report to populate trends, attention items, and health summaries."
+          actionLabel="Upload report"
+          actionHref="/app/upload"
+        />
       )}
 
       <p className="note app-disclaimer">Based on imported reports and available reference ranges. Not a diagnosis.</p>
@@ -203,7 +225,7 @@ export function DocumentsWorkspace() {
   const liveDocuments = liveDocumentsQuery.data ?? null;
   const statusOptions = liveDocuments
     ? ["All", ...Array.from(new Set(liveDocuments.map((document) => document.status)))]
-    : ["All", "Needs review", "Watch", "Saved"];
+    : ["All"];
 
   const filteredLiveDocuments = useMemo(() => {
     if (!liveDocuments) return [];
@@ -214,15 +236,6 @@ export function DocumentsWorkspace() {
       return matchesStatus && (!normalizedQuery || haystack.includes(normalizedQuery));
     });
   }, [liveDocuments, query, status]);
-
-  const filteredDemoDocuments = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-    return documents.filter((document) => {
-      const matchesStatus = status === "All" || document.status === status;
-      const haystack = `${document.title} ${document.source} ${document.owner} ${document.summary} ${document.tags.join(" ")}`.toLowerCase();
-      return matchesStatus && (!normalizedQuery || haystack.includes(normalizedQuery));
-    });
-  }, [query, status]);
 
   return (
     <>
@@ -244,31 +257,16 @@ export function DocumentsWorkspace() {
       </div>
 
       <section className="record-list">
-        {liveDocuments ? (
+        {liveDocumentsQuery.isLoading ? (
+          <EmptyState title="Loading reports" body="Fetching your uploaded documents." />
+        ) : liveDocuments ? (
           filteredLiveDocuments.length ? (
             filteredLiveDocuments.map((document) => <DocumentRecord key={document.id} document={document} />)
           ) : (
             <EmptyState title="No reports found" body="Try a different search or upload a report." />
           )
         ) : (
-          filteredDemoDocuments.map((document) => (
-            <article className="record document-record" key={`${document.owner}-${document.title}`}>
-              <div className="record-meta">
-                <span>{document.owner}</span>
-                <span>{document.date}</span>
-                <span className={statusClass(document.status)}>{document.status}</span>
-              </div>
-              <h3>{document.title}</h3>
-              <p>{document.source}. {document.summary}</p>
-              <div className="tag-row">
-                {document.tags.map((tag) => <span className="tag" key={tag}>{tag}</span>)}
-              </div>
-              <div className="button-row compact">
-                <Link className="button button-secondary" href="/app/trends">View trend</Link>
-                <Link className="button button-ghost" href="/app/timeline">Open timeline</Link>
-              </div>
-            </article>
-          ))
+          <EmptyState title="No family selected" body="Create a family and upload your first report." />
         )}
       </section>
     </>
@@ -277,7 +275,6 @@ export function DocumentsWorkspace() {
 
 export function UploadWorkspace() {
   const api = useKlarioApi();
-  const [selectedIndex, setSelectedIndex] = useState(2);
   const [selectedMemberId, setSelectedMemberId] = useState("");
   const [documentType, setDocumentType] = useState<DocumentType>("lab_report");
   const [title, setTitle] = useState("");
@@ -285,8 +282,6 @@ export function UploadWorkspace() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [statusMessage, setStatusMessage] = useState("");
   const [isUploading, setIsUploading] = useState(false);
-  const selectedIcon = uploadIcons[selectedIndex] ?? "icon_doc_generic";
-  const selected = uploadMethods[selectedIndex];
   const uploadAllowed = canUpload(api.currentRole);
 
   useEffect(() => {
@@ -366,36 +361,19 @@ export function UploadWorkspace() {
               {api.members.map((member) => <option key={member.id} value={member.id}>{member.display_name}</option>)}
             </select>
           ) : (
-            <select value={selectedMemberId || "Joel"} onChange={(event) => setSelectedMemberId(event.target.value)}>
-              {familyProfiles.map((profile) => <option key={profile.name} value={profile.name}>{profile.name}</option>)}
-            </select>
+            <p className="note">Add a family member before uploading.</p>
           )}
         </label>
-        <span className={uploadAllowed || !api.isSignedIn ? "status-chip is-info" : "status-chip is-warning"}>
-          {api.isSignedIn ? (uploadAllowed ? "Upload enabled" : "Viewer access") : "Demo mode"}
+        <span className={uploadAllowed ? "status-chip is-info" : "status-chip is-warning"}>
+          {uploadAllowed ? "Upload enabled" : "Viewer access"}
         </span>
       </div>
 
       <section className="upload-layout">
-        <div className="grid two-column-grid">
-          {uploadMethods.map((method, index) => {
-            const iconName = uploadIcons[index] ?? "icon_doc_generic";
-            return (
-              <button key={method.title} className={`upload-method card${index === selectedIndex ? " is-active" : ""}`} type="button" onClick={() => setSelectedIndex(index)}>
-                <span className="feature-icon" aria-hidden="true"><BioIcon name={iconName} size={24} /></span>
-                <span>
-                  <strong>{method.title}</strong>
-                  <small>{method.body}</small>
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
         <aside className="interactive-panel upload-panel">
-          <span className="feature-icon" aria-hidden="true"><BioIcon name={selectedIcon} size={26} /></span>
-          <h2>{selected.title}</h2>
-          <p>{selected.body}</p>
+          <span className="feature-icon" aria-hidden="true"><BioIcon name="icon_doc_add_empty" size={26} /></span>
+          <h2>Upload report file</h2>
+          <p>PDF, JPEG, PNG, HEIC, or HEIF up to 25 MB.</p>
           <label>
             <span className="control-label">Report title</span>
             <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder={fileName || "CBC, ferritin, prescription..."} />
@@ -410,7 +388,7 @@ export function UploadWorkspace() {
             <input type="file" accept="application/pdf,image/jpeg,image/png,image/heic,image/heif" onChange={onFileChange} />
             <span>{fileName || "Choose PDF, JPEG, PNG, HEIC, or HEIF"}</span>
           </label>
-          <button className="button button-primary" type="button" disabled={isUploading || !selectedFile || !api.isSignedIn || !uploadAllowed} onClick={startParsing}>
+          <button className="button button-primary" type="button" disabled={isUploading || !selectedFile || !uploadAllowed || !selectedMemberId} onClick={startParsing}>
             <BioIcon name={isUploading ? "icon_action_loading" : "icon_action_confirm_safe"} size={17} />
             {isUploading ? "Processing" : "Start parsing"}
           </button>
@@ -442,16 +420,20 @@ export function TimelineWorkspace() {
 
   return (
     <>
-      <PageTitle title="Timeline" body={`Longitudinal health history for ${api.activeMember?.display_name ?? "Joel"}.`} />
+      <PageTitle title="Timeline" body={`Longitudinal health history for ${api.activeMember?.display_name ?? "your profile"}.`} />
       <ApiStatusBanner />
       <section className="timeline-list">
-        {(liveEvents.length ? liveEvents : timelineEvents).map((event) => (
-          <article className="timeline-item" key={`${event.date}-${event.title}`}>
-            <span>{event.date}</span>
-            <h3>{event.title}</h3>
-            <p>{event.body}</p>
-          </article>
-        ))}
+        {liveEvents.length ? (
+          liveEvents.map((event) => (
+            <article className="timeline-item" key={`${event.date}-${event.title}`}>
+              <span>{event.date}</span>
+              <h3>{event.title}</h3>
+              <p>{event.body}</p>
+            </article>
+          ))
+        ) : (
+          <EmptyState title="No timeline events yet" body="Uploaded reports will appear here in chronological order." />
+        )}
       </section>
     </>
   );
@@ -472,7 +454,6 @@ export function TrendsWorkspace() {
     [trendsQuery.data]
   );
   const [activeMetricId, setActiveMetricId] = useState("");
-  const [demoActiveName, setDemoActiveName] = useState(biomarkerTrends[0].name);
 
   useEffect(() => {
     if (apiMetrics.length && !apiMetrics.some((metric) => metric.canonical_metric_id === activeMetricId)) {
@@ -481,11 +462,10 @@ export function TrendsWorkspace() {
   }, [activeMetricId, apiMetrics]);
 
   const activeMetric = apiMetrics.find((metric) => metric.canonical_metric_id === activeMetricId) ?? apiMetrics[0];
-  const demoActive = biomarkerTrends.find((trend) => trend.name === demoActiveName) ?? biomarkerTrends[0];
 
   return (
     <>
-      <PageTitle title="Trends" body={`Longitudinal biomarkers for ${api.activeMember?.display_name ?? "Joel"}.`} />
+      <PageTitle title="Trends" body={`Longitudinal biomarkers for ${api.activeMember?.display_name ?? "your profile"}.`} />
       <ApiStatusBanner />
       <section className="trends-layout">
         {activeMetric ? (
@@ -506,28 +486,7 @@ export function TrendsWorkspace() {
             </div>
           </>
         ) : (
-          <>
-            <div className="interactive-panel trend-detail">
-              <div className="record-meta">
-                <span className={statusClass(demoActive.status)}>{demoActive.status}</span>
-                <span>{demoActive.range}</span>
-              </div>
-              <h2>{demoActive.name}</h2>
-              <p className="trend-value">{demoActive.value} <span>{demoActive.unit}</span></p>
-              <Sparkline points={demoActive.points} />
-              <p>{demoActive.description}</p>
-            </div>
-            <div className="grid trend-card-grid">
-              {biomarkerTrends.map((trend) => (
-                <button key={trend.name} className={`card trend-card${demoActive.name === trend.name ? " is-active" : ""}`} type="button" onClick={() => setDemoActiveName(trend.name)}>
-                  <span className="feature-icon" aria-hidden="true"><BioIcon name="icon_tab_trends" size={22} /></span>
-                  <h3>{trend.name}</h3>
-                  <p><strong>{trend.value} {trend.unit}</strong></p>
-                  <p>{trend.range}. {trend.points.length} data points.</p>
-                </button>
-              ))}
-            </div>
-          </>
+          <EmptyState title="No trend data yet" body="Upload and parse lab reports to see biomarker trends." />
         )}
       </section>
     </>
@@ -581,12 +540,10 @@ export function TrendDetailWorkspace({ metricId }: { metricId: string }) {
 
 export function FamilyWorkspace() {
   const api = useKlarioApi();
-  const [demoActiveName, setDemoActiveName] = useState(familyProfiles[0].name);
   const [familyName, setFamilyName] = useState("");
   const [memberName, setMemberName] = useState("");
   const [relationship, setRelationship] = useState("");
   const [message, setMessage] = useState("");
-  const activeDemo = familyProfiles.find((profile) => profile.name === demoActiveName) ?? familyProfiles[0];
   const memberCreateAllowed = canManageMembers(api.currentRole);
 
   const createFamily = async (event: FormEvent<HTMLFormElement>) => {
@@ -622,8 +579,8 @@ export function FamilyWorkspace() {
       <div className="workspace-bar">
         <div>
           <span className="control-label">Selected workspace</span>
-          <strong>{api.activeFamily?.name ?? activeDemo.name}</strong>
-          <p>{api.currentRole ? `${prettyStatus(api.currentRole)} role` : `${activeDemo.role}. ${activeDemo.detail}.`}</p>
+          <strong>{api.activeFamily?.name ?? "No family yet"}</strong>
+          <p>{api.currentRole ? `${prettyStatus(api.currentRole)} role` : "Create a family to get started."}</p>
         </div>
         {api.families.length ? (
           <label className="select-field">
@@ -642,18 +599,10 @@ export function FamilyWorkspace() {
               <span className="feature-icon" aria-hidden="true"><BioIcon name="icon_tab_family" size={24} /></span>
               <h3>{member.display_name}</h3>
               <p>{member.relationship}. {member.sex ? `${prettyStatus(member.sex)}. ` : ""}{member.date_of_birth ? `Born ${formatDate(member.date_of_birth)}.` : ""}</p>
-              <span className="status-chip">{member.id}</span>
             </button>
           ))
         ) : (
-          familyProfiles.map((profile) => (
-            <button key={profile.name} className={`card profile-card${activeDemo.name === profile.name ? " is-active" : ""}`} type="button" onClick={() => setDemoActiveName(profile.name)}>
-              <span className="feature-icon" aria-hidden="true"><BioIcon name="icon_tab_family" size={24} /></span>
-              <h3>{profile.name}</h3>
-              <p>{profile.role}. {profile.detail}.</p>
-              <span className="status-chip">{profile.documents} documents</span>
-            </button>
-          ))
+          <EmptyState title="No members yet" body="Add a family member to assign reports and trends." />
         )}
       </section>
 
@@ -745,17 +694,10 @@ export function AttentionWorkspace() {
           ) : (
             <EmptyState title="No attention items" body="Open parser questions and out-of-range extracted results will appear here." />
           )
+        ) : attentionQuery.isLoading ? (
+          <EmptyState title="Loading attention items" body="Fetching items that need review." />
         ) : (
-          documents.filter((document) => document.status === "Needs review").map((document) => (
-            <article className="record" key={document.title}>
-              <div className="record-meta">
-                <span>{document.owner}</span>
-                <span className="status-chip is-warning">Demo</span>
-              </div>
-              <h3>{document.title}</h3>
-              <p>{document.summary}</p>
-            </article>
-          ))
+          <EmptyState title="Select a family member" body="Choose a member with parsed reports to review attention items." />
         )}
       </section>
       {message ? <p className="note">{message}</p> : null}
@@ -893,32 +835,21 @@ export function AccountWorkspace() {
 
 export function SettingsWorkspace() {
   const api = useKlarioApi();
-  const [settings, setSettings] = useState({
-    notifications: true,
-    smartReview: true,
-    securityAlerts: true,
-    educationalNotice: true
-  });
-
-  const toggle = (key: keyof typeof settings) => {
-    setSettings((current) => ({ ...current, [key]: !current[key] }));
-  };
 
   return (
     <>
-      <PageTitle title="Settings" body="Account, active workspace, environment, and cache controls." />
+      <PageTitle title="Settings" body="Account, active workspace, and session controls." />
       <ApiStatusBanner />
       <section className="grid two-column-grid">
         <article className="card preference-card">
           <span className="feature-icon" aria-hidden="true"><BioIcon name="icon_signal_confidence" size={24} /></span>
           <h3>Signed-in user</h3>
           <p>{api.user?.email ?? "Not signed in"}</p>
-          <span className="status-chip">{api.status}</span>
         </article>
         <article className="card preference-card">
           <span className="feature-icon" aria-hidden="true"><BioIcon name="icon_family_header" size={24} /></span>
           <h3>Active family</h3>
-          <p>{api.activeFamily ? `${api.activeFamily.name} - ${api.activeFamily.id}` : "No family selected"}</p>
+          <p>{api.activeFamily?.name ?? "No family selected"}</p>
           {api.families.length ? (
             <select value={api.activeFamily?.id ?? ""} onChange={(event) => void api.setActiveFamilyId(event.target.value)}>
               {api.families.map((family) => <option key={family.id} value={family.id}>{family.name}</option>)}
@@ -928,7 +859,7 @@ export function SettingsWorkspace() {
         <article className="card preference-card">
           <span className="feature-icon" aria-hidden="true"><BioIcon name="icon_tab_family" size={24} /></span>
           <h3>Active member</h3>
-          <p>{api.activeMember ? `${api.activeMember.display_name} - ${api.activeMember.id}` : "No member selected"}</p>
+          <p>{api.activeMember?.display_name ?? "No member selected"}</p>
           {api.members.length ? (
             <select value={api.activeMember?.id ?? ""} onChange={(event) => api.setActiveMemberId(event.target.value)}>
               {api.members.map((member) => <option key={member.id} value={member.id}>{member.display_name}</option>)}
@@ -937,17 +868,9 @@ export function SettingsWorkspace() {
         </article>
         <article className="card preference-card">
           <span className="feature-icon" aria-hidden="true"><BioIcon name="icon_sync_local" size={24} /></span>
-          <h3>Backend</h3>
-          <p>{prettyStatus(api.environment)}. Last sync {api.lastSyncAt ? formatDate(api.lastSyncAt) : "not synced"}.</p>
-          <span className="status-chip is-info">{api.currentRole ? prettyStatus(api.currentRole) : "No role"}</span>
+          <h3>Environment</h3>
+          <p>{prettyStatus(api.environment)} workspace. {api.currentRole ? `${prettyStatus(api.currentRole)} role.` : ""}</p>
         </article>
-      </section>
-
-      <section className="grid two-column-grid">
-        <ToggleCard icon="icon_signal_warning" title="Notifications" body="Reminders for reviews, repeat tests, and follow-up items." checked={settings.notifications} onToggle={() => toggle("notifications")} />
-        <ToggleCard icon="icon_filter_status" title="Import preferences" body="Default family member, file source, and review behavior." checked={settings.smartReview} onToggle={() => toggle("smartReview")} />
-        <ToggleCard icon="icon_action_confirm_safe" title="Security" body="Session access and account protection." checked={settings.securityAlerts} onToggle={() => toggle("securityAlerts")} />
-        <ToggleCard icon="icon_signal_confidence" title="Educational notice" body="Klario helps organize and understand records. It is not medical advice." checked={settings.educationalNotice} onToggle={() => toggle("educationalNotice")} />
       </section>
 
       <section className="workspace-bar">
@@ -957,6 +880,7 @@ export function SettingsWorkspace() {
           <button className="button button-ghost" type="button" onClick={api.logout}>Log out</button>
         </div>
       </section>
+      <p className="note app-disclaimer">Klario helps organize health reports. It is not medical advice.</p>
     </>
   );
 }
@@ -1069,21 +993,26 @@ export function ReportDetailWorkspace({ documentId }: { documentId: string }) {
   );
 }
 
-const uploadIcons = ["icon_doc_add_empty", "icon_doc_choose_file", "icon_doc_generic", "icon_doc_import_panel", "icon_sync_local", "icon_family_header"];
 const documentTypes: DocumentType[] = ["lab_report", "prescription", "imaging", "discharge", "vaccination", "invoice", "general"];
 
 function ApiStatusBanner() {
   const api = useKlarioApi();
 
-  if (api.status === "live" && api.activeFamily) return null;
+  if (api.status === "live" && api.activeFamily && api.activeMember) return null;
+
+  const message = api.message ??
+    (api.status === "live"
+      ? "Choose a profile on Home, or upload your first report to load summaries."
+      : api.status === "checking"
+        ? "Connecting to your workspace..."
+        : "Could not reach the API. Check that the backend is running.");
 
   return (
     <div className={`app-status-banner is-${api.status}`}>
       <div>
         <strong>{api.status === "checking" ? "Checking backend" : prettyStatus(api.status)}</strong>
-        <p>{api.message ?? (api.status === "live" ? "Create or select a family to connect backend data." : "Backend data is not connected yet.")}</p>
+        <p>{message}</p>
       </div>
-      {api.status === "signed-out" ? <Link className="button button-secondary" href="/login">Sign in</Link> : null}
     </div>
   );
 }
@@ -1187,11 +1116,26 @@ function ParsedResultRecord({ result }: { result: ParsedResult }) {
   );
 }
 
-function EmptyState({ title, body }: { title: string; body: string }) {
+function EmptyState({
+  title,
+  body,
+  actionLabel,
+  actionHref
+}: {
+  title: string;
+  body: string;
+  actionLabel?: string;
+  actionHref?: string;
+}) {
   return (
     <article className="record empty-state">
       <h3>{title}</h3>
       <p>{body}</p>
+      {actionLabel && actionHref ? (
+        <div className="button-row compact">
+          <Link className="button button-primary" href={actionHref}>{actionLabel}</Link>
+        </div>
+      ) : null}
     </article>
   );
 }
@@ -1258,25 +1202,6 @@ function PreferenceCard({ icon, title, body, action, href }: {
   }
 
   return <article className="card preference-card">{content}</article>;
-}
-
-function ToggleCard({ icon, title, body, checked, onToggle }: {
-  icon: string;
-  title: string;
-  body: string;
-  checked: boolean;
-  onToggle: () => void;
-}) {
-  return (
-    <article className="card preference-card">
-      <span className="feature-icon" aria-hidden="true"><BioIcon name={icon} size={24} /></span>
-      <h3>{title}</h3>
-      <p>{body}</p>
-      <button className={`toggle-control${checked ? " is-on" : ""}`} type="button" role="switch" aria-checked={checked} onClick={onToggle}>
-        <span />
-      </button>
-    </article>
-  );
 }
 
 function prettyStatus(value: string) {

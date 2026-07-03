@@ -135,10 +135,14 @@ export async function apiFetch<T>(path: string, options: ApiRequestOptions = {})
   if (!response.ok) {
     const errorPayload = payload as APIErrorResponse | null;
     const code = errorPayload?.detail?.code ?? "internal_error";
-    if (response.status === 401) {
+    const message = errorPayload?.detail?.message ?? safeApiMessage(code);
+    if (response.status === 401 && auth) {
       clearKlarioSession();
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("klario:session-expired"));
+      }
     }
-    throw new ApiError(response.status, code, safeApiMessage(code), errorPayload?.detail?.errors);
+    throw new ApiError(response.status, code, message, errorPayload?.detail?.errors);
   }
 
   return payload as T;
@@ -157,7 +161,7 @@ export function resolveExternalOrRelativeUrl(url: string) {
 
 export function safeApiMessage(code: string) {
   const messages: Record<string, string> = {
-    unauthenticated: "Please sign in again.",
+    unauthenticated: "Your session expired. Please sign in again.",
     inactive_user: "Your account is inactive.",
     permission_denied: "You don't have permission to do this.",
     not_found: "That item is no longer available.",

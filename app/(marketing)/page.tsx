@@ -133,11 +133,14 @@ export default function HomePage() {
                 Try for free
                 <BioIcon name="icon_action_continue" size={18} />
               </Link>
-              <Link className="button button-secondary glass-button" href="/app/dashboard">
-                Open app
-                <BioIcon name="icon_doc_import_panel" size={18} />
+              <Link className="button button-secondary glass-button" href="/features#how-it-works">
+                How it works
+                <BioIcon name="icon_signal_insights" size={18} />
               </Link>
             </div>
+            <p className="note cta-note">
+              New here? <Link href="/register">Create an account</Link> with your email and password.
+            </p>
           </div>
         </section>
       </div>

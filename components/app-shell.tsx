@@ -2,22 +2,22 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { appNav } from "@/lib/klario-data";
 import { Brand } from "@/components/brand";
 import { NavIcon, type NavIconName } from "@/components/nav-icon";
+import { useKlarioApi } from "@/components/klario-api-provider";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { logout } = useKlarioApi();
   const [menuOpen, setMenuOpen] = useState(false);
   const navIcons: Record<string, NavIconName> = {
     "/app/dashboard": "dashboard",
     "/app/documents": "documents",
     "/app/upload": "upload",
-    "/app/timeline": "calendar",
     "/app/trends": "trends",
-    "/app/attention": "info",
-    "/app/invites": "sparkles",
     "/app/family": "family"
   };
 
@@ -60,10 +60,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <NavIcon name="gear" size={17} />
               <span className="nav-label">Settings</span>
             </Link>
-            <Link className="button button-ghost nav-action" href="/" title="Log out" onClick={() => setMenuOpen(false)}>
+            <button
+              className="button button-ghost nav-action"
+              type="button"
+              title="Log out"
+              onClick={() => {
+                setMenuOpen(false);
+                logout();
+                router.push("/login");
+              }}
+            >
               <NavIcon name="logout" size={17} />
               <span className="nav-label">Log out</span>
-            </Link>
+            </button>
           </div>
         </nav>
       </header>

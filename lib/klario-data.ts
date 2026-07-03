@@ -4,14 +4,62 @@ export const publicNav = [
 ];
 
 export const appNav = [
-  { label: "Dashboard", href: "/app/dashboard" },
-  { label: "Documents", href: "/app/documents" },
+  { label: "Home", href: "/app/dashboard" },
   { label: "Upload", href: "/app/upload" },
-  { label: "Timeline", href: "/app/timeline" },
+  { label: "Reports", href: "/app/documents" },
   { label: "Trends", href: "/app/trends" },
-  { label: "Attention", href: "/app/attention" },
-  { label: "Invites", href: "/app/invites" },
   { label: "Family", href: "/app/family" }
+];
+
+export const dashboardQuickLinks = [
+  {
+    label: "Upload report",
+    href: "/app/upload",
+    icon: "icon_doc_add_empty",
+    body: "Add a lab PDF, photo, or document to parse."
+  },
+  {
+    label: "Reports",
+    href: "/app/documents",
+    icon: "icon_doc_import_panel",
+    body: "Browse uploaded reports and parse status."
+  },
+  {
+    label: "Trends",
+    href: "/app/trends",
+    icon: "icon_tab_trends",
+    body: "Track biomarkers across tests over time."
+  },
+  {
+    label: "Attention",
+    href: "/app/attention",
+    icon: "icon_signal_warning",
+    body: "Review flagged or uncertain extracted values."
+  },
+  {
+    label: "Timeline",
+    href: "/app/timeline",
+    icon: "icon_timeline_empty",
+    body: "See health events in chronological order."
+  },
+  {
+    label: "Family",
+    href: "/app/family",
+    icon: "icon_tab_family",
+    body: "Manage family members and workspace settings."
+  },
+  {
+    label: "Invites",
+    href: "/app/invites",
+    icon: "icon_family_add",
+    body: "Share access with family or caregivers."
+  },
+  {
+    label: "Settings",
+    href: "/app/settings",
+    icon: "icon_signal_confidence",
+    body: "Account, workspace, and session controls."
+  }
 ];
 
 export const featureSnapshots = [

@@ -1,26 +1,30 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BioIcon } from "@/components/bio-icon";
-import { RegisterForm } from "@/components/register-form";
+import { ForgotPasswordForm } from "@/components/forgot-password-form";
 import { SectionHeader } from "@/components/section";
 
 export const metadata: Metadata = {
-  title: "Create Account",
-  description: "Create a Klario account to upload medical reports, choose family members, and track health trends."
+  title: "Forgot Password",
+  description: "Request a Klario password reset link."
 };
 
-export default function RegisterPage() {
+export default function ForgotPasswordPage() {
   return (
     <main className="content cascade-page">
       <section className="hero">
         <div className="hero-copy">
-          <p className="eyebrow"><span className="eyebrow-dot" aria-hidden="true" /> Create account</p>
-          <h1>Start your private health workspace.</h1>
+          <p className="eyebrow"><span className="eyebrow-dot" aria-hidden="true" /> Account recovery</p>
+          <h1>Reset your Klario password.</h1>
           <p className="hero-lead">
-            Choose a password, then verify your email with a one-time code to activate your account.
+            Enter your email and Klario will send a password reset link if the account is eligible.
           </p>
           <div className="login-benefits">
-            {["Password plus email verification", "Family and member selection after login", "Upload flow ready for OCR and medical parsing"].map((benefit) => (
+            {[
+              "Generic response protects account privacy",
+              "Reset links expire automatically",
+              "Your health records stay out of email"
+            ].map((benefit) => (
               <div className="login-benefit" key={benefit}>
                 <span className="login-benefit-icon" aria-hidden="true"><BioIcon name="icon_action_confirm_safe" size={16} /></span>
                 <p>{benefit}</p>
@@ -28,14 +32,14 @@ export default function RegisterPage() {
             ))}
           </div>
         </div>
-        <RegisterForm />
+        <ForgotPasswordForm />
       </section>
 
       <section className="section">
         <SectionHeader
-          label="Already set up"
-          title="Return to your workspace"
-          intro="If you already have an account or accepted a family invite, sign in with the email address attached to that account."
+          label="Back to login"
+          title="Remembered your password?"
+          intro="Sign in with your password, then confirm with the email verification code."
         />
         <div className="button-row">
           <Link className="button button-secondary" href="/login">Sign in</Link>
