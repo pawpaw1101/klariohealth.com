@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import trendsImage from "@/assets/screenshots/klario-trends.jpeg";
 import { BioIcon } from "@/components/bio-icon";
 import { SectionHeader } from "@/components/section";
 
@@ -46,7 +45,7 @@ export default function AboutPage() {
           </p>
         </div>
         <figure className="hero-image">
-          <Image src={trendsImage} alt="Klario workspace showing biomarker trends" priority sizes="(max-width: 900px) 100vw, 540px" />
+          <Image src="/app-screens/trends.png" alt="Klario workspace showing biomarker trends" width={726} height={1514} priority sizes="(max-width: 900px) 100vw, 540px" />
         </figure>
       </section>
 

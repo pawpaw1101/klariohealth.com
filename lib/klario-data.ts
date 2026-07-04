@@ -1,6 +1,9 @@
 export const publicNav = [
-  { label: "About", href: "/about" },
-  { label: "Features", href: "/features" }
+  { label: "Product", href: "/features", icon: "product" },
+  { label: "How it works", href: "/features#how-it-works", icon: "route" },
+  { label: "Use cases", href: "/use-cases", icon: "sparkles" },
+  { label: "Security", href: "/security", icon: "shield" },
+  { label: "About", href: "/about", icon: "info" }
 ];
 
 export const appNav = [

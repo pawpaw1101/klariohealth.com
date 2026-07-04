@@ -29,7 +29,7 @@ export function AmbientEffects() {
       if (!hasHeroWebGL) cleanups.push(initWebGL(webglRef.current, mouseRef.current, reducedMotion));
     }
     if (particlesRef.current) cleanups.push(initParticles(particlesRef.current, mouseRef.current, reducedMotion || isTouch));
-    if (cursorRef.current) cleanups.push(initCursor(cursorRef.current, mouseRef.current, reducedMotion || isTouch));
+    if (cursorRef.current) cleanups.push(initCursor(cursorRef.current, mouseRef.current, true));
 
     return () => cleanups.forEach((cleanup) => cleanup());
   }, [pathname]);

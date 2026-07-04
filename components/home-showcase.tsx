@@ -1,14 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import Image, { type StaticImageData } from "next/image";
 import { BioIcon } from "@/components/bio-icon";
 
 type ShowcaseItem = {
   label: string;
   title: string;
   body: string;
-  image: StaticImageData;
+  image: string;
   alt: string;
 };
 
@@ -43,7 +42,7 @@ export function HomeShowcase({ items }: { items: ShowcaseItem[] }) {
           </span>
         </div>
         <figure className="screenshot-card showcase-image">
-          <Image src={active.image} alt={active.alt} sizes="(max-width: 900px) 100vw, 520px" priority={activeIndex === 0} />
+          <img src={active.image} alt={active.alt} />
           <figcaption className="caption">{active.label}</figcaption>
         </figure>
       </div>

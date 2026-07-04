@@ -1,9 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import dashboardLight from "@/assets/screenshots/klario-dashboard-light.jpeg";
-import trendsImage from "@/assets/screenshots/klario-trends.jpeg";
-import timelineImage from "@/assets/screenshots/klario-timeline.jpeg";
-import familyImage from "@/assets/screenshots/klario-family.jpeg";
 import { BioIcon } from "@/components/bio-icon";
 import { FluidHeroCanvas } from "@/components/fluid-hero-canvas";
 import { HomeShowcase } from "@/components/home-showcase";
@@ -28,29 +24,43 @@ const showcaseItems = [
     label: "Dashboard",
     title: "Know what needs attention.",
     body: "Review items, recent documents, and family records are organized around the next health task.",
-    image: dashboardLight,
-    alt: "Klario dashboard showing documents, family, review items, and extracted values"
+    image: "/app-screens/dashboard.png",
+    alt: "Klario mobile dashboard showing scan report actions, health score, latest report, and attention cards"
   },
   {
     label: "Trends",
     title: "See movement across every test.",
     body: "Repeated values become trend lines, so changes are easier to spot across months and years.",
-    image: trendsImage,
-    alt: "Klario workspace showing biomarker trends"
+    image: "/app-screens/trends.png",
+    alt: "Klario mobile trends screen showing searchable biomarker metrics"
   },
   {
-    label: "Timeline",
-    title: "Keep the health history in order.",
-    body: "Reports, medications, vaccines, and appointments stay connected by date and family member.",
-    image: timelineImage,
-    alt: "Klario timeline showing chronological health events"
+    label: "Reports",
+    title: "Keep every report easy to find.",
+    body: "Saved reports stay searchable by person, type, date, and review status.",
+    image: "/app-screens/reports.png",
+    alt: "Klario mobile reports screen showing saved lab reports"
   },
   {
     label: "Family",
     title: "Manage family records separately.",
     body: "Assign each report to the right person or pet before values enter the shared account.",
-    image: familyImage,
-    alt: "Klario family workspace showing profiles"
+    image: "/app-screens/family.png",
+    alt: "Klario mobile family screen showing family member profiles"
+  },
+  {
+    label: "Document",
+    title: "Open the source when context matters.",
+    body: "The original report stays connected to extracted results, so numbers never float away from their source.",
+    image: "/app-screens/document-preview.png",
+    alt: "Klario mobile document preview screen showing a health checkup report PDF"
+  },
+  {
+    label: "Review",
+    title: "Inspect each extracted value.",
+    body: "Metric sheets keep values, units, flags, and reference ranges together before you act on them.",
+    image: "/app-screens/metric-sheet.png",
+    alt: "Klario mobile metric review sheet showing extracted metric details"
   }
 ];
 
@@ -65,6 +75,11 @@ export default function HomePage() {
           <p className="hero-lead">
             Your reports, finally clear. Upload lab results once, see biomarkers move over time, and understand what changed without digging through PDFs.
           </p>
+        </div>
+        <div className="hero-app-gallery" aria-label="Klario app screens">
+          <img className="hero-phone hero-phone-main" src="/app-screens/dashboard.png" alt="Klario mobile dashboard" />
+          <img className="hero-phone hero-phone-trends" src="/app-screens/trends.png" alt="Klario mobile trends view" />
+          <img className="hero-phone hero-phone-report" src="/app-screens/document-preview.png" alt="Klario mobile report preview" />
         </div>
         <Link className="scroll-cue" href="#premium-content" aria-label="Scroll to the next section" title="Scroll">
           <BioIcon name="icon_action_continue" size={24} />

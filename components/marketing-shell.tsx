@@ -12,9 +12,8 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
   const [homeNavActive, setHomeNavActive] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const navItems: Array<{ label: string; href: string; icon: NavIconName }> = [
-    { label: "Home", href: "/#cascade", icon: "home" },
-    ...publicNav.map((item) => ({ ...item, icon: item.href === "/about" ? "info" as const : "sparkles" as const })),
-    { label: "How it works", href: "/features#how-it-works", icon: "sparkles" as const }
+    { label: "Home", href: "/", icon: "home" },
+    ...publicNav.map((item) => ({ ...item, icon: item.icon as NavIconName }))
   ];
 
   useEffect(() => {
@@ -72,7 +71,8 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
           <div className="nav-left">
             <Brand onClick={handleLogoClick} />
             {navItems.map((item) => {
-              const isActive = item.href === "/#cascade" ? pathname === "/" && homeNavActive : pathname === item.href;
+              const baseHref = item.href.split("#")[0];
+              const isActive = item.href === "/" ? pathname === "/" && !homeNavActive : pathname === baseHref && item.href.indexOf("#") === -1;
 
               return (
                 <Link key={item.href} className={`nav-link${isActive ? " is-active" : ""}`} href={item.href} title={item.label} onClick={() => setMenuOpen(false)}>

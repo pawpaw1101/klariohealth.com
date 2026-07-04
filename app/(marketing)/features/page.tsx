@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import uploadImage from "@/assets/screenshots/klario-add-document.jpeg";
 import { BioIcon } from "@/components/bio-icon";
 import { SectionHeader } from "@/components/section";
 
@@ -68,7 +67,7 @@ export default function FeaturesPage() {
           </div>
         </div>
         <figure className="hero-image">
-          <Image src={uploadImage} alt="Klario upload screen showing report import methods" priority sizes="(max-width: 900px) 100vw, 540px" />
+          <Image src="/app-screens/document-preview.png" alt="Klario document preview screen showing a health report" width={726} height={1514} priority sizes="(max-width: 900px) 100vw, 540px" />
         </figure>
       </section>
 
