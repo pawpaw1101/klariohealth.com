@@ -424,6 +424,10 @@ function initReveal(reducedMotion: boolean) {
     ".timeline-list > *",
     ".liquid-hero-copy > *",
     ".liquid-hero-panel",
+    ".premium-section-copy",
+    ".premium-step",
+    ".premium-feature",
+    ".premium-section .reveal",
     ".cascade-card",
     ".cascade-feature",
     ".cascade-step"
@@ -479,7 +483,7 @@ function initInteractions(disabled: boolean) {
     });
   });
 
-  document.querySelectorAll<HTMLElement>(".card, .screenshot-card, .metric, .form-panel, .hero-image, .record, .liquid-hero-panel, .cascade-feature, .cascade-step").forEach((card) => {
+  document.querySelectorAll<HTMLElement>(".card, .screenshot-card, .metric, .form-panel, .hero-image, .record, .liquid-hero-panel, .premium-step, .premium-feature, .cascade-feature, .cascade-step").forEach((card) => {
     card.classList.add("tilt-card");
     const onMove = (event: MouseEvent) => {
       const rect = card.getBoundingClientRect();

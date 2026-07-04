@@ -31,7 +31,7 @@ export default async function LoginPage({
         : undefined;
 
   return (
-    <main className="content cascade-page">
+    <main className="content premium-page">
       <section className="hero">
         <div className="hero-copy">
           <p className="eyebrow"><span className="eyebrow-dot" aria-hidden="true" /> Try for free</p>

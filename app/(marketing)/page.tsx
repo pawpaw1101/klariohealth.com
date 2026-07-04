@@ -66,23 +66,23 @@ export default function HomePage() {
             Your reports, finally clear. Upload lab results once, see biomarkers move over time, and understand what changed without digging through PDFs.
           </p>
         </div>
-        <Link className="scroll-cue" href="#cascade" aria-label="Scroll to the next section" title="Scroll">
+        <Link className="scroll-cue" href="#premium-content" aria-label="Scroll to the next section" title="Scroll">
           <BioIcon name="icon_action_continue" size={24} />
         </Link>
       </section>
 
-      <div className="cascade-stack" id="cascade">
-        <section className="cascade-card cascade-card-dark" style={{ "--cascade-top": "22px", "--cascade-z": 1 } as React.CSSProperties}>
-          <div className="cascade-card-copy">
+      <div className="premium-stack" id="premium-content">
+        <section className="premium-section premium-section-dark">
+          <div className="premium-section-copy reveal">
             <p className="section-label">Organize</p>
             <h2>Build one health record from every report.</h2>
             <p>Upload PDFs, photos, pasted text, or email imports. Klario extracts the dates, values, units, and source details so the record is ready to review.</p>
           </div>
-          <div className="cascade-steps">
+          <div className="premium-steps reveal">
             {["Add reports", "Extract values", "Confirm results", "Track changes"].map((step, index) => (
-              <div className="cascade-step" key={step}>
-                <span>{index + 1}</span>
-                <div>
+              <div className="premium-step magnetic" key={step}>
+                <span className="step-number">{index + 1}</span>
+                <div className="step-content">
                   <strong>{step}</strong>
                   <small>{["Bring scattered files into one place.", "Structure biomarkers and reference ranges.", "Review uncertain or out-of-range entries.", "See timelines and biomarker movement."][index]}</small>
                 </div>
@@ -91,16 +91,16 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="cascade-card cascade-card-light" style={{ "--cascade-top": "38px", "--cascade-z": 2 } as React.CSSProperties}>
-          <div className="cascade-card-copy">
+        <section className="premium-section premium-section-light">
+          <div className="premium-section-copy reveal">
             <p className="section-label">Understand</p>
             <h2>Stay on top of what changed.</h2>
             <p>Klario keeps the clinical details readable: flagged values, family member context, dates, units, and plain-language explanations stay together.</p>
           </div>
-          <div className="cascade-feature-list">
+          <div className="premium-feature-list">
             {featureSnapshots.map((feature, index) => {
               return (
-                <article className="cascade-feature" key={feature.title}>
+                <article className="premium-feature reveal tilt-card" key={feature.title}>
                   <span className="feature-icon" aria-hidden="true">
                     <BioIcon name={featureIcons[index]} size={22} />
                   </span>
@@ -114,22 +114,24 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="cascade-card cascade-card-showcase" style={{ "--cascade-top": "54px", "--cascade-z": 3 } as React.CSSProperties}>
-          <div className="cascade-card-copy">
+        <section className="premium-section premium-section-showcase">
+          <div className="premium-section-copy reveal">
             <p className="section-label">Review</p>
             <h2>Move from report to trend without losing context.</h2>
             <p>Dashboard, documents, timelines, family profiles, and biomarker charts stay connected around the same underlying health record.</p>
           </div>
-          <HomeShowcase items={showcaseItems} />
+          <div className="reveal">
+            <HomeShowcase items={showcaseItems} />
+          </div>
         </section>
 
-        <section className="cascade-card cascade-card-cta" style={{ "--cascade-top": "70px", "--cascade-z": 4 } as React.CSSProperties}>
-          <div className="cascade-card-copy">
+        <section className="premium-section premium-section-cta">
+          <div className="premium-section-copy reveal">
             <p className="section-label">Start</p>
             <h2>Start with your next report.</h2>
             <p>Add one lab report and Klario begins building the timeline, trend history, and review queue around it.</p>
             <div className="button-row">
-              <Link className="button button-primary" href="/login">
+              <Link className="button button-primary magnetic" href="/login">
                 Try for free
                 <BioIcon name="icon_action_continue" size={18} />
               </Link>

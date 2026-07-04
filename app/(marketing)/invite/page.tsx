@@ -12,7 +12,7 @@ export default async function InvitePage({ searchParams }: { searchParams: Promi
   const token = Array.isArray(params.token) ? params.token[0] : params.token;
 
   return (
-    <main className="content cascade-page">
+    <main className="content premium-page">
       <section className="hero">
         <div className="hero-copy">
           <p className="eyebrow"><span className="eyebrow-dot" aria-hidden="true" /> Invite</p>
