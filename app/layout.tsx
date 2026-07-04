@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
-import { AmbientEffects } from "@/components/ambient-effects";
 import { KlarioApiProvider } from "@/components/klario-api-provider";
 import "../styles.css";
 
@@ -29,7 +28,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en" className={`${inter.variable} ${jakarta.variable}`}>
       <body>
         <KlarioApiProvider>
-          <AmbientEffects />
           {children}
         </KlarioApiProvider>
       </body>

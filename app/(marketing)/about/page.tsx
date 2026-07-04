@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
-import trendsImage from "@/assets/screenshots/klario-trends.jpeg";
 import { BioIcon } from "@/components/bio-icon";
+import { GeometricHeroCanvas } from "@/components/geometric-hero-canvas";
 import { SectionHeader } from "@/components/section";
 
 export const metadata: Metadata = {
@@ -45,9 +44,9 @@ export default function AboutPage() {
             Without having to compare every line by hand.
           </p>
         </div>
-        <figure className="hero-image">
-          <Image src={trendsImage} alt="Klario workspace showing biomarker trends" priority sizes="(max-width: 900px) 100vw, 540px" />
-        </figure>
+        <div className="hero-geometry-panel hero-geometry-panel-page" aria-hidden="true">
+          <GeometricHeroCanvas />
+        </div>
       </section>
 
       <section className="section">

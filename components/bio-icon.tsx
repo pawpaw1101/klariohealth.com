@@ -18,6 +18,7 @@ export function BioIcon({ name, size = 20, label, className }: BioIconProps) {
       aria-hidden={label ? undefined : "true"}
       aria-label={label}
       className={`bio-icon${className ? ` ${className}` : ""}`}
+      data-icon-name={name}
       role={label ? "img" : undefined}
       style={{
         "--icon-url": `url("/icons/${name}.svg")`,

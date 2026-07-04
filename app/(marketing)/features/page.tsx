@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
-import uploadImage from "@/assets/screenshots/klario-add-document.jpeg";
 import { BioIcon } from "@/components/bio-icon";
+import { GeometricHeroCanvas } from "@/components/geometric-hero-canvas";
 import { SectionHeader } from "@/components/section";
 
 export const metadata: Metadata = {
@@ -67,9 +66,9 @@ export default function FeaturesPage() {
             </Link>
           </div>
         </div>
-        <figure className="hero-image">
-          <Image src={uploadImage} alt="Klario upload screen showing report import methods" priority sizes="(max-width: 900px) 100vw, 540px" />
-        </figure>
+        <div className="hero-geometry-panel hero-geometry-panel-page" aria-hidden="true">
+          <GeometricHeroCanvas />
+        </div>
       </section>
 
       <section className="section">

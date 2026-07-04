@@ -5,7 +5,7 @@ import trendsImage from "@/assets/screenshots/klario-trends.jpeg";
 import timelineImage from "@/assets/screenshots/klario-timeline.jpeg";
 import familyImage from "@/assets/screenshots/klario-family.jpeg";
 import { BioIcon } from "@/components/bio-icon";
-import { FluidHeroCanvas } from "@/components/fluid-hero-canvas";
+import { GeometricHeroCanvas } from "@/components/geometric-hero-canvas";
 import { HomeShowcase } from "@/components/home-showcase";
 import { featureSnapshots } from "@/lib/klario-data";
 
@@ -58,13 +58,14 @@ export default function HomePage() {
   return (
     <main className="liquid-page">
       <section className="liquid-hero" id="hero" aria-labelledby="home-hero-title">
-        <FluidHeroCanvas />
-        <div className="liquid-hero-sheen" aria-hidden="true" />
         <div className="liquid-hero-copy">
           <h1 id="home-hero-title">Klario</h1>
           <p className="hero-lead">
             Your reports, finally clear. Upload lab results once, see biomarkers move over time, and understand what changed without digging through PDFs.
           </p>
+        </div>
+        <div className="hero-geometry-panel" aria-hidden="true">
+          <GeometricHeroCanvas />
         </div>
         <Link className="scroll-cue" href="#premium-content" aria-label="Scroll to the next section" title="Scroll">
           <BioIcon name="icon_action_continue" size={24} />
