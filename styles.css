@@ -1553,6 +1553,10 @@ textarea {
   gap: 8px;
 }
 
+.showcase-controls {
+  justify-content: center;
+}
+
 .pill-button,
 .segmented-button {
   min-height: 34px;
@@ -1704,13 +1708,21 @@ textarea {
 
 .showcase-body {
   display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(260px, 0.75fr);
-  gap: 28px;
+  grid-template-columns: 380px 1fr;
+  gap: clamp(40px, 6vw, 80px);
   align-items: center;
 }
 
 .showcase-copy h3 {
-  font-size: 1.45rem;
+  font-size: clamp(2.5rem, 4vw, 4.5rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin-bottom: 20px;
+}
+
+.showcase-copy p {
+  font-size: 1.125rem;
+  line-height: 1.6;
 }
 
 .showcase-image {
@@ -2811,7 +2823,10 @@ button:disabled {
 
 .premium-section .showcase-panel {
   margin-bottom: 0;
-  background: rgba(255, 255, 255, 0.68);
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
 }
 
 .premium-page {

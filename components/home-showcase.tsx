@@ -32,15 +32,14 @@ export function HomeShowcase({ items }: { items: ShowcaseItem[] }) {
         ))}
       </div>
       <div className="showcase-body">
+        <figure className="screenshot-card showcase-image">
+          <img src={active.image} alt={active.alt} />
+
+        </figure>
         <div className="showcase-copy">
-          <p className="section-label">Workspace</p>
           <h3>{active.title}</h3>
           <p>{active.body}</p>
         </div>
-        <figure className="screenshot-card showcase-image">
-          <img src={active.image} alt={active.alt} />
-          <figcaption className="caption">{active.label}</figcaption>
-        </figure>
       </div>
     </div>
   );

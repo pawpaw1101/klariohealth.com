@@ -74,7 +74,7 @@ export default function HomePage() {
         <div className="liquid-hero-copy" style={{ justifySelf: "center", textAlign: "center" }}>
           <h1 id="home-hero-title">Klario</h1>
           <p className="hero-lead">
-            Your reports, finally clear. Upload lab results once, see biomarkers move over time, and understand what changed without digging through PDFs.
+            Private health records intelligently organised.
           </p>
         </div>
       </section>
@@ -84,17 +84,17 @@ export default function HomePage() {
       <div className="premium-stack" id="premium-content">
         <section className="premium-section premium-section-dark">
           <div className="premium-section-copy reveal">
-            <p className="section-label">Organize</p>
-            <h2>Build one health record from every report.</h2>
+
+            <h2>Move from report to trend without losing context.</h2>
             <p>Upload PDFs, photos, pasted text, or email imports. Klario extracts the dates, values, units, and source details so the record is ready to review.</p>
           </div>
           <div className="premium-steps reveal">
-            {["Add reports", "Extract values", "Confirm results", "Track changes"].map((step, index) => (
+            {["Add reports", "Extract values", "Track changes"].map((step, index) => (
               <div className="premium-step magnetic" key={step}>
                 <span className="step-number">{index + 1}</span>
                 <div className="step-content">
                   <strong>{step}</strong>
-                  <small>{["Bring scattered files into one place.", "Structure biomarkers and reference ranges.", "Review uncertain or out-of-range entries.", "See timelines and biomarker movement."][index]}</small>
+                  <small>{["Bring scattered files into one place.", "Structure biomarkers and reference ranges.", "See timelines and biomarker movement."][index]}</small>
                 </div>
               </div>
             ))}
@@ -102,12 +102,7 @@ export default function HomePage() {
         </section>
 
 
-        <section className="premium-section premium-section-showcase">
-          <div className="premium-section-copy reveal">
-            <p className="section-label">Review</p>
-            <h2>Move from report to trend without losing context.</h2>
-            <p>Dashboard, documents, timelines, family profiles, and biomarker charts stay connected around the same underlying health record.</p>
-          </div>
+        <section className="premium-section premium-section-showcase" style={{ gridTemplateColumns: "1fr" }}>
           <div className="reveal">
             <HomeShowcase items={showcaseItems} />
           </div>
@@ -115,7 +110,7 @@ export default function HomePage() {
 
         <section className="premium-section premium-section-cta">
           <div className="premium-section-copy reveal">
-            <p className="section-label">Start</p>
+
             <h2>Start with your next report.</h2>
             <p>Add one lab report and Klario begins building the timeline, trend history, and review queue around it.</p>
             <div className="button-row">

@@ -53,7 +53,7 @@ export default function AboutPage() {
         <div className="story-block story-block-rich story-block-who">
           <div className="story-card-heading">
             <span className="feature-icon" aria-hidden="true"><BioIcon name="icon_signal_confidence" size={24} /></span>
-            <p className="section-label">Who we are</p>
+
             <h2>Personal health records, made easier to follow.</h2>
           </div>
           <div className="story-block-content">
@@ -73,7 +73,7 @@ export default function AboutPage() {
         <div className="story-block story-block-rich story-block-started">
           <div className="story-card-heading">
             <span className="feature-icon" aria-hidden="true"><BioIcon name="icon_tab_trends" size={24} /></span>
-            <p className="section-label">How we started</p>
+
             <h2>One family question became the product brief.</h2>
           </div>
           <div className="story-block-content">
@@ -109,7 +109,7 @@ export default function AboutPage() {
         <div className="story-block story-block-rich story-block-solution">
           <div className="story-card-heading">
             <span className="feature-icon" aria-hidden="true"><BioIcon name="icon_signal_insights" size={24} /></span>
-            <p className="section-label">Our solution</p>
+
             <h2>Turn every report into something you can act on.</h2>
           </div>
           <div className="story-block-content">

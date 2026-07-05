@@ -97,7 +97,7 @@ export function DashboardWorkspace() {
       {dashboard ? (
         <section className="dashboard-summary card preference-card" aria-label="Health summary">
           <div className="dashboard-summary-copy">
-            <p className="section-label">Summary</p>
+
             <h2>{dashboard.health_summary.status_sentence}</h2>
             <p>{dashboard.health_summary.score_note}</p>
           {dashboard.health_summary.last_report ? (
