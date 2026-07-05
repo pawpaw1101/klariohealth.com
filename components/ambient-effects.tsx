@@ -465,22 +465,8 @@ function initInteractions(disabled: boolean) {
 
   const cleanup: Array<() => void> = [];
   document.querySelectorAll<HTMLElement>(".button-primary, .button-secondary").forEach((button) => {
-    button.classList.add("magnetic");
-    const onMove = (event: MouseEvent) => {
-      const rect = button.getBoundingClientRect();
-      const x = event.clientX - rect.left - rect.width / 2;
-      const y = event.clientY - rect.top - rect.height / 2;
-      button.style.transform = `translate(${x * 0.16}px, ${y * 0.2}px)`;
-    };
-    const onLeave = () => {
-      button.style.transform = "";
-    };
-    button.addEventListener("mousemove", onMove);
-    button.addEventListener("mouseleave", onLeave);
-    cleanup.push(() => {
-      button.removeEventListener("mousemove", onMove);
-      button.removeEventListener("mouseleave", onLeave);
-    });
+    button.classList.remove("magnetic");
+    button.style.transform = "";
   });
 
   document.querySelectorAll<HTMLElement>(".card, .screenshot-card, .metric, .form-panel, .hero-image, .record, .liquid-hero-panel, .premium-step, .premium-feature, .cascade-feature, .cascade-step").forEach((card) => {

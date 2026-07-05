@@ -37,7 +37,7 @@ export default function AboutPage() {
     <main className="content premium-page">
       <section className="hero">
         <div className="hero-copy">
-          <p className="eyebrow"><span className="eyebrow-dot" aria-hidden="true" /> About Klario</p>
+
           <h1>Health records should not feel impossible to follow.</h1>
           <p className="hero-lead">
             Klario helps people organize medical reports, track biomarker changes, and understand what their records are saying over time.

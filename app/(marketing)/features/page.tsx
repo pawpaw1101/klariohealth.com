@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { BioIcon } from "@/components/bio-icon";
 import { SectionHeader } from "@/components/section";
+import { productUseCases } from "@/lib/klario-data";
 
 export const metadata: Metadata = {
   title: "Features",
@@ -54,14 +55,14 @@ export default function FeaturesPage() {
     <main className="content premium-page">
       <section className="hero">
         <div className="hero-copy">
-          <p className="eyebrow"><span className="eyebrow-dot" aria-hidden="true" /> Features</p>
+
           <h1>From uploaded report to useful health timeline.</h1>
           <p className="hero-lead">
             Klario is designed around the full flow: capture a report, parse it accurately, review important values, chart changes, and explain what the record means.
           </p>
           <div className="button-row">
             <Link className="button button-primary" href="/login">
-              Try for free
+              Try now / Download
               <BioIcon name="icon_action_continue" size={18} />
             </Link>
           </div>
@@ -71,7 +72,7 @@ export default function FeaturesPage() {
         </figure>
       </section>
 
-      <section className="section">
+      <section className="section" id="capabilities">
         <SectionHeader
           label="Capabilities"
           title="Core features"
@@ -105,11 +106,28 @@ export default function FeaturesPage() {
         </div>
       </section>
 
-      <section className="cta-banner">
+      <section className="section" id="use-cases">
+        <SectionHeader
+          label="Scenarios"
+          title="Use cases"
+          intro="Each workflow starts with a report and ends with a clearer timeline, trend, or review queue."
+        />
+        <div className="grid feature-grid">
+          {productUseCases.map((item) => (
+            <article className="card" key={item.title}>
+              <span className="feature-icon" aria-hidden="true"><BioIcon name={item.icon} size={24} /></span>
+              <h3>{item.title}</h3>
+              <p>{item.body}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="cta-banner" id="start">
         <h2>Ready to see your data differently?</h2>
         <p>Upload your first report and watch Klario build your health timeline.</p>
         <div className="button-row">
-          <Link className="button button-primary" href="/login">Try for free</Link>
+          <Link className="button button-primary" href="/login">Try now / Download</Link>
           <Link className="button button-secondary" href="/about">Learn our story</Link>
         </div>
       </section>

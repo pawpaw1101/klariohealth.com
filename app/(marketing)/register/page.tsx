@@ -11,10 +11,10 @@ export const metadata: Metadata = {
 
 export default function RegisterPage() {
   return (
-    <main className="content premium-page">
+    <main className="content auth-page">
       <section className="hero">
         <div className="hero-copy">
-          <p className="eyebrow"><span className="eyebrow-dot" aria-hidden="true" /> Create account</p>
+
           <h1>Start your private health workspace.</h1>
           <p className="hero-lead">
             Choose a password, then verify your email with a one-time code to activate your account.

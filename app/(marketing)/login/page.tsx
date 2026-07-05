@@ -31,10 +31,10 @@ export default async function LoginPage({
         : undefined;
 
   return (
-    <main className="content premium-page">
+    <main className="content auth-page">
       <section className="hero">
         <div className="hero-copy">
-          <p className="eyebrow"><span className="eyebrow-dot" aria-hidden="true" /> Try for free</p>
+
           <h1>Sign in to Klario.</h1>
           <p className="hero-lead">
             Sign in with your password, then confirm with a one-time code sent to your email.
@@ -49,17 +49,6 @@ export default async function LoginPage({
           </div>
         </div>
         <LoginForm notice={notice} />
-      </section>
-
-      <section className="section">
-        <SectionHeader
-          label="New here"
-          title="Create an account"
-          intro="Register with your name, email, and password. We will send a verification code to activate your account."
-        />
-        <div className="button-row">
-          <Link className="button button-secondary" href="/register">Create account</Link>
-        </div>
       </section>
     </main>
   );

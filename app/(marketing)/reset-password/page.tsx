@@ -21,7 +21,7 @@ export default async function ResetPasswordPage({
     <main className="content cascade-page">
       <section className="hero">
         <div className="hero-copy">
-          <p className="eyebrow"><span className="eyebrow-dot" aria-hidden="true" /> Password reset</p>
+
           <h1>Choose a new password.</h1>
           <p className="hero-lead">
             Use the reset link from your email. Expired or already-used links are rejected safely.

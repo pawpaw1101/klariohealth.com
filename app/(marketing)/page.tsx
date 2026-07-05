@@ -3,6 +3,7 @@ import Link from "next/link";
 import { BioIcon } from "@/components/bio-icon";
 import { FluidHeroCanvas } from "@/components/fluid-hero-canvas";
 import { HomeShowcase } from "@/components/home-showcase";
+import { HeroGallery } from "@/components/hero-gallery";
 import { featureSnapshots } from "@/lib/klario-data";
 
 export const metadata: Metadata = {
@@ -70,21 +71,15 @@ export default function HomePage() {
       <section className="liquid-hero" id="hero" aria-labelledby="home-hero-title">
         <FluidHeroCanvas />
         <div className="liquid-hero-sheen" aria-hidden="true" />
-        <div className="liquid-hero-copy">
+        <div className="liquid-hero-copy" style={{ justifySelf: "center", textAlign: "center" }}>
           <h1 id="home-hero-title">Klario</h1>
           <p className="hero-lead">
             Your reports, finally clear. Upload lab results once, see biomarkers move over time, and understand what changed without digging through PDFs.
           </p>
         </div>
-        <div className="hero-app-gallery" aria-label="Klario app screens">
-          <img className="hero-phone hero-phone-main" src="/app-screens/dashboard.png" alt="Klario mobile dashboard" />
-          <img className="hero-phone hero-phone-trends" src="/app-screens/trends.png" alt="Klario mobile trends view" />
-          <img className="hero-phone hero-phone-report" src="/app-screens/document-preview.png" alt="Klario mobile report preview" />
-        </div>
-        <Link className="scroll-cue" href="#premium-content" aria-label="Scroll to the next section" title="Scroll">
-          <BioIcon name="icon_action_continue" size={24} />
-        </Link>
       </section>
+
+      <HeroGallery />
 
       <div className="premium-stack" id="premium-content">
         <section className="premium-section premium-section-dark">
@@ -106,28 +101,6 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="premium-section premium-section-light">
-          <div className="premium-section-copy reveal">
-            <p className="section-label">Understand</p>
-            <h2>Stay on top of what changed.</h2>
-            <p>Klario keeps the clinical details readable: flagged values, family member context, dates, units, and plain-language explanations stay together.</p>
-          </div>
-          <div className="premium-feature-list">
-            {featureSnapshots.map((feature, index) => {
-              return (
-                <article className="premium-feature reveal tilt-card" key={feature.title}>
-                  <span className="feature-icon" aria-hidden="true">
-                    <BioIcon name={featureIcons[index]} size={22} />
-                  </span>
-                  <div>
-                    <h3>{feature.title}</h3>
-                    <p>{feature.body}</p>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        </section>
 
         <section className="premium-section premium-section-showcase">
           <div className="premium-section-copy reveal">

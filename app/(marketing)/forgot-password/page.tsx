@@ -14,7 +14,7 @@ export default function ForgotPasswordPage() {
     <main className="content cascade-page">
       <section className="hero">
         <div className="hero-copy">
-          <p className="eyebrow"><span className="eyebrow-dot" aria-hidden="true" /> Account recovery</p>
+
           <h1>Reset your Klario password.</h1>
           <p className="hero-lead">
             Enter your email and Klario will send a password reset link if the account is eligible.

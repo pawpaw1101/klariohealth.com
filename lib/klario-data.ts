@@ -1,8 +1,5 @@
 export const publicNav = [
   { label: "Product", href: "/features", icon: "product" },
-  { label: "How it works", href: "/features#how-it-works", icon: "route" },
-  { label: "Use cases", href: "/use-cases", icon: "sparkles" },
-  { label: "Security", href: "/security", icon: "shield" },
   { label: "About", href: "/about", icon: "info" }
 ];
 
@@ -89,6 +86,39 @@ export const featureSnapshots = [
   {
     title: "Build a timeline",
     body: "Keep reports, visits, medications, vaccines, and lab panels in chronological order."
+  }
+];
+
+export const productUseCases = [
+  {
+    title: "Track long-term biomarkers",
+    body: "Follow HbA1c, ferritin, vitamin D, thyroid, cholesterol, CBC, and other repeated values across reports.",
+    icon: "icon_tab_trends"
+  },
+  {
+    title: "Prepare for doctor visits",
+    body: "Bring a cleaner view of recent reports, flagged values, and timeline context into appointments.",
+    icon: "icon_med_visit"
+  },
+  {
+    title: "Care for parents",
+    body: "Keep older family members' reports organized and compare changes without hunting through old files.",
+    icon: "icon_tab_family"
+  },
+  {
+    title: "Manage child records",
+    body: "Store visits, prescriptions, vaccines, growth metrics, and lab reports in one chronological record.",
+    icon: "icon_med_vaccine"
+  },
+  {
+    title: "Review new reports faster",
+    body: "See what needs attention, what changed, and which values should be confirmed before saving.",
+    icon: "icon_signal_warning"
+  },
+  {
+    title: "Build a family timeline",
+    body: "Connect reports, appointments, medications, and notes by date while keeping profiles separate.",
+    icon: "icon_timeline_empty"
   }
 ];
 

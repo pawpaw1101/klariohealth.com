@@ -36,10 +36,6 @@ export function HomeShowcase({ items }: { items: ShowcaseItem[] }) {
           <p className="section-label">Workspace</p>
           <h3>{active.title}</h3>
           <p>{active.body}</p>
-          <span className="inline-action">
-            Switch view
-            <BioIcon name="icon_action_continue" size={16} />
-          </span>
         </div>
         <figure className="screenshot-card showcase-image">
           <img src={active.image} alt={active.alt} />

@@ -77,7 +77,7 @@ export function RegisterForm() {
 
   if (step === "code") {
     return (
-      <form className="form-panel form-grid" onSubmit={verifyCode}>
+      <form className="form-grid" onSubmit={verifyCode}>
         <p className="note">Enter the 6-digit code sent to <strong>{email}</strong>.</p>
         {devHint ? <p className="note">{devHint}</p> : null}
         <div>
@@ -109,7 +109,7 @@ export function RegisterForm() {
   }
 
   return (
-    <form className="form-panel form-grid" onSubmit={sendCode}>
+    <form className="form-grid" onSubmit={sendCode}>
       <div>
         <label htmlFor="full_name">Full name</label>
         <input

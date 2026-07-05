@@ -71,7 +71,7 @@ export function LoginForm({ notice }: { notice?: string }) {
 
   if (step === "code") {
     return (
-      <form className="form-panel form-grid" onSubmit={verifyCode}>
+      <form className="form-grid" onSubmit={verifyCode}>
         <p className="note">We sent a 6-digit code to <strong>{email}</strong>.</p>
         {devHint ? <p className="note">{devHint}</p> : null}
         <div>
@@ -104,7 +104,7 @@ export function LoginForm({ notice }: { notice?: string }) {
   }
 
   return (
-    <form className="form-panel form-grid" onSubmit={sendCode}>
+    <form className="form-grid" onSubmit={sendCode}>
       {notice ? <p className="note">{notice}</p> : null}
       <div>
         <label htmlFor="email">Email</label>

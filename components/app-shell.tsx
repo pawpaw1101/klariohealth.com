@@ -28,7 +28,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <header className={`site-header floating-glass-nav app-floating-nav${menuOpen ? " is-mobile-open" : ""}`}>
+      <header className={`site-header${menuOpen ? " is-mobile-open" : ""}`}>
         <nav className="navbar" aria-label="App navigation">
           <div className="mobile-nav-head">
             <Brand href="/app/dashboard" />

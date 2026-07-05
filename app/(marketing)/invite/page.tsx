@@ -15,7 +15,7 @@ export default async function InvitePage({ searchParams }: { searchParams: Promi
     <main className="content premium-page">
       <section className="hero">
         <div className="hero-copy">
-          <p className="eyebrow"><span className="eyebrow-dot" aria-hidden="true" /> Invite</p>
+
           <h1>Join a Klario family workspace.</h1>
           <p className="hero-lead">
             Accept an invite only while signed in as the email address that received it. Expired, revoked, or already-used invites are rejected by the backend.
