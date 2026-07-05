@@ -118,7 +118,7 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
         </nav>
       </header>
       {children}
-      {pathname !== "/login" && pathname !== "/register" && (
+      {pathname !== "/login" && pathname !== "/register" && pathname !== "/forgot-password" && (
         <footer className="site-footer">
           <div className="footer-inner">
             <div className="footer-brand">

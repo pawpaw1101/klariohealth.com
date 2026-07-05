@@ -31,16 +31,7 @@ export default function RegisterPage() {
         <RegisterForm />
       </section>
 
-      <section className="section">
-        <SectionHeader
-          label="Already set up"
-          title="Return to your workspace"
-          intro="If you already have an account or accepted a family invite, sign in with the email address attached to that account."
-        />
-        <div className="button-row">
-          <Link className="button button-secondary" href="/login">Sign in</Link>
-        </div>
-      </section>
+
     </main>
   );
 }

@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function ForgotPasswordPage() {
   return (
-    <main className="content cascade-page">
+    <main className="content auth-page">
       <section className="hero">
         <div className="hero-copy">
 
@@ -35,16 +35,7 @@ export default function ForgotPasswordPage() {
         <ForgotPasswordForm />
       </section>
 
-      <section className="section">
-        <SectionHeader
-          label="Back to login"
-          title="Remembered your password?"
-          intro="Sign in with your password, then confirm with the email verification code."
-        />
-        <div className="button-row">
-          <Link className="button button-secondary" href="/login">Sign in</Link>
-        </div>
-      </section>
+
     </main>
   );
 }
