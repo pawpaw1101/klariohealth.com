@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useKlarioApi } from "@/components/klario-api-provider";
+import { NavIcon } from "@/components/nav-icon";
 import { authApi } from "@/lib/api/klario-api";
 import { ApiError } from "@/lib/api/client";
 
@@ -16,6 +17,7 @@ export function LoginForm({ notice }: { notice?: string }) {
   const [code, setCode] = useState("");
   const [devHint, setDevHint] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
 
   const sendCode = async (event: FormEvent<HTMLFormElement>) => {
@@ -121,16 +123,27 @@ export function LoginForm({ notice }: { notice?: string }) {
       </div>
       <div>
         <label htmlFor="password">Password</label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          placeholder="Your password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          required
-        />
+        <div className="password-field">
+          <input
+            id="password"
+            name="password"
+            type={showPassword ? "text" : "password"}
+            autoComplete="current-password"
+            placeholder="Your password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            required
+          />
+          <button
+            className="password-toggle"
+            type="button"
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            aria-pressed={showPassword}
+            onClick={() => setShowPassword((current) => !current)}
+          >
+            <NavIcon name={showPassword ? "eyeOff" : "eye"} size={18} />
+          </button>
+        </div>
       </div>
       {error ? <p className="form-alert">{error}</p> : null}
       <button type="submit" disabled={isSubmitting}>

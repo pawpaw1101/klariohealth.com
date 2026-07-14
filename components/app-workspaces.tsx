@@ -4,18 +4,24 @@ import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { BioIcon } from "@/components/bio-icon";
+import { BodyParticleCard } from "@/components/body-particle-card";
 import { useKlarioApi } from "@/components/klario-api-provider";
 import { PageTitle, SectionHeader } from "@/components/section";
 import {
   attentionApi,
+  auditApi,
   canManageInvites,
   canManageMembers,
+  canManageRoles,
   canResolveAttention,
   canUpload,
   dashboardApi,
   documentsApi,
+  familiesApi,
+  healthApi,
   invitesApi,
   inviteRoleOptions,
+  membersApi,
   parseApi,
   trendsApi
 } from "@/lib/api/klario-api";
@@ -47,6 +53,7 @@ export function DashboardWorkspace() {
 
   const activeLabel = api.activeMember?.display_name ?? "your profile";
   const dashboard = dashboardQuery.data;
+  const latestDocumentId = dashboard?.health_summary.last_report?.document_id ?? dashboard?.latest_reports[0]?.document_id;
 
   const metrics = dashboard
     ? [
@@ -56,69 +63,74 @@ export function DashboardWorkspace() {
         { value: String(dashboard.health_summary.critical_count), label: "Critical flags", body: "Values marked as high priority." }
       ]
     : [
-        { value: "—", label: "Health score", body: "Upload a report to generate your summary." },
-        { value: "—", label: "In range", body: "Parsed values will appear here." },
-        { value: "—", label: "Needs attention", body: "Review items will appear here." },
-        { value: "—", label: "Critical flags", body: "High-priority flags will appear here." }
+        { value: "-", label: "Health score", body: "Upload a report to generate your summary." },
+        { value: "-", label: "In range", body: "Parsed values will appear here." },
+        { value: "-", label: "Needs attention", body: "Review items will appear here." },
+        { value: "-", label: "Critical flags", body: "High-priority flags will appear here." }
       ];
+  const primaryMetric = metrics[0];
+  const supportingMetrics = metrics.slice(1);
+  const quickActions = dashboardQuickLinks.filter((item) => ["/app/documents", "/app/trends", "/app/attention"].includes(item.href));
+  const lastTest = dashboard?.health_summary.last_report
+    ? `Last test - ${dashboard.health_summary.last_report.title}, ${formatDate(dashboard.health_summary.last_report.date)}`
+    : "Last test - upload a report to begin";
 
   return (
-    <>
-      <PageTitle title="Home" body={`Your health overview for ${activeLabel}.`} />
-      <ApiStatusBanner />
-
-      <div className="workspace-bar dashboard-home-bar">
-        <div>
-          <span className="control-label">Active profile</span>
-          {api.members.length ? (
-            <div className="profile-pills" role="list" aria-label="Family profiles">
-              {api.members.map((member) => (
-                <button
-                  key={member.id}
-                  className={`pill-button${api.activeMember?.id === member.id ? " is-active" : ""}`}
-                  type="button"
-                  onClick={() => api.setActiveMemberId(member.id)}
-                >
-                  {member.display_name}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <p className="note">Your account includes a default family profile after signup.</p>
-          )}
-          {api.activeFamily ? <p className="note">{api.activeFamily.name}</p> : null}
-        </div>
-        <Link className="button button-primary" href="/app/upload">
-          <BioIcon name="icon_doc_add_empty" size={17} />
-          Upload report
-        </Link>
-      </div>
-
-      {dashboard ? (
-        <section className="dashboard-summary card preference-card" aria-label="Health summary">
-          <div className="dashboard-summary-copy">
-
-            <h2>{dashboard.health_summary.status_sentence}</h2>
-            <p>{dashboard.health_summary.score_note}</p>
-          {dashboard.health_summary.last_report ? (
-              <p className="note">
-                Last report: <strong>{dashboard.health_summary.last_report.title}</strong> · {formatDate(dashboard.health_summary.last_report.date)}
-              </p>
+    <div className="dashboard-one-screen">
+      <section className="dashboard-hero">
+        <div className="dashboard-hero-copy">
+          <h1>{dashboard?.health_summary.status_sentence ?? "Your health workspace is ready"}</h1>
+          <p>{dashboard?.health_summary.score_note ?? `Your health overview for ${activeLabel}. Upload a report to populate summaries.`}</p>
+          <div className="dashboard-actions">
+            <Link className="button button-primary" href="/app/upload">
+              <BioIcon name="icon_doc_add_empty" size={17} />
+              Upload report
+            </Link>
+            {latestDocumentId ? (
+              <Link className="button button-secondary" href={`/app/reports/${latestDocumentId}`}>
+                View latest
+              </Link>
             ) : null}
           </div>
-          {dashboard.health_summary.last_report?.document_id || dashboard.latest_reports[0]?.document_id ? (
-            <Link
-              className="button button-secondary"
-              href={`/app/reports/${dashboard.health_summary.last_report?.document_id ?? dashboard.latest_reports[0]!.document_id}`}
-            >
-              View latest report
-            </Link>
-          ) : null}
-        </section>
-      ) : null}
+        </div>
+        <BodyParticleCard name={activeLabel} lastTest={lastTest} />
+      </section>
 
-      <section className="metric-grid" aria-label="Workspace summary">
-        {metrics.map((metric) => (
+      <ApiStatusBanner />
+
+      <section className="dashboard-score-strip" aria-label="Health score summary">
+        <span className="metric-number">{primaryMetric.value}</span>
+        <div>
+          <h2>{primaryMetric.label}</h2>
+          <p>{primaryMetric.body}</p>
+        </div>
+      </section>
+
+      <div className="dashboard-profile-row">
+        <div>
+          <span className="control-label">Active profile</span>
+          {api.activeFamily ? <span className="note">{api.activeFamily.name}</span> : null}
+        </div>
+        {api.members.length ? (
+          <div className="profile-pills" role="list" aria-label="Family profiles">
+            {api.members.map((member) => (
+              <button
+                key={member.id}
+                className={`pill-button${api.activeMember?.id === member.id ? " is-active" : ""}`}
+                type="button"
+                onClick={() => api.setActiveMemberId(member.id)}
+              >
+                {member.display_name}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="note">Your account includes a default family profile after signup.</p>
+        )}
+      </div>
+
+      <section className="dashboard-metrics" aria-label="Workspace summary">
+        {supportingMetrics.map((metric) => (
           <article className="metric" key={metric.label}>
             <span className="metric-number">{metric.value}</span>
             <h3>{metric.label}</h3>
@@ -127,47 +139,28 @@ export function DashboardWorkspace() {
         ))}
       </section>
 
-      <section className="section">
-        <SectionHeader title="Navigate" intro="Jump to any workspace area from your home screen." />
-        <div className="grid two-column-grid dashboard-quick-links">
-          {dashboardQuickLinks.map((item) => (
-            <Link className="card preference-card dashboard-link-card" href={item.href} key={item.href}>
-              <span className="feature-icon" aria-hidden="true"><BioIcon name={item.icon} size={24} /></span>
-              <h3>{item.label}</h3>
-              <p>{item.body}</p>
-              <span className="inline-action">Open</span>
-            </Link>
-          ))}
-        </div>
-      </section>
+      <nav className="dashboard-nav-strip" aria-label="Priority workspace areas">
+        {quickActions.map((item) => (
+          <Link className="dashboard-nav-pill" href={item.href} key={item.href}>
+            <BioIcon name={item.icon} size={18} />
+            <span>
+              <strong>{item.label}</strong>
+              <small>{item.body}</small>
+            </span>
+          </Link>
+        ))}
+      </nav>
 
       {dashboard ? (
-        <>
-          {dashboard.trend_previews.length ? (
-            <section className="section">
-              <SectionHeader title="Trend previews" intro="Recent biomarker movement for this member." />
-              <div className="grid two-column-grid">
-                {dashboard.trend_previews.slice(0, 4).map((trend) => (
-                  <Link className="card preference-card dashboard-link-card" href={`/app/trends/${trend.canonical_metric_id}`} key={trend.canonical_metric_id}>
-                    <h3>{trend.display_name}</h3>
-                    <p>
-                      Latest: {trend.latest_value ?? "—"}
-                      {trend.unit ? ` ${trend.unit}` : ""}
-                      {trend.delta_from_previous != null ? ` · ${trend.delta_from_previous > 0 ? "+" : ""}${trend.delta_from_previous} from previous` : ""}
-                    </p>
-                    <Sparkline points={trend.sparkline.map((point) => point.value ?? 0)} />
-                    <span className="inline-action">Open trend</span>
-                  </Link>
-                ))}
-              </div>
-            </section>
-          ) : null}
-
-          <section className="section">
-            <SectionHeader title="Needs attention" intro="Items that may need confirmation before they enter the record." />
-            <div className="record-list">
+        <div className="dashboard-bottom-grid">
+          <section className="dashboard-panel">
+            <div className="dashboard-panel-head">
+              <h2>Needs attention</h2>
+              <Link className="inline-action" href="/app/attention">Review all</Link>
+            </div>
+            <div className="record-list compact">
               {dashboard.needs_attention.length ? (
-                dashboard.needs_attention.slice(0, 4).map((item) => (
+                dashboard.needs_attention.slice(0, 3).map((item) => (
                   <article className="record record-with-action" key={item.id}>
                     <div>
                       <div className="record-meta">
@@ -186,17 +179,20 @@ export function DashboardWorkspace() {
             </div>
           </section>
 
-          <section className="section">
-            <SectionHeader title="Recent reports" intro="Latest imported documents for the selected family member." />
-            <div className="record-list">
+          <section className="dashboard-panel">
+            <div className="dashboard-panel-head">
+              <h2>Recent reports</h2>
+              <Link className="inline-action" href="/app/documents">View all</Link>
+            </div>
+            <div className="record-list compact">
               {dashboard.latest_reports.length ? (
-                dashboard.latest_reports.slice(0, 4).map((report) => <LatestReportRecord key={report.document_id} report={report} />)
+                dashboard.latest_reports.slice(0, 3).map((report) => <LatestReportRecord key={report.document_id} report={report} />)
               ) : (
                 <EmptyState title="No reports yet" body="Upload a report to begin building the member record." actionLabel="Upload report" actionHref="/app/upload" />
               )}
             </div>
           </section>
-        </>
+        </div>
       ) : (
         <EmptyState
           title="Your workspace is ready"
@@ -207,10 +203,9 @@ export function DashboardWorkspace() {
       )}
 
       <p className="note app-disclaimer">Based on imported reports and available reference ranges. Not a diagnosis.</p>
-    </>
+    </div>
   );
 }
-
 export function DocumentsWorkspace() {
   const api = useKlarioApi();
   const [query, setQuery] = useState("");
@@ -223,6 +218,10 @@ export function DocumentsWorkspace() {
   });
 
   const liveDocuments = liveDocumentsQuery.data ?? null;
+  const deleteDocumentMutation = useMutation({
+    mutationFn: (documentId: string) => documentsApi.delete(documentId),
+    onSuccess: () => api.invalidateWorkspaceData()
+  });
   const statusOptions = liveDocuments
     ? ["All", ...Array.from(new Set(liveDocuments.map((document) => document.status)))]
     : ["All"];
@@ -236,18 +235,28 @@ export function DocumentsWorkspace() {
       return matchesStatus && (!normalizedQuery || haystack.includes(normalizedQuery));
     });
   }, [liveDocuments, query, status]);
+  const reportCountLabel = liveDocuments ? `${filteredLiveDocuments.length} of ${liveDocuments.length} reports` : "Reports";
 
   return (
-    <>
-      <PageTitle title="Reports" body="Uploaded medical reports and parse status for the current family workspace." />
+    <div className="flat-workspace reports-workspace">
+      <div className="flat-workspace-head">
+        <div>
+          <span className="section-label">Reports</span>
+          <h1>Uploaded reports</h1>
+          <p>{reportCountLabel} for {api.activeFamily?.name ?? "the current workspace"}.</p>
+        </div>
+        <Link className="button button-primary" href="/app/upload">
+          <BioIcon name="icon_doc_add_empty" size={17} />
+          Upload report
+        </Link>
+      </div>
       <ApiStatusBanner />
       <div className="workspace-bar">
         <label className="search-field">
           <span className="sr-only">Search reports</span>
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search reports, labs, people" />
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search reports" />
         </label>
         <div className="filter-group" aria-label="Filter reports">
-          <BioIcon name="icon_filter_status" size={18} />
           {statusOptions.map((option) => (
             <button key={option} className={`pill-button${status === option ? " is-active" : ""}`} type="button" onClick={() => setStatus(option)}>
               {prettyStatus(option)}
@@ -261,7 +270,14 @@ export function DocumentsWorkspace() {
           <EmptyState title="Loading reports" body="Fetching your uploaded documents." />
         ) : liveDocuments ? (
           filteredLiveDocuments.length ? (
-            filteredLiveDocuments.map((document) => <DocumentRecord key={document.id} document={document} />)
+            filteredLiveDocuments.map((document) => (
+              <DocumentRecord
+                key={document.id}
+                document={document}
+                deleting={deleteDocumentMutation.variables === document.id && deleteDocumentMutation.isPending}
+                onDelete={(documentId) => deleteDocumentMutation.mutate(documentId)}
+              />
+            ))
           ) : (
             <EmptyState title="No reports found" body="Try a different search or upload a report." />
           )
@@ -269,7 +285,7 @@ export function DocumentsWorkspace() {
           <EmptyState title="No family selected" body="Create a family and upload your first report." />
         )}
       </section>
-    </>
+    </div>
   );
 }
 
@@ -350,30 +366,34 @@ export function UploadWorkspace() {
   };
 
   return (
-    <>
-      <PageTitle title="Add report" body="Upload a report, verify storage, start OCR, and start medical parsing." />
-      <ApiStatusBanner />
-      <div className="workspace-bar">
-        <label className="select-field">
-          <span className="control-label">Assign to</span>
-          {api.members.length ? (
-            <select value={selectedMemberId} onChange={(event) => onMemberChange(event.target.value)}>
-              {api.members.map((member) => <option key={member.id} value={member.id}>{member.display_name}</option>)}
-            </select>
-          ) : (
-            <p className="note">Add a family member before uploading.</p>
-          )}
-        </label>
+    <div className="flat-workspace upload-workspace">
+      <div className="flat-workspace-head">
+        <div>
+          <span className="section-label">Add Report</span>
+          <h1>Upload report</h1>
+          <p>Add one medical file and assign it to a profile.</p>
+        </div>
         <span className={uploadAllowed ? "status-chip is-info" : "status-chip is-warning"}>
           {uploadAllowed ? "Upload enabled" : "Viewer access"}
         </span>
       </div>
+      <ApiStatusBanner />
 
       <section className="upload-layout">
-        <aside className="interactive-panel upload-panel">
+        <aside className="flat-panel upload-panel">
           <span className="feature-icon" aria-hidden="true"><BioIcon name="icon_doc_add_empty" size={26} /></span>
-          <h2>Upload report file</h2>
-          <p>PDF, JPEG, PNG, HEIC, or HEIF up to 25 MB.</p>
+          <h2>Report file</h2>
+          <p>PDF or image up to 25 MB.</p>
+          <label className="select-field">
+            <span className="control-label">Profile</span>
+            {api.members.length ? (
+              <select value={selectedMemberId} onChange={(event) => onMemberChange(event.target.value)}>
+                {api.members.map((member) => <option key={member.id} value={member.id}>{member.display_name}</option>)}
+              </select>
+            ) : (
+              <p className="note">Add a family member before uploading.</p>
+            )}
+          </label>
           <label>
             <span className="control-label">Report title</span>
             <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder={fileName || "CBC, ferritin, prescription..."} />
@@ -390,13 +410,21 @@ export function UploadWorkspace() {
           </label>
           <button className="button button-primary" type="button" disabled={isUploading || !selectedFile || !uploadAllowed || !selectedMemberId} onClick={startParsing}>
             <BioIcon name={isUploading ? "icon_action_loading" : "icon_action_confirm_safe"} size={17} />
-            {isUploading ? "Processing" : "Start parsing"}
+            {isUploading ? "Analyzing" : "Analyze report"}
           </button>
           {statusMessage ? <p className={statusMessage.includes("permission") || statusMessage.includes("supported") ? "form-alert" : "note"}>{statusMessage}</p> : null}
-          <p className="note">Klario validates files up to 25 MB, completes the presigned upload, then creates OCR and medical parse jobs.</p>
+        </aside>
+        <aside className="flat-panel upload-helper-panel">
+          <h3>After upload</h3>
+          <p>The report is stored, OCR runs, and extracted values appear in Reports, Trends, and Attention.</p>
+          <div className="upload-step-list">
+            <span>Validate file</span>
+            <span>Read report</span>
+            <span>Update trends</span>
+          </div>
         </aside>
       </section>
-    </>
+    </div>
   );
 }
 
@@ -464,13 +492,19 @@ export function TrendsWorkspace() {
   const activeMetric = apiMetrics.find((metric) => metric.canonical_metric_id === activeMetricId) ?? apiMetrics[0];
 
   return (
-    <>
-      <PageTitle title="Trends" body={`Longitudinal biomarkers for ${api.activeMember?.display_name ?? "your profile"}.`} />
+    <div className="flat-workspace trends-workspace">
+      <div className="flat-workspace-head">
+        <div>
+          <span className="section-label">Trends</span>
+          <h1>Biomarker trends</h1>
+          <p>{apiMetrics.length ? `${apiMetrics.length} tracked metrics` : "Trends"} for {api.activeMember?.display_name ?? "your profile"}.</p>
+        </div>
+      </div>
       <ApiStatusBanner />
       <section className="trends-layout">
         {activeMetric ? (
           <>
-            <div className="interactive-panel trend-detail">
+            <div className="flat-panel trend-detail">
               <div className="record-meta">
                 {activeMetric.latest_flag ? <span className={statusClass(activeMetric.latest_flag)}>{prettyStatus(activeMetric.latest_flag)}</span> : null}
                 <span>{activeMetric.reading_count} readings</span>
@@ -478,7 +512,7 @@ export function TrendsWorkspace() {
               <h2>{activeMetric.display_name}</h2>
               <p className="trend-value">{valueWithUnit(activeMetric.latest_value, activeMetric.unit)}</p>
               <Sparkline points={activeMetric.sparkline.map((point) => point.value)} />
-              <p>{activeMetric.category}. Latest reading {activeMetric.latest_date ? formatDate(activeMetric.latest_date) : "not dated"}.</p>
+              <p>{activeMetric.category} · Latest {activeMetric.latest_date ? formatDate(activeMetric.latest_date) : "not dated"}</p>
               <Link className="button button-secondary" href={`/app/trends/${activeMetric.canonical_metric_id}`}>Open metric</Link>
             </div>
             <div className="grid trend-card-grid">
@@ -489,7 +523,7 @@ export function TrendsWorkspace() {
           <EmptyState title="No trend data yet" body="Upload and parse lab reports to see biomarker trends." />
         )}
       </section>
-    </>
+    </div>
   );
 }
 
@@ -545,6 +579,32 @@ export function FamilyWorkspace() {
   const [relationship, setRelationship] = useState("");
   const [message, setMessage] = useState("");
   const memberCreateAllowed = canManageMembers(api.currentRole);
+  const memberManageAllowed = canManageMembers(api.currentRole);
+  const familyManageAllowed = canManageRoles(api.currentRole);
+  const auditQuery = useQuery({
+    queryKey: ["audit", api.activeFamily?.id],
+    queryFn: () => auditApi.list(api.activeFamily!.id),
+    enabled: api.status === "live" && Boolean(api.activeFamily?.id)
+  });
+  const deleteMemberMutation = useMutation({
+    mutationFn: (memberId: string) => membersApi.delete(memberId),
+    onSuccess: async () => {
+      setMessage("Family member removed.");
+      if (api.activeFamily?.id) {
+        await api.setActiveFamilyId(api.activeFamily.id);
+      }
+      await api.invalidateWorkspaceData();
+    },
+    onError: (error) => setMessage(error instanceof Error ? error.message : "Family member could not be removed.")
+  });
+  const deleteFamilyMutation = useMutation({
+    mutationFn: (familyId: string) => familiesApi.delete(familyId),
+    onSuccess: async () => {
+      setMessage("Family removed.");
+      await api.refresh();
+    },
+    onError: (error) => setMessage(error instanceof Error ? error.message : "Family could not be removed.")
+  });
 
   const createFamily = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -573,14 +633,19 @@ export function FamilyWorkspace() {
   };
 
   return (
-    <>
-      <PageTitle title="Family" body="Manage family selection, member profiles, and roles." />
+    <div className="flat-workspace family-workspace">
+      <div className="flat-workspace-head">
+        <div>
+          <span className="section-label">Family</span>
+          <h1>Family</h1>
+          <p>{api.members.length} profiles · {api.currentRole ? `${prettyStatus(api.currentRole)} role` : "No role selected"}.</p>
+        </div>
+      </div>
       <ApiStatusBanner />
       <div className="workspace-bar">
         <div>
           <span className="control-label">Selected workspace</span>
           <strong>{api.activeFamily?.name ?? "No family yet"}</strong>
-          <p>{api.currentRole ? `${prettyStatus(api.currentRole)} role` : "Create a family to get started."}</p>
         </div>
         {api.families.length ? (
           <label className="select-field">
@@ -590,15 +655,45 @@ export function FamilyWorkspace() {
             </select>
           </label>
         ) : null}
+        {api.activeFamily && familyManageAllowed ? (
+          <button
+            className="button button-ghost danger-action"
+            type="button"
+            disabled={deleteFamilyMutation.isPending}
+            onClick={() => {
+              if (window.confirm(`Delete ${api.activeFamily?.name}? This cannot be undone.`)) {
+                deleteFamilyMutation.mutate(api.activeFamily!.id);
+              }
+            }}
+          >
+            {deleteFamilyMutation.isPending ? "Deleting" : "Delete family"}
+          </button>
+        ) : null}
       </div>
 
-      <section className="grid two-column-grid">
+      <section className="family-member-grid">
         {api.members.length ? (
           api.members.map((member) => (
-            <button key={member.id} className={`card profile-card${api.activeMember?.id === member.id ? " is-active" : ""}`} type="button" onClick={() => api.setActiveMemberId(member.id)}>
+            <button key={member.id} className={`profile-card flat-panel${api.activeMember?.id === member.id ? " is-active" : ""}`} type="button" onClick={() => api.setActiveMemberId(member.id)}>
               <span className="feature-icon" aria-hidden="true"><BioIcon name="icon_tab_family" size={24} /></span>
               <h3>{member.display_name}</h3>
-              <p>{member.relationship}. {member.sex ? `${prettyStatus(member.sex)}. ` : ""}{member.date_of_birth ? `Born ${formatDate(member.date_of_birth)}.` : ""}</p>
+              <p>{[member.relationship, member.sex ? prettyStatus(member.sex) : "", member.date_of_birth ? `Born ${formatDate(member.date_of_birth)}` : ""].filter(Boolean).join(" · ")}</p>
+              {memberManageAllowed ? (
+                <span className="button-row compact">
+                  <span className="inline-action">Select</span>
+                  <span
+                    className="inline-action danger-text"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      if (window.confirm(`Delete ${member.display_name}? Reports assigned to this member may be affected.`)) {
+                        deleteMemberMutation.mutate(member.id);
+                      }
+                    }}
+                  >
+                    {deleteMemberMutation.variables === member.id && deleteMemberMutation.isPending ? "Deleting" : "Delete"}
+                  </span>
+                </span>
+              ) : null}
             </button>
           ))
         ) : (
@@ -606,14 +701,14 @@ export function FamilyWorkspace() {
         )}
       </section>
 
-      <section className="grid two-column-grid">
-        <form className="card preference-card" onSubmit={createFamily}>
+      <section className="family-forms-grid">
+        <form className="flat-panel preference-card" onSubmit={createFamily}>
           <span className="feature-icon" aria-hidden="true"><BioIcon name="icon_family_add" size={24} /></span>
           <h3>Create family</h3>
           <input value={familyName} onChange={(event) => setFamilyName(event.target.value)} placeholder="Family name" required />
           <button className="button button-secondary" type="submit" disabled={!api.isSignedIn}>Create</button>
         </form>
-        <form className="card preference-card" onSubmit={createMember}>
+        <form className="flat-panel preference-card" onSubmit={createMember}>
           <span className="feature-icon" aria-hidden="true"><BioIcon name="icon_family_header" size={24} /></span>
           <h3>Add member</h3>
           <input value={memberName} onChange={(event) => setMemberName(event.target.value)} placeholder="Display name" required />
@@ -622,26 +717,49 @@ export function FamilyWorkspace() {
         </form>
       </section>
 
-      <section className="section">
-        <SectionHeader title="Roles" intro="Backend roles decide who can upload, manage profiles, resolve attention items, and send invites." />
-        <div className="record-list">
-          {api.roles.length ? (
-            api.roles.map((role) => (
-              <article className="record" key={role.id}>
-                <div className="record-meta">
-                  <span>{role.user_id}</span>
-                  <span className="status-chip is-info">{prettyStatus(role.role)}</span>
-                </div>
-                <p>Family role created {formatDate(role.created_at)}.</p>
-              </article>
-            ))
-          ) : (
-            <EmptyState title="No roles loaded" body="Roles appear after signing in and selecting a family." />
-          )}
-        </div>
-        {message ? <p className="note">{message}</p> : null}
+      <section className="family-admin-grid">
+        <article className="family-roles-panel">
+          <div className="dashboard-panel-head">
+            <h2>Roles</h2>
+          </div>
+          <div className="record-list compact">
+            {api.roles.length ? (
+              api.roles.map((role) => (
+                <article className="record" key={role.id}>
+                  <div className="record-meta">
+                    <span>{role.user_id}</span>
+                    <span className="status-chip is-info">{prettyStatus(role.role)}</span>
+                  </div>
+                  <p>Created {formatDate(role.created_at)}</p>
+                </article>
+              ))
+            ) : (
+              <EmptyState title="No roles loaded" body="Roles appear after selecting a family." />
+            )}
+          </div>
+        </article>
+        <article className="family-roles-panel">
+          <div className="dashboard-panel-head">
+            <h2>Audit history</h2>
+          </div>
+          <div className="record-list compact">
+            {auditQuery.data?.length ? (
+              auditQuery.data.slice(0, 5).map((entry) => (
+                <article className="record" key={entry.id}>
+                  <div className="record-meta">
+                    <span>{formatDate(entry.created_at)}</span>
+                    <span className="status-chip is-info">{prettyStatus(entry.event_type)}</span>
+                  </div>
+                </article>
+              ))
+            ) : (
+              <EmptyState title={auditQuery.isLoading ? "Loading audit history" : "No audit logs"} body="Workspace events appear here." />
+            )}
+          </div>
+        </article>
       </section>
-    </>
+      {message ? <p className="note">{message}</p> : null}
+    </div>
   );
 }
 
@@ -835,6 +953,11 @@ export function AccountWorkspace() {
 
 export function SettingsWorkspace() {
   const api = useKlarioApi();
+  const readinessQuery = useQuery({
+    queryKey: ["health", "ready"],
+    queryFn: healthApi.ready,
+    enabled: api.status === "live"
+  });
 
   return (
     <>
@@ -871,6 +994,18 @@ export function SettingsWorkspace() {
           <h3>Environment</h3>
           <p>{prettyStatus(api.environment)} workspace. {api.currentRole ? `${prettyStatus(api.currentRole)} role.` : ""}</p>
         </article>
+        <article className="card preference-card">
+          <span className="feature-icon" aria-hidden="true"><BioIcon name="icon_signal_confidence" size={24} /></span>
+          <h3>Backend readiness</h3>
+          <p>{readinessQuery.isLoading ? "Checking dependencies." : readinessQuery.data ? "Backend dependencies are reachable." : "Readiness details are unavailable."}</p>
+          {readinessQuery.data ? (
+            <div className="tag-row">
+              {Object.entries(readinessQuery.data).slice(0, 4).map(([key, value]) => (
+                <span className="tag" key={key}>{prettyStatus(key)}: {String(value)}</span>
+              ))}
+            </div>
+          ) : null}
+        </article>
       </section>
 
       <section className="workspace-bar">
@@ -888,6 +1023,14 @@ export function SettingsWorkspace() {
 export function ReportDetailWorkspace({ documentId }: { documentId: string }) {
   const api = useKlarioApi();
   const [message, setMessage] = useState("");
+  const deleteDocumentMutation = useMutation({
+    mutationFn: () => documentsApi.delete(documentId),
+    onSuccess: async () => {
+      setMessage("Report deleted. Return to reports to continue.");
+      await api.invalidateWorkspaceData();
+    },
+    onError: (error) => setMessage(error instanceof Error ? error.message : "Report could not be deleted.")
+  });
   const documentQuery = useQuery({
     queryKey: ["documents", "detail", documentId],
     queryFn: () => documentsApi.get(documentId),
@@ -906,6 +1049,26 @@ export function ReportDetailWorkspace({ documentId }: { documentId: string }) {
   const parserRunsQuery = useQuery({
     queryKey: ["documents", "parser-runs", documentId],
     queryFn: () => parseApi.listParserRuns(documentId),
+    enabled: api.status === "live" && Boolean(documentId)
+  });
+  const ocrRunsQuery = useQuery({
+    queryKey: ["documents", "ocr-runs", documentId],
+    queryFn: () => parseApi.listOcrRuns(documentId),
+    enabled: api.status === "live" && Boolean(documentId)
+  });
+  const ocrPagesQuery = useQuery({
+    queryKey: ["documents", "ocr-pages", documentId],
+    queryFn: () => parseApi.listOcrPages(documentId),
+    enabled: api.status === "live" && Boolean(documentId)
+  });
+  const ocrBlocksQuery = useQuery({
+    queryKey: ["documents", "ocr-blocks", documentId],
+    queryFn: () => parseApi.listOcrBlocks(documentId, 1, 12),
+    enabled: api.status === "live" && Boolean(documentId)
+  });
+  const parserDebugQuery = useQuery({
+    queryKey: ["documents", "parser-debug", documentId],
+    queryFn: () => parseApi.parserDebugDump(documentId),
     enabled: api.status === "live" && Boolean(documentId)
   });
 
@@ -932,6 +1095,18 @@ export function ReportDetailWorkspace({ documentId }: { documentId: string }) {
         <div className="button-row compact">
           <button className="button button-secondary" type="button" disabled={!documentQuery.data} onClick={() => void openDownload()}>View report</button>
           <Link className="button button-ghost" href="/app/documents">All reports</Link>
+          <button
+            className="button button-ghost danger-action"
+            type="button"
+            disabled={!documentQuery.data || deleteDocumentMutation.isPending}
+            onClick={() => {
+              if (window.confirm("Delete this report? This cannot be undone.")) {
+                deleteDocumentMutation.mutate();
+              }
+            }}
+          >
+            {deleteDocumentMutation.isPending ? "Deleting" : "Delete"}
+          </button>
         </div>
       </div>
 
@@ -988,6 +1163,63 @@ export function ReportDetailWorkspace({ documentId }: { documentId: string }) {
           )}
         </div>
       </section>
+      <section className="section">
+        <SectionHeader title="OCR diagnostics" intro="OCR run, page, and block details returned by the backend." />
+        <div className="diagnostic-grid">
+          <article className="flat-panel">
+            <h3>OCR runs</h3>
+            <p>{ocrRunsQuery.data?.length ?? 0} runs. {ocrRunsQuery.data?.[0]?.average_confidence != null ? `${Math.round(ocrRunsQuery.data[0].average_confidence * 100)}% average confidence.` : "Confidence appears after OCR completes."}</p>
+            <div className="tag-row">
+              {ocrRunsQuery.data?.slice(0, 3).map((run) => (
+                <span className={statusClass(run.status)} key={run.id}>{prettyStatus(run.status)}</span>
+              ))}
+            </div>
+          </article>
+          <article className="flat-panel">
+            <h3>Pages</h3>
+            <p>{ocrPagesQuery.data?.length ?? 0} OCR pages returned.</p>
+            {ocrPagesQuery.data?.[0]?.raw_text ? <p className="diagnostic-snippet">{ocrPagesQuery.data[0].raw_text.slice(0, 180)}</p> : null}
+          </article>
+          <article className="flat-panel">
+            <h3>Blocks</h3>
+            <p>{ocrBlocksQuery.data?.total ?? 0} OCR blocks indexed.</p>
+            <div className="tag-row">
+              {ocrBlocksQuery.data?.items.slice(0, 4).map((block) => (
+                <span className="tag" key={block.id}>{prettyStatus(block.block_type)}</span>
+              ))}
+            </div>
+          </article>
+        </div>
+      </section>
+      <section className="section">
+        <SectionHeader title="Parser debug" intro="Parser row decisions and document-level classification metadata." />
+        {parserDebugQuery.data ? (
+          <div className="diagnostic-grid">
+            <article className="flat-panel">
+              <h3>Summary</h3>
+              <p>{parserDebugQuery.data.summary.parsed_count} parsed, {parserDebugQuery.data.summary.attention_count} attention, {parserDebugQuery.data.summary.ignored_count} ignored.</p>
+              {parserDebugQuery.data.summary.document_classification ? <span className="status-chip is-info">{prettyStatus(parserDebugQuery.data.summary.document_classification)}</span> : null}
+            </article>
+            <article className="flat-panel diagnostic-wide">
+              <h3>Recent decisions</h3>
+              <div className="record-list compact">
+                {parserDebugQuery.data.rows.slice(0, 5).map((row, index) => (
+                  <article className="record" key={`${row.page_number}-${index}`}>
+                    <div className="record-meta">
+                      <span>Page {row.page_number}</span>
+                      <span className="status-chip is-info">{prettyStatus(row.decision)}</span>
+                      <span>{Math.round(row.confidence * 100)}% confidence</span>
+                    </div>
+                    <p>{row.suggested_display_name ?? row.matched_metric ?? row.row_text.slice(0, 90)}</p>
+                  </article>
+                ))}
+              </div>
+            </article>
+          </div>
+        ) : (
+          <EmptyState title="No parser debug data" body="Debug rows appear after medical parsing completes." />
+        )}
+      </section>
       {message ? <p className="note">{message}</p> : null}
     </>
   );
@@ -1033,7 +1265,15 @@ function LatestReportRecord({ report }: { report: LatestReport }) {
   );
 }
 
-function DocumentRecord({ document }: { document: KlarioDocument }) {
+function DocumentRecord({
+  document,
+  deleting = false,
+  onDelete
+}: {
+  document: KlarioDocument;
+  deleting?: boolean;
+  onDelete?: (documentId: string) => void;
+}) {
   return (
     <article className="record document-record">
       <div className="record-meta">
@@ -1043,13 +1283,13 @@ function DocumentRecord({ document }: { document: KlarioDocument }) {
       </div>
       <h3>{document.title}</h3>
       <p>{document.original_filename}. {formatFileSize(document.file_size)}.</p>
-      <div className="tag-row">
-        <span className="tag">{document.content_type}</span>
-        {document.checksum ? <span className="tag">Checksum verified</span> : null}
-      </div>
       <div className="button-row compact">
         <Link className="button button-secondary" href={`/app/reports/${document.id}`}>Open report</Link>
-        <Link className="button button-ghost" href="/app/trends">View trends</Link>
+        {onDelete ? (
+          <button className="button button-ghost danger-action" type="button" disabled={deleting} onClick={() => onDelete(document.id)}>
+            {deleting ? "Deleting" : "Delete"}
+          </button>
+        ) : null}
       </div>
     </article>
   );
@@ -1057,7 +1297,7 @@ function DocumentRecord({ document }: { document: KlarioDocument }) {
 
 function TrendMetricCard({ metric, active, onSelect }: { metric: TrendMetricPreview & { category?: string }; active: boolean; onSelect: () => void }) {
   return (
-    <button className={`card trend-card${active ? " is-active" : ""}`} type="button" onClick={onSelect}>
+    <button className={`flat-panel trend-card${active ? " is-active" : ""}`} type="button" onClick={onSelect}>
       <span className="feature-icon" aria-hidden="true"><BioIcon name="icon_tab_trends" size={22} /></span>
       <h3>{metric.display_name}</h3>
       <p><strong>{valueWithUnit(metric.latest_value, metric.unit)}</strong></p>

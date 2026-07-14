@@ -65,6 +65,15 @@ export interface Family {
   updated_at: string;
 }
 
+export interface AuditLog {
+  id: string;
+  user_id: string | null;
+  family_id: string | null;
+  event_type: string;
+  metadata_json: Record<string, unknown>;
+  created_at: string;
+}
+
 export interface FamilyCreateRequest {
   name: string;
 }
@@ -233,6 +242,85 @@ export interface ParseJobCreateResponse {
   created_at: string;
 }
 
+export type OCRRunStatus = "started" | "completed" | "failed";
+
+export interface OCRRun {
+  id: string;
+  document_id: string;
+  provider: string;
+  provider_model: string | null;
+  status: OCRRunStatus;
+  page_count: number | null;
+  average_confidence: number | null;
+  expected_document_page_count: number | null;
+  ocr_pages_returned: number | null;
+  ocr_chunking_enabled: boolean | null;
+  ocr_chunk_size: number | null;
+  ocr_chunk_count: number | null;
+  partial_ocr: boolean | null;
+  partial_ocr_warning: string | null;
+  failed_chunk_index: number | null;
+  error_code: string | null;
+  error_message: string | null;
+  started_at: string;
+  completed_at: string | null;
+  created_at: string;
+}
+
+export interface OCRPage {
+  id: string;
+  ocr_run_id: string;
+  document_id: string;
+  page_number: number;
+  raw_text: string | null;
+  width: number | null;
+  height: number | null;
+  unit: string | null;
+  confidence: number | null;
+  created_at: string;
+}
+
+export type OCRBlockType = "line" | "word" | "table_cell" | "table_row" | "paragraph";
+
+export interface OCRBlock {
+  id: string;
+  ocr_run_id: string;
+  document_id: string;
+  page_number: number;
+  block_type: OCRBlockType;
+  text: string;
+  normalized_text: string | null;
+  confidence: number | null;
+  bounding_box_json: Record<string, unknown> | null;
+  row_index: number | null;
+  column_index: number | null;
+  reading_order: number | null;
+  created_at: string;
+}
+
+export interface OCRBlocksPaginatedResponse {
+  items: OCRBlock[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface OCRDebugDump {
+  document_id: string;
+  expected_document_page_count: number | null;
+  ocr_pages_returned: number | null;
+  ocr_chunking_enabled: boolean | null;
+  ocr_chunk_size: number | null;
+  ocr_chunk_count: number | null;
+  partial_ocr: boolean | null;
+  partial_ocr_warning: string | null;
+  runs: OCRRun[];
+  pages: OCRPage[];
+  blocks: OCRBlock[];
+  block_count: number;
+  table_count: number;
+}
+
 export type MedicalParseJobStatus = "queued" | "processing" | "completed" | "failed";
 
 export interface MedicalParseJobCreateResponse {
@@ -261,6 +349,49 @@ export interface ParserRun {
   started_at: string;
   completed_at: string | null;
   created_at: string;
+}
+
+export interface ParserDebugRow {
+  row_text: string;
+  source: string;
+  page_number: number;
+  matched_metric: string | null;
+  match_type: string | null;
+  suggested_display_name: string | null;
+  suggested_value: string | null;
+  suggested_unit: string | null;
+  value: number | string | null;
+  unit: string | null;
+  reference_range: string | null;
+  flag: string | null;
+  confidence: number;
+  decision: string;
+  reason_code: string | null;
+}
+
+export interface ParserDebugSummary {
+  parsed_count: number;
+  unknown_medical_metric_count?: number;
+  attention_count: number;
+  ignored_count: number;
+  document_medical_confidence: number | null;
+  document_classification: string | null;
+  attention_suppressed_count?: number;
+  suppression_reasons?: Record<string, number>;
+}
+
+export interface ParserDebugDump {
+  document_id: string;
+  parser_run_id: string | null;
+  expected_document_page_count: number | null;
+  ocr_pages_returned: number | null;
+  ocr_chunking_enabled: boolean | null;
+  ocr_chunk_size: number | null;
+  ocr_chunk_count: number | null;
+  partial_ocr: boolean | null;
+  partial_ocr_warning: string | null;
+  rows: ParserDebugRow[];
+  summary: ParserDebugSummary;
 }
 
 export interface ParsedResult {
@@ -522,3 +653,5 @@ export interface APIErrorResponse {
     errors?: unknown[];
   };
 }
+
+export type HealthReadyResponse = Record<string, unknown>;

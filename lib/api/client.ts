@@ -27,7 +27,7 @@ export class ApiError extends Error {
 }
 
 export function getApiBaseUrl() {
-  return process.env.NEXT_PUBLIC_KLARIO_API_BASE_URL ?? "http://127.0.0.1:8000/api/v1";
+  return process.env.NEXT_PUBLIC_KLARIO_API_BASE_URL ?? "https://klario-backend.onrender.com/api/v1";
 }
 
 export function getApiRootUrl() {
@@ -37,7 +37,7 @@ export function getApiRootUrl() {
     const base = new URL(getApiBaseUrl());
     return `${base.protocol}//${base.host}`;
   } catch {
-    return "http://127.0.0.1:8000";
+    return "https://klario-backend.onrender.com";
   }
 }
 

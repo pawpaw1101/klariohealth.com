@@ -191,7 +191,7 @@ function KlarioSessionProvider({ children }: { children: React.ReactNode }) {
     try {
       const currentUser = await queryClient.fetchQuery({
         queryKey: ["auth", "me"],
-        queryFn: authApi.me,
+        queryFn: authApi.authMe,
         staleTime: 0
       });
       await loadWorkspace(currentUser);
@@ -225,7 +225,7 @@ function KlarioSessionProvider({ children }: { children: React.ReactNode }) {
       setAuthToken(tokenResponse.access_token);
       const currentUser = await queryClient.fetchQuery({
         queryKey: ["auth", "me"],
-        queryFn: authApi.me,
+        queryFn: authApi.authMe,
         staleTime: 0
       });
       await loadWorkspace(currentUser);
@@ -267,7 +267,7 @@ function KlarioSessionProvider({ children }: { children: React.ReactNode }) {
       await queryClient.invalidateQueries();
       const currentUser = await queryClient.fetchQuery({
         queryKey: ["auth", "me"],
-        queryFn: authApi.me,
+        queryFn: authApi.authMe,
         staleTime: 0
       });
       await loadWorkspace(currentUser);

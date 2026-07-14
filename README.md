@@ -45,8 +45,8 @@ Open `http://localhost:3000`.
 
 | Variable | Local value |
 |----------|-------------|
-| `NEXT_PUBLIC_KLARIO_API_BASE_URL` | `http://127.0.0.1:8000/api/v1` |
-| `NEXT_PUBLIC_KLARIO_API_ROOT` | `http://127.0.0.1:8000` |
+| `NEXT_PUBLIC_KLARIO_API_BASE_URL` | `https://klario-backend.onrender.com/api/v1` |
+| `NEXT_PUBLIC_KLARIO_API_ROOT` | `https://klario-backend.onrender.com` |
 
 The API client lives in `lib/api/`. Full backend contract: `../../Biolens-Backend/docs/frontend_api_contract.md`.
 

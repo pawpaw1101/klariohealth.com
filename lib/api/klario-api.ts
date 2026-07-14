@@ -2,6 +2,7 @@ import { apiFetch, getApiRootUrl } from "@/lib/api/client";
 import type {
   AttentionItem,
   AttentionPatchRequest,
+  AuditLog,
   BloodPressureTrendResponse,
   DashboardResponse,
   Document as KlarioDocument,
@@ -24,6 +25,11 @@ import type {
   MemberAttentionListResponse,
   MemberCreateRequest,
   MemberUpdateRequest,
+  HealthReadyResponse,
+  OCRBlocksPaginatedResponse,
+  OCRDebugDump,
+  OCRPage,
+  OCRRun,
   OtpRequest,
   OtpRequestResponse,
   OtpVerifyRequest,
@@ -31,6 +37,7 @@ import type {
   ParseJobCreateResponse,
   PasswordResetRequest,
   PasswordResetResponse,
+  ParserDebugDump,
   ParsedResult,
   ParserRun,
   RegisterRequest,
@@ -58,21 +65,24 @@ export const authApi = {
     apiFetch<PasswordResetResponse>("/auth/forgot-password", { method: "POST", body, auth: false }),
   resetPassword: (body: PasswordResetRequest) =>
     apiFetch<PasswordResetResponse>("/auth/reset-password", { method: "POST", body, auth: false }),
-  me: () => apiFetch<User>("/users/me")
+  me: () => apiFetch<User>("/users/me"),
+  authMe: () => apiFetch<User>("/auth/me")
 };
 
 export const familiesApi = {
   create: (body: FamilyCreateRequest) => apiFetch<Family>("/families", { method: "POST", body }),
   list: () => apiFetch<Family[]>("/families"),
   get: (familyId: string) => apiFetch<Family>(`/families/${familyId}`),
-  update: (familyId: string, body: FamilyUpdateRequest) => apiFetch<Family>(`/families/${familyId}`, { method: "PATCH", body })
+  update: (familyId: string, body: FamilyUpdateRequest) => apiFetch<Family>(`/families/${familyId}`, { method: "PATCH", body }),
+  delete: (familyId: string) => apiFetch<void>(`/families/${familyId}`, { method: "DELETE" })
 };
 
 export const membersApi = {
   create: (familyId: string, body: MemberCreateRequest) => apiFetch<FamilyMember>(`/families/${familyId}/members`, { method: "POST", body }),
   list: (familyId: string) => apiFetch<FamilyMember[]>(`/families/${familyId}/members`),
   get: (memberId: string) => apiFetch<FamilyMember>(`/members/${memberId}`),
-  update: (memberId: string, body: MemberUpdateRequest) => apiFetch<FamilyMember>(`/members/${memberId}`, { method: "PATCH", body })
+  update: (memberId: string, body: MemberUpdateRequest) => apiFetch<FamilyMember>(`/members/${memberId}`, { method: "PATCH", body }),
+  delete: (memberId: string) => apiFetch<void>(`/members/${memberId}`, { method: "DELETE" })
 };
 
 export const rolesApi = {
@@ -87,11 +97,19 @@ export const documentsApi = {
   list: (familyId: string) => apiFetch<KlarioDocument[]>(`/families/${familyId}/documents`),
   get: (documentId: string) => apiFetch<KlarioDocument>(`/documents/${documentId}`),
   update: (documentId: string, body: DocumentUpdateRequest) => apiFetch<KlarioDocument>(`/documents/${documentId}`, { method: "PATCH", body }),
+  delete: (documentId: string) => apiFetch<void>(`/documents/${documentId}`, { method: "DELETE" }),
   uploadIntent: (familyId: string, body: UploadIntentRequest) =>
     apiFetch<UploadIntentResponse>(`/families/${familyId}/documents/upload-intent`, { method: "POST", body }),
   uploadComplete: (documentId: string, body: UploadCompleteRequest) =>
     apiFetch<UploadCompleteResponse>(`/documents/${documentId}/upload-complete`, { method: "POST", body }),
   downloadUrl: (documentId: string) => apiFetch<DownloadUrlResponse>(`/documents/${documentId}/download-url`)
+};
+
+export const storageApi = {
+  localUpload: (params: { key: string; expires: number; sig: string }, body: BodyInit) =>
+    apiFetch<Record<string, string>>(withQuery("/storage/local-upload", params), { method: "PUT", body, auth: false }),
+  localDownload: (params: { key: string; expires: number; sig: string }) =>
+    apiFetch<unknown>(withQuery("/storage/local-download", params), { auth: false })
 };
 
 export const parseApi = {
@@ -100,9 +118,22 @@ export const parseApi = {
   getOcrJob: (parseJobId: string) => apiFetch<ParseJob>(`/parse-jobs/${parseJobId}`),
   createMedicalJob: (documentId: string) =>
     apiFetch<MedicalParseJobCreateResponse>(`/documents/${documentId}/medical-parse-jobs`, { method: "POST" }),
+  listOcrRuns: (documentId: string) => apiFetch<OCRRun[]>(`/documents/${documentId}/ocr-runs`),
+  getOcrRun: (ocrRunId: string) => apiFetch<OCRRun>(`/ocr-runs/${ocrRunId}`),
+  listOcrPages: (documentId: string) => apiFetch<OCRPage[]>(`/documents/${documentId}/ocr-pages`),
+  listOcrBlocks: (documentId: string, page = 1, pageSize = 25) =>
+    apiFetch<OCRBlocksPaginatedResponse>(
+      withQuery(`/documents/${documentId}/ocr-blocks`, { page, page_size: pageSize })
+    ),
+  ocrDebugDump: (documentId: string) => apiFetch<OCRDebugDump>(`/documents/${documentId}/ocr-debug-dump`),
   listParserRuns: (documentId: string) => apiFetch<ParserRun[]>(`/documents/${documentId}/parser-runs`),
   listParsedResults: (documentId: string) => apiFetch<ParsedResult[]>(`/documents/${documentId}/parsed-results`),
-  listDocumentAttentionItems: (documentId: string) => apiFetch<AttentionItem[]>(`/documents/${documentId}/attention-items`)
+  listDocumentAttentionItems: (documentId: string) => apiFetch<AttentionItem[]>(`/documents/${documentId}/attention-items`),
+  parserDebugDump: (documentId: string) => apiFetch<ParserDebugDump>(`/documents/${documentId}/parser-debug-dump`)
+};
+
+export const auditApi = {
+  list: (familyId: string) => apiFetch<AuditLog[]>(`/families/${familyId}/audit-logs`)
 };
 
 export const dashboardApi = {
@@ -140,6 +171,11 @@ export const healthApi = {
   check: async () => {
     const response = await fetch(`${getApiRootUrl().replace(/\/$/, "")}/health`, { cache: "no-store" });
     return response.ok;
+  },
+  ready: async () => {
+    const response = await fetch(`${getApiRootUrl().replace(/\/$/, "")}/health/ready`, { cache: "no-store" });
+    if (!response.ok) return null;
+    return response.json() as Promise<HealthReadyResponse>;
   }
 };
 

@@ -6,6 +6,8 @@ export type NavIconName =
   | "calendar"
   | "dashboard"
   | "documents"
+  | "eye"
+  | "eyeOff"
   | "family"
   | "gear"
   | "home"
@@ -84,6 +86,20 @@ const paths: Record<NavIconName, ReactNode> = {
       <path d="M14 3v5h5" />
       <path d="M10 13h6" />
       <path d="M10 17h4" />
+    </>
+  ),
+  eye: (
+    <>
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+      <circle cx="12" cy="12" r="3" />
+    </>
+  ),
+  eyeOff: (
+    <>
+      <path d="M3 3l18 18" />
+      <path d="M10.6 10.6A3 3 0 0 0 13.4 13.4" />
+      <path d="M9.9 4.5A10.8 10.8 0 0 1 12 4c6.5 0 10 8 10 8a18.6 18.6 0 0 1-2.1 3.1" />
+      <path d="M6.1 6.1C3.5 7.9 2 12 2 12s3.5 8 10 8a10.7 10.7 0 0 0 5.9-1.9" />
     </>
   ),
   family: (
