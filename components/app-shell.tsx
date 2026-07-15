@@ -17,9 +17,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     "/app/dashboard": "dashboard",
     "/app/documents": "documents",
     "/app/upload": "upload",
+    "/app/attention": "shield",
     "/app/trends": "trends",
+    "/app/timeline": "route",
     "/app/family": "family"
   };
+  const isActiveRoute = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
   useEffect(() => {
     setMenuOpen(false);
@@ -45,18 +48,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="app-nav">
             <Brand href="/app/dashboard" />
             {appNav.map((item) => (
-              <Link key={item.href} className={`nav-link${pathname === item.href ? " is-active" : ""}`} href={item.href} title={item.label} onClick={() => setMenuOpen(false)}>
+              <Link key={item.href} className={`nav-link${isActiveRoute(item.href) ? " is-active" : ""}`} href={item.href} title={item.label} onClick={() => setMenuOpen(false)}>
                 <NavIcon name={navIcons[item.href]} size={17} />
                 <span className="nav-label">{item.label}</span>
               </Link>
             ))}
           </div>
           <div className="nav-right">
-            <Link className={`nav-link${pathname === "/app/account" ? " is-active" : ""}`} href="/app/account" title="Profile" onClick={() => setMenuOpen(false)}>
+            <Link className={`nav-link${isActiveRoute("/app/account") ? " is-active" : ""}`} href="/app/account" title="Profile" onClick={() => setMenuOpen(false)}>
               <NavIcon name="user" size={17} />
               <span className="nav-label">Profile</span>
             </Link>
-            <Link className={`nav-link${pathname === "/app/settings" ? " is-active" : ""}`} href="/app/settings" title="Settings" onClick={() => setMenuOpen(false)}>
+            <Link className={`nav-link${isActiveRoute("/app/settings") ? " is-active" : ""}`} href="/app/settings" title="Settings" onClick={() => setMenuOpen(false)}>
               <NavIcon name="gear" size={17} />
               <span className="nav-label">Settings</span>
             </Link>

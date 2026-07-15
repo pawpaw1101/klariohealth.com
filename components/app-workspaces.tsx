@@ -4,12 +4,10 @@ import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { BioIcon } from "@/components/bio-icon";
-import { BodyParticleCard } from "@/components/body-particle-card";
 import { useKlarioApi } from "@/components/klario-api-provider";
 import { PageTitle, SectionHeader } from "@/components/section";
 import {
   attentionApi,
-  auditApi,
   canManageInvites,
   canManageMembers,
   canManageRoles,
@@ -32,12 +30,10 @@ import type {
   DocumentType,
   FamilyInvite,
   FamilyRoleType,
-  LatestReport,
   MemberAttentionItem,
   ParsedResult,
   TrendMetricPreview
 } from "@/lib/api/types";
-import { dashboardQuickLinks } from "@/lib/klario-data";
 
 export function DashboardWorkspace() {
   const api = useKlarioApi();
@@ -70,7 +66,7 @@ export function DashboardWorkspace() {
       ];
   const primaryMetric = metrics[0];
   const supportingMetrics = metrics.slice(1);
-  const quickActions = dashboardQuickLinks.filter((item) => ["/app/documents", "/app/trends", "/app/attention"].includes(item.href));
+  const latestReport = dashboard?.latest_reports[0] ?? null;
   const lastTest = dashboard?.health_summary.last_report
     ? `Last test - ${dashboard.health_summary.last_report.title}, ${formatDate(dashboard.health_summary.last_report.date)}`
     : "Last test - upload a report to begin";
@@ -93,22 +89,21 @@ export function DashboardWorkspace() {
             ) : null}
           </div>
         </div>
-        <BodyParticleCard name={activeLabel} lastTest={lastTest} />
+        <HealthScoreCard
+          name={activeLabel}
+          lastTest={lastTest}
+          score={primaryMetric.value}
+          note={primaryMetric.body}
+          metrics={supportingMetrics}
+        />
       </section>
 
       <ApiStatusBanner />
 
-      <section className="dashboard-score-strip" aria-label="Health score summary">
-        <span className="metric-number">{primaryMetric.value}</span>
-        <div>
-          <h2>{primaryMetric.label}</h2>
-          <p>{primaryMetric.body}</p>
-        </div>
-      </section>
-
       <div className="dashboard-profile-row">
-        <div>
+        <div className="dashboard-profile-context">
           <span className="control-label">Active profile</span>
+          <strong>{activeLabel}</strong>
           {api.activeFamily ? <span className="note">{api.activeFamily.name}</span> : null}
         </div>
         {api.members.length ? (
@@ -139,24 +134,16 @@ export function DashboardWorkspace() {
         ))}
       </section>
 
-      <nav className="dashboard-nav-strip" aria-label="Priority workspace areas">
-        {quickActions.map((item) => (
-          <Link className="dashboard-nav-pill" href={item.href} key={item.href}>
-            <BioIcon name={item.icon} size={18} />
-            <span>
-              <strong>{item.label}</strong>
-              <small>{item.body}</small>
-            </span>
-          </Link>
-        ))}
-      </nav>
-
       {dashboard ? (
-        <div className="dashboard-bottom-grid">
-          <section className="dashboard-panel">
+        <section className="dashboard-panel dashboard-review-panel">
+          <div>
             <div className="dashboard-panel-head">
-              <h2>Needs attention</h2>
-              <Link className="inline-action" href="/app/attention">Review all</Link>
+              <div>
+                <span className="control-label">Review queue</span>
+                <h2>Needs attention</h2>
+                <p>{dashboard.needs_attention.length ? `${dashboard.needs_attention.length} items need review.` : "No review items right now."}</p>
+              </div>
+              <Link className="button button-secondary" href="/app/attention">Review all</Link>
             </div>
             <div className="record-list compact">
               {dashboard.needs_attention.length ? (
@@ -177,22 +164,34 @@ export function DashboardWorkspace() {
                 <EmptyState title="No attention items" body="New parsed reports will appear here when they need review." />
               )}
             </div>
-          </section>
+          </div>
 
-          <section className="dashboard-panel">
-            <div className="dashboard-panel-head">
-              <h2>Recent reports</h2>
-              <Link className="inline-action" href="/app/documents">View all</Link>
-            </div>
-            <div className="record-list compact">
-              {dashboard.latest_reports.length ? (
-                dashboard.latest_reports.slice(0, 3).map((report) => <LatestReportRecord key={report.document_id} report={report} />)
-              ) : (
-                <EmptyState title="No reports yet" body="Upload a report to begin building the member record." actionLabel="Upload report" actionHref="/app/upload" />
-              )}
-            </div>
-          </section>
-        </div>
+          <aside className="dashboard-latest-report">
+            <span className="control-label">Latest report</span>
+            {latestReport ? (
+              <>
+                <div className="record-meta">
+                  <span>{formatDate(latestReport.created_at)}</span>
+                  <span className={statusClass(latestReport.status)}>{prettyStatus(latestReport.status)}</span>
+                </div>
+                <h3>{latestReport.title}</h3>
+                <p>{prettyStatus(latestReport.document_type)}. {latestReport.parsed_count} parsed results, {latestReport.attention_count} attention items.</p>
+                <div className="button-row compact">
+                  <Link className="button button-primary" href={`/app/reports/${latestReport.document_id}`}>Open report</Link>
+                  <Link className="button button-ghost" href="/app/documents">All reports</Link>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3>No reports yet</h3>
+                <p>Upload a report to start building the member record.</p>
+                <div className="button-row compact">
+                  <Link className="button button-primary" href="/app/upload">Upload report</Link>
+                </div>
+              </>
+            )}
+          </aside>
+        </section>
       ) : (
         <EmptyState
           title="Your workspace is ready"
@@ -204,6 +203,48 @@ export function DashboardWorkspace() {
 
       <p className="note app-disclaimer">Based on imported reports and available reference ranges. Not a diagnosis.</p>
     </div>
+  );
+}
+
+function HealthScoreCard({
+  name,
+  lastTest,
+  score,
+  note,
+  metrics
+}: {
+  name: string;
+  lastTest: string;
+  score: string;
+  note: string;
+  metrics: { value: string; label: string; body: string }[];
+}) {
+  return (
+    <aside className="dashboard-health-score-card" aria-label="Health score summary">
+      <div className="health-score-card-head">
+        <div>
+          <span className="control-label">Health score</span>
+          <strong>{name}</strong>
+        </div>
+        <span className="status-chip is-success">Updated</span>
+      </div>
+      <div className="health-score-value-row">
+        <span className="health-score-value">{score}</span>
+        <div>
+          <h2>Health score</h2>
+          <p>{note}</p>
+        </div>
+      </div>
+      <div className="health-score-mini-grid" aria-label="Health score details">
+        {metrics.map((metric) => (
+          <div key={metric.label}>
+            <strong>{metric.value}</strong>
+            <span>{metric.label}</span>
+          </div>
+        ))}
+      </div>
+      <p className="health-score-last-test">{lastTest}</p>
+    </aside>
   );
 }
 export function DocumentsWorkspace() {
@@ -241,7 +282,6 @@ export function DocumentsWorkspace() {
     <div className="flat-workspace reports-workspace">
       <div className="flat-workspace-head">
         <div>
-          <span className="section-label">Reports</span>
           <h1>Uploaded reports</h1>
           <p>{reportCountLabel} for {api.activeFamily?.name ?? "the current workspace"}.</p>
         </div>
@@ -369,58 +409,54 @@ export function UploadWorkspace() {
     <div className="flat-workspace upload-workspace">
       <div className="flat-workspace-head">
         <div>
-          <span className="section-label">Add Report</span>
           <h1>Upload report</h1>
           <p>Add one medical file and assign it to a profile.</p>
         </div>
-        <span className={uploadAllowed ? "status-chip is-info" : "status-chip is-warning"}>
-          {uploadAllowed ? "Upload enabled" : "Viewer access"}
-        </span>
       </div>
       <ApiStatusBanner />
 
       <section className="upload-layout">
         <aside className="flat-panel upload-panel">
-          <span className="feature-icon" aria-hidden="true"><BioIcon name="icon_doc_add_empty" size={26} /></span>
-          <h2>Report file</h2>
-          <p>PDF or image up to 25 MB.</p>
-          <label className="select-field">
-            <span className="control-label">Profile</span>
-            {api.members.length ? (
-              <select value={selectedMemberId} onChange={(event) => onMemberChange(event.target.value)}>
-                {api.members.map((member) => <option key={member.id} value={member.id}>{member.display_name}</option>)}
-              </select>
-            ) : (
-              <p className="note">Add a family member before uploading.</p>
-            )}
-          </label>
-          <label>
-            <span className="control-label">Report title</span>
-            <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder={fileName || "CBC, ferritin, prescription..."} />
-          </label>
-          <label className="select-field">
-            <span className="control-label">Document type</span>
-            <select value={documentType} onChange={(event) => setDocumentType(event.target.value as DocumentType)}>
-              {documentTypes.map((type) => <option key={type} value={type}>{prettyStatus(type)}</option>)}
-            </select>
-          </label>
-          <label className="drop-zone">
-            <input type="file" accept="application/pdf,image/jpeg,image/png,image/heic,image/heif" onChange={onFileChange} />
-            <span>{fileName || "Choose PDF, JPEG, PNG, HEIC, or HEIF"}</span>
-          </label>
-          <button className="button button-primary" type="button" disabled={isUploading || !selectedFile || !uploadAllowed || !selectedMemberId} onClick={startParsing}>
-            <BioIcon name={isUploading ? "icon_action_loading" : "icon_action_confirm_safe"} size={17} />
-            {isUploading ? "Analyzing" : "Analyze report"}
-          </button>
-          {statusMessage ? <p className={statusMessage.includes("permission") || statusMessage.includes("supported") ? "form-alert" : "note"}>{statusMessage}</p> : null}
-        </aside>
-        <aside className="flat-panel upload-helper-panel">
-          <h3>After upload</h3>
-          <p>The report is stored, OCR runs, and extracted values appear in Reports, Trends, and Attention.</p>
-          <div className="upload-step-list">
-            <span>Validate file</span>
-            <span>Read report</span>
-            <span>Update trends</span>
+          {!uploadAllowed ? <p className="form-alert">Viewer access cannot upload reports.</p> : null}
+          <div className="upload-form-grid">
+            <div className="upload-fields">
+              <h2>Report details</h2>
+              <label className="select-field">
+                <span className="control-label">Profile</span>
+                {api.members.length ? (
+                  <select value={selectedMemberId} onChange={(event) => onMemberChange(event.target.value)}>
+                    {api.members.map((member) => <option key={member.id} value={member.id}>{member.display_name}</option>)}
+                  </select>
+                ) : (
+                  <p className="note">Add a family member before uploading.</p>
+                )}
+              </label>
+              <label>
+                <span className="control-label">Report title</span>
+                <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder={fileName || "CBC, ferritin, prescription..."} />
+              </label>
+              <label className="select-field">
+                <span className="control-label">Document type</span>
+                <select value={documentType} onChange={(event) => setDocumentType(event.target.value as DocumentType)}>
+                  {documentTypes.map((type) => <option key={type} value={type}>{prettyStatus(type)}</option>)}
+                </select>
+              </label>
+            </div>
+            <div className="upload-file-column">
+              <div>
+                <h2>Report file</h2>
+                <p>PDF or image up to 25 MB.</p>
+              </div>
+              <label className="drop-zone">
+                <input type="file" accept="application/pdf,image/jpeg,image/png,image/heic,image/heif" onChange={onFileChange} />
+                <span>{fileName || "Choose PDF, JPEG, PNG, HEIC, or HEIF"}</span>
+              </label>
+              <button className="button button-primary" type="button" disabled={isUploading || !selectedFile || !uploadAllowed || !selectedMemberId} onClick={startParsing}>
+                <BioIcon name={isUploading ? "icon_action_loading" : "icon_action_confirm_safe"} size={17} />
+                {isUploading ? "Analyzing" : "Analyze report"}
+              </button>
+              {statusMessage ? <p className={statusMessage.includes("permission") || statusMessage.includes("supported") ? "form-alert" : "note"}>{statusMessage}</p> : null}
+            </div>
           </div>
         </aside>
       </section>
@@ -495,7 +531,6 @@ export function TrendsWorkspace() {
     <div className="flat-workspace trends-workspace">
       <div className="flat-workspace-head">
         <div>
-          <span className="section-label">Trends</span>
           <h1>Biomarker trends</h1>
           <p>{apiMetrics.length ? `${apiMetrics.length} tracked metrics` : "Trends"} for {api.activeMember?.display_name ?? "your profile"}.</p>
         </div>
@@ -509,15 +544,27 @@ export function TrendsWorkspace() {
                 {activeMetric.latest_flag ? <span className={statusClass(activeMetric.latest_flag)}>{prettyStatus(activeMetric.latest_flag)}</span> : null}
                 <span>{activeMetric.reading_count} readings</span>
               </div>
-              <h2>{activeMetric.display_name}</h2>
-              <p className="trend-value">{valueWithUnit(activeMetric.latest_value, activeMetric.unit)}</p>
-              <Sparkline points={activeMetric.sparkline.map((point) => point.value)} />
+              <div className="trend-detail-head">
+                <div>
+                  <h2>{activeMetric.display_name}</h2>
               <p>{activeMetric.category} · Latest {activeMetric.latest_date ? formatDate(activeMetric.latest_date) : "not dated"}</p>
-              <Link className="button button-secondary" href={`/app/trends/${activeMetric.canonical_metric_id}`}>Open metric</Link>
+                </div>
+                <p className="trend-value">{valueWithUnit(activeMetric.latest_value, activeMetric.unit)}</p>
+              </div>
+              <div className="trend-chart-panel">
+                <Sparkline points={activeMetric.sparkline.map((point) => point.value)} />
+              </div>
+              <Link className="button button-secondary" href={`/app/trends/${activeMetric.canonical_metric_id}`}>Open metric detail</Link>
             </div>
-            <div className="grid trend-card-grid">
-              {apiMetrics.map((metric) => <TrendMetricCard key={metric.canonical_metric_id} metric={metric} active={activeMetric.canonical_metric_id === metric.canonical_metric_id} onSelect={() => setActiveMetricId(metric.canonical_metric_id)} />)}
-            </div>
+            <aside className="flat-panel trend-library">
+              <div className="trend-library-head">
+                <h2>All biomarkers</h2>
+                <span className="status-chip is-info">{apiMetrics.length} metrics</span>
+              </div>
+              <div className="trend-card-grid">
+                {apiMetrics.map((metric) => <TrendMetricCard key={metric.canonical_metric_id} metric={metric} active={activeMetric.canonical_metric_id === metric.canonical_metric_id} onSelect={() => setActiveMetricId(metric.canonical_metric_id)} />)}
+              </div>
+            </aside>
           </>
         ) : (
           <EmptyState title="No trend data yet" body="Upload and parse lab reports to see biomarker trends." />
@@ -581,11 +628,6 @@ export function FamilyWorkspace() {
   const memberCreateAllowed = canManageMembers(api.currentRole);
   const memberManageAllowed = canManageMembers(api.currentRole);
   const familyManageAllowed = canManageRoles(api.currentRole);
-  const auditQuery = useQuery({
-    queryKey: ["audit", api.activeFamily?.id],
-    queryFn: () => auditApi.list(api.activeFamily!.id),
-    enabled: api.status === "live" && Boolean(api.activeFamily?.id)
-  });
   const deleteMemberMutation = useMutation({
     mutationFn: (memberId: string) => membersApi.delete(memberId),
     onSuccess: async () => {
@@ -636,128 +678,101 @@ export function FamilyWorkspace() {
     <div className="flat-workspace family-workspace">
       <div className="flat-workspace-head">
         <div>
-          <span className="section-label">Family</span>
           <h1>Family</h1>
-          <p>{api.members.length} profiles · {api.currentRole ? `${prettyStatus(api.currentRole)} role` : "No role selected"}.</p>
+          <p>{api.members.length} profiles - {api.currentRole ? `${prettyStatus(api.currentRole)} role` : "No role selected"}.</p>
         </div>
       </div>
       <ApiStatusBanner />
-      <div className="workspace-bar">
+      <div className="family-command-card">
         <div>
-          <span className="control-label">Selected workspace</span>
-          <strong>{api.activeFamily?.name ?? "No family yet"}</strong>
+          <span className="control-label">Current workspace</span>
+          <h2>{api.activeFamily?.name ?? "No family selected"}</h2>
+          <p>{api.members.length} profiles connected to this family.</p>
         </div>
-        {api.families.length ? (
-          <label className="select-field">
-            <span className="control-label">Family</span>
-            <select value={api.activeFamily?.id ?? ""} onChange={(event) => void api.setActiveFamilyId(event.target.value)}>
-              {api.families.map((family) => <option key={family.id} value={family.id}>{family.name}</option>)}
-            </select>
-          </label>
-        ) : null}
-        {api.activeFamily && familyManageAllowed ? (
-          <button
-            className="button button-ghost danger-action"
-            type="button"
-            disabled={deleteFamilyMutation.isPending}
-            onClick={() => {
-              if (window.confirm(`Delete ${api.activeFamily?.name}? This cannot be undone.`)) {
-                deleteFamilyMutation.mutate(api.activeFamily!.id);
-              }
-            }}
-          >
-            {deleteFamilyMutation.isPending ? "Deleting" : "Delete family"}
-          </button>
-        ) : null}
+        <div className="family-command-actions">
+          {api.families.length ? (
+            <label className="select-field">
+              <span className="control-label">Switch family</span>
+              <select value={api.activeFamily?.id ?? ""} onChange={(event) => void api.setActiveFamilyId(event.target.value)}>
+                {api.families.map((family) => <option key={family.id} value={family.id}>{family.name}</option>)}
+              </select>
+            </label>
+          ) : null}
+          {api.activeFamily && familyManageAllowed ? (
+            <button
+              className="button button-ghost danger-action"
+              type="button"
+              disabled={deleteFamilyMutation.isPending}
+              onClick={() => {
+                if (window.confirm(`Delete ${api.activeFamily?.name}? This cannot be undone.`)) {
+                  deleteFamilyMutation.mutate(api.activeFamily!.id);
+                }
+              }}
+            >
+              {deleteFamilyMutation.isPending ? "Deleting" : "Delete family"}
+            </button>
+          ) : null}
+        </div>
       </div>
 
-      <section className="family-member-grid">
-        {api.members.length ? (
-          api.members.map((member) => (
-            <button key={member.id} className={`profile-card flat-panel${api.activeMember?.id === member.id ? " is-active" : ""}`} type="button" onClick={() => api.setActiveMemberId(member.id)}>
-              <span className="feature-icon" aria-hidden="true"><BioIcon name="icon_tab_family" size={24} /></span>
-              <h3>{member.display_name}</h3>
-              <p>{[member.relationship, member.sex ? prettyStatus(member.sex) : "", member.date_of_birth ? `Born ${formatDate(member.date_of_birth)}` : ""].filter(Boolean).join(" · ")}</p>
-              {memberManageAllowed ? (
-                <span className="button-row compact">
-                  <span className="inline-action">Select</span>
-                  <span
-                    className="inline-action danger-text"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      if (window.confirm(`Delete ${member.display_name}? Reports assigned to this member may be affected.`)) {
-                        deleteMemberMutation.mutate(member.id);
-                      }
-                    }}
-                  >
-                    {deleteMemberMutation.variables === member.id && deleteMemberMutation.isPending ? "Deleting" : "Delete"}
-                  </span>
-                </span>
-              ) : null}
-            </button>
-          ))
-        ) : (
-          <EmptyState title="No members yet" body="Add a family member to assign reports and trends." />
-        )}
-      </section>
-
-      <section className="family-forms-grid">
-        <form className="flat-panel preference-card" onSubmit={createFamily}>
-          <span className="feature-icon" aria-hidden="true"><BioIcon name="icon_family_add" size={24} /></span>
-          <h3>Create family</h3>
-          <input value={familyName} onChange={(event) => setFamilyName(event.target.value)} placeholder="Family name" required />
-          <button className="button button-secondary" type="submit" disabled={!api.isSignedIn}>Create</button>
-        </form>
-        <form className="flat-panel preference-card" onSubmit={createMember}>
-          <span className="feature-icon" aria-hidden="true"><BioIcon name="icon_family_header" size={24} /></span>
-          <h3>Add member</h3>
-          <input value={memberName} onChange={(event) => setMemberName(event.target.value)} placeholder="Display name" required />
-          <input value={relationship} onChange={(event) => setRelationship(event.target.value)} placeholder="Relationship" required />
-          <button className="button button-secondary" type="submit" disabled={!api.activeFamily || !memberCreateAllowed}>Add</button>
-        </form>
-      </section>
-
-      <section className="family-admin-grid">
-        <article className="family-roles-panel">
+      <section className="family-main-grid">
+        <div className="family-members-section">
           <div className="dashboard-panel-head">
-            <h2>Roles</h2>
+            <div>
+              <h2>Profiles</h2>
+              <p>Choose the person you want to view across reports and trends.</p>
+            </div>
           </div>
-          <div className="record-list compact">
-            {api.roles.length ? (
-              api.roles.map((role) => (
-                <article className="record" key={role.id}>
-                  <div className="record-meta">
-                    <span>{role.user_id}</span>
-                    <span className="status-chip is-info">{prettyStatus(role.role)}</span>
-                  </div>
-                  <p>Created {formatDate(role.created_at)}</p>
-                </article>
+          <div className="family-member-grid">
+            {api.members.length ? (
+              api.members.map((member) => (
+                <button key={member.id} className={`profile-card flat-panel${api.activeMember?.id === member.id ? " is-active" : ""}`} type="button" onClick={() => api.setActiveMemberId(member.id)}>
+                  <span className="feature-icon" aria-hidden="true"><BioIcon name="icon_tab_family" size={24} /></span>
+                  <h3>{member.display_name}</h3>
+                  <p>{[member.relationship, member.sex ? prettyStatus(member.sex) : "", member.date_of_birth ? `Born ${formatDate(member.date_of_birth)}` : ""].filter(Boolean).join(" - ")}</p>
+                  {memberManageAllowed ? (
+                    <span className="button-row compact">
+                      <span className="inline-action">Select</span>
+                      <span
+                        className="inline-action danger-text"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          if (window.confirm(`Delete ${member.display_name}? Reports assigned to this member may be affected.`)) {
+                            deleteMemberMutation.mutate(member.id);
+                          }
+                        }}
+                      >
+                        {deleteMemberMutation.variables === member.id && deleteMemberMutation.isPending ? "Deleting" : "Delete"}
+                      </span>
+                    </span>
+                  ) : null}
+                </button>
               ))
             ) : (
-              <EmptyState title="No roles loaded" body="Roles appear after selecting a family." />
+              <EmptyState title="No members yet" body="Add a family member to assign reports and trends." />
             )}
           </div>
-        </article>
-        <article className="family-roles-panel">
-          <div className="dashboard-panel-head">
-            <h2>Audit history</h2>
+        </div>
+
+        <div className="family-side-stack">
+          <div className="family-panel-head">
+            <h2>Manage family</h2>
+            <p>Add a profile or create another workspace.</p>
           </div>
-          <div className="record-list compact">
-            {auditQuery.data?.length ? (
-              auditQuery.data.slice(0, 5).map((entry) => (
-                <article className="record" key={entry.id}>
-                  <div className="record-meta">
-                    <span>{formatDate(entry.created_at)}</span>
-                    <span className="status-chip is-info">{prettyStatus(entry.event_type)}</span>
-                  </div>
-                </article>
-              ))
-            ) : (
-              <EmptyState title={auditQuery.isLoading ? "Loading audit history" : "No audit logs"} body="Workspace events appear here." />
-            )}
-          </div>
-        </article>
+          <form className="family-quick-form" onSubmit={createMember}>
+            <h3>Add member</h3>
+            <input value={memberName} onChange={(event) => setMemberName(event.target.value)} placeholder="Display name" required />
+            <input value={relationship} onChange={(event) => setRelationship(event.target.value)} placeholder="Relationship" required />
+            <button className="button button-secondary" type="submit" disabled={!api.activeFamily || !memberCreateAllowed}>Add</button>
+          </form>
+          <form className="family-quick-form is-muted" onSubmit={createFamily}>
+            <h3>Create family</h3>
+            <input value={familyName} onChange={(event) => setFamilyName(event.target.value)} placeholder="Family name" required />
+            <button className="button button-secondary" type="submit" disabled={!api.isSignedIn}>Create</button>
+          </form>
+        </div>
       </section>
+
       {message ? <p className="note">{message}</p> : null}
     </div>
   );
@@ -786,11 +801,18 @@ export function AttentionWorkspace() {
     onError: (error) => setMessage(error instanceof Error ? error.message : "You don't have permission to change this.")
   });
 
+  const itemCount = attentionQuery.data?.total ?? attentionQuery.data?.items.length ?? 0;
+
   return (
-    <>
-      <PageTitle title="Attention" body="Review extracted values and parser items that need a human decision." />
+    <div className="flat-workspace attention-workspace">
+      <div className="flat-workspace-head">
+        <div>
+          <h1>Review queue</h1>
+          <p>{itemCount ? `${itemCount} ${filter === "open" ? "open" : prettyStatus(filter).toLowerCase()} items` : "Review extracted values that need a decision."}</p>
+        </div>
+      </div>
       <ApiStatusBanner />
-      <div className="workspace-bar">
+      <div className="workspace-bar attention-toolbar">
         <div className="filter-group" aria-label="Attention status">
           {["open", "accepted", "rejected", "resolved"].map((option) => (
             <button key={option} className={`pill-button${filter === option ? " is-active" : ""}`} type="button" onClick={() => setFilter(option)}>
@@ -798,12 +820,10 @@ export function AttentionWorkspace() {
             </button>
           ))}
         </div>
-        <span className={resolveAllowed ? "status-chip is-info" : "status-chip is-warning"}>
-          {resolveAllowed ? "Resolve enabled" : "Read only"}
-        </span>
+        {!resolveAllowed ? <span className="status-chip is-warning">Read only</span> : null}
       </div>
 
-      <section className="record-list">
+      <section className="record-list attention-list">
         {attentionQuery.data ? (
           attentionQuery.data.items.length ? (
             attentionQuery.data.items.map((item) => (
@@ -819,7 +839,7 @@ export function AttentionWorkspace() {
         )}
       </section>
       {message ? <p className="note">{message}</p> : null}
-    </>
+    </div>
   );
 }
 
@@ -1249,22 +1269,6 @@ function ApiStatusBanner() {
   );
 }
 
-function LatestReportRecord({ report }: { report: LatestReport }) {
-  return (
-    <article className="record document-record">
-      <div className="record-meta">
-        <span>{formatDate(report.created_at)}</span>
-        <span className={statusClass(report.status)}>{prettyStatus(report.status)}</span>
-      </div>
-      <h3>{report.title}</h3>
-      <p>{prettyStatus(report.document_type)}. {report.parsed_count} parsed results, {report.attention_count} attention items.</p>
-      <div className="button-row compact">
-        <Link className="button button-secondary" href={`/app/reports/${report.document_id}`}>Open report</Link>
-      </div>
-    </article>
-  );
-}
-
 function DocumentRecord({
   document,
   deleting = false,
@@ -1297,11 +1301,12 @@ function DocumentRecord({
 
 function TrendMetricCard({ metric, active, onSelect }: { metric: TrendMetricPreview & { category?: string }; active: boolean; onSelect: () => void }) {
   return (
-    <button className={`flat-panel trend-card${active ? " is-active" : ""}`} type="button" onClick={onSelect}>
-      <span className="feature-icon" aria-hidden="true"><BioIcon name="icon_tab_trends" size={22} /></span>
-      <h3>{metric.display_name}</h3>
-      <p><strong>{valueWithUnit(metric.latest_value, metric.unit)}</strong></p>
-      <p>{metric.category ?? "Trend"}. {metric.reading_count} readings.</p>
+    <button className={`trend-card${active ? " is-active" : ""}`} type="button" onClick={onSelect}>
+      <div>
+        <h3>{metric.display_name}</h3>
+        <p>{metric.category ?? "Trend"} · {metric.reading_count} readings</p>
+      </div>
+      <strong>{valueWithUnit(metric.latest_value, metric.unit)}</strong>
       {metric.has_attention ? <span className="status-chip is-warning">Needs attention</span> : null}
     </button>
   );
@@ -1321,14 +1326,23 @@ function AttentionRecord({
   const actionable = item.source === "attention_item";
 
   return (
-    <article className="record document-record">
+    <article className="record attention-record">
       <div className="record-meta">
         <span>{formatDate(item.created_at)}</span>
         <span className={statusClass(item.status)}>{prettyStatus(item.status)}</span>
         <span>{prettyStatus(item.source)}</span>
       </div>
-      <h3>{item.display_name ?? prettyStatus(item.reason_code)}</h3>
-      <p>{item.value ? `${item.value}${item.unit ? ` ${item.unit}` : ""}. ` : ""}{prettyStatus(item.reason_code)}.</p>
+      <div className="attention-record-main">
+        <div>
+          <h3>{item.display_name ?? prettyStatus(item.reason_code)}</h3>
+          <p>{prettyStatus(item.reason_code)}.</p>
+        </div>
+        {item.value ? (
+          <strong className="attention-value">
+            {item.value}{item.unit ? ` ${item.unit}` : ""}
+          </strong>
+        ) : null}
+      </div>
       <div className="button-row compact">
         <button className="button button-secondary" type="button" disabled={!canResolve || !actionable || isWorking} onClick={() => onUpdate("accepted")}>Accept</button>
         <button className="button button-ghost" type="button" disabled={!canResolve || !actionable || isWorking} onClick={() => onUpdate("rejected")}>Reject</button>
