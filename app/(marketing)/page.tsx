@@ -72,10 +72,27 @@ export default function HomePage() {
         <FluidHeroCanvas />
         <div className="liquid-hero-sheen" aria-hidden="true" />
         <div className="liquid-hero-copy" style={{ justifySelf: "center", textAlign: "center" }}>
+          <div className="hero-logo-badge" aria-hidden="true">
+            <img src="/klario-logo.jpg" alt="" width={72} height={72} />
+          </div>
+          <span className="glass-eyebrow hero-eyebrow">
+            <span className="eyebrow-dot" />
+            Medical clarity, simplified
+          </span>
           <h1 id="home-hero-title">Klario</h1>
           <p className="hero-lead">
-            Private health records intelligently organised.
+            Private health records intelligently organised — so you can focus on feeling better, not filing paperwork.
           </p>
+          <div className="button-row hero-cta-row">
+            <Link className="button button-primary magnetic" href="/login">
+              Try for free
+              <BioIcon name="icon_action_continue" size={18} />
+            </Link>
+            <Link className="button glass-button" href="/features">
+              See how it works
+              <BioIcon name="icon_signal_insights" size={18} />
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -110,7 +127,9 @@ export default function HomePage() {
 
         <section className="premium-section premium-section-cta">
           <div className="premium-section-copy reveal">
-
+            <div className="cta-logo-badge" aria-hidden="true">
+              <img src="/klario-logo.jpg" alt="" width={56} height={56} />
+            </div>
             <h2>Start with your next report.</h2>
             <p>Add one lab report and Klario begins building the timeline, trend history, and review queue around it.</p>
             <div className="button-row">
