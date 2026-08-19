@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { SettingsWorkspace } from "@/components/app-workspaces";
+import { SettingsWorkspace } from "@/components/workspaces/settings";
 
 export const metadata: Metadata = {
   title: "Settings"

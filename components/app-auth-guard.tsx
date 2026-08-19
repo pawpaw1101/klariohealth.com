@@ -19,6 +19,14 @@ export function AppAuthGuard({ children }: { children: React.ReactNode }) {
         params.set("session", "expired");
       }
       router.replace(`/login?${params.toString()}`);
+      return;
+    }
+    if (api.status === "onboarding" && pathname !== "/app/onboarding") {
+      router.replace("/app/onboarding");
+      return;
+    }
+    if (api.status === "live" && pathname === "/app/onboarding") {
+      router.replace("/app/dashboard");
     }
   }, [api.isSignedIn, api.message, api.status, pathname, router]);
 
@@ -31,6 +39,10 @@ export function AppAuthGuard({ children }: { children: React.ReactNode }) {
   }
 
   if (!api.isSignedIn) {
+    return null;
+  }
+
+  if (api.status === "onboarding" && pathname !== "/app/onboarding") {
     return null;
   }
 

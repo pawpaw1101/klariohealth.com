@@ -21,14 +21,18 @@ export function AmbientEffects() {
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const isTouch = window.matchMedia("(pointer: coarse)").matches;
     const hasHeroWebGL = pathname === "/";
+    const isWorkspaceRoute = pathname.startsWith("/app");
     document.documentElement.classList.toggle("is-touch", isTouch);
 
     const cleanups: Array<() => void> = [];
     if (webglRef.current) {
-      webglRef.current.style.display = hasHeroWebGL ? "none" : "";
-      if (!hasHeroWebGL) cleanups.push(initWebGL(webglRef.current, mouseRef.current, reducedMotion));
+      webglRef.current.style.display = hasHeroWebGL || isWorkspaceRoute ? "none" : "";
+      if (!hasHeroWebGL && !isWorkspaceRoute) cleanups.push(initWebGL(webglRef.current, mouseRef.current, reducedMotion));
     }
-    if (particlesRef.current) cleanups.push(initParticles(particlesRef.current, mouseRef.current, reducedMotion || isTouch));
+    if (particlesRef.current) {
+      particlesRef.current.style.display = isWorkspaceRoute ? "none" : "";
+      if (!isWorkspaceRoute) cleanups.push(initParticles(particlesRef.current, mouseRef.current, reducedMotion || isTouch));
+    }
     if (cursorRef.current) cleanups.push(initCursor(cursorRef.current, mouseRef.current, true));
 
     return () => cleanups.forEach((cleanup) => cleanup());
@@ -118,7 +122,7 @@ export function AmbientEffects() {
 
   return (
     <>
-      <canvas id="klario-webgl" className={pathname === "/" ? "is-home-hidden" : undefined} ref={webglRef} aria-hidden="true" />
+      <canvas id="klario-webgl" className={pathname === "/" || pathname.startsWith("/app") ? "is-home-hidden" : undefined} ref={webglRef} aria-hidden="true" />
       <canvas id="klario-particles" ref={particlesRef} aria-hidden="true" />
       <div id="klario-cursor" ref={cursorRef} aria-hidden="true" />
     </>

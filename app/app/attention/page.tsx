@@ -1,10 +1,5 @@
-import type { Metadata } from "next";
-import { AttentionWorkspace } from "@/components/app-workspaces";
-
-export const metadata: Metadata = {
-  title: "Attention"
-};
+import { redirect } from "next/navigation";
 
 export default function AttentionPage() {
-  return <AttentionWorkspace />;
+  redirect("/app/dashboard");
 }

@@ -8,7 +8,7 @@ SIZE ＆ READABILITY: Every icon must be readable and distinct at 20px to 28px. 
 
 STROKE ＆ GEOMETRY: Consistent stroke weight and corner radius across all icons in the set. Prefer simple, recognisable silhouettes. Avoid overly complex detail. Use black (000000) as the only colour on a transparent background.
 
-STATES: For status icons (confirm, warning, delete, iCloud), use stronger filled or badge variants to signal importance. All other icons remain outline-only unless noted.
+STATES: For status icons (confirm, warning, delete), use stronger filled or badge variants to signal importance. All other icons remain outline-only unless noted.
 
 EXPORT: Vector SVG with transparent background. Do not include drop shadows, outer glows, or bounding box fills.
 
@@ -20,7 +20,7 @@ App icon: A smooth ECG waveform — a flat line that peaks with a sharp spike an
 <!-- Quality: low -->
 <!-- Type: generate -->
 <!-- Created: 2026-06-01T15:06:52.104Z -->
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="1024" height="1024" viewBox="0 0 2048 2048">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="24" height="24" viewBox="0 0 2048 2048">
 <desc>Created with SVGMaker Editor 3.0.0</desc>
 <defs>
 </defs>

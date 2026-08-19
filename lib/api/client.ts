@@ -1,10 +1,12 @@
 import type { APIErrorResponse } from "@/lib/api/types";
 
 const TOKEN_KEY = "klario.access_token";
+const REFRESH_TOKEN_KEY = "klario.refresh_token";
 const ACTIVE_FAMILY_KEY = "klario.active_family_id";
 const ACTIVE_MEMBER_KEY = "klario.active_member_id";
 
 let memoryToken: string | null = null;
+let memoryRefreshToken: string | null = null;
 
 export type ApiRequestOptions = Omit<RequestInit, "body"> & {
   auth?: boolean;
@@ -55,6 +57,22 @@ export function getAuthToken() {
   return memoryToken;
 }
 
+export function getRefreshToken() {
+  if (memoryRefreshToken) return memoryRefreshToken;
+  if (typeof window === "undefined") return null;
+  memoryRefreshToken = window.sessionStorage.getItem(REFRESH_TOKEN_KEY);
+  return memoryRefreshToken;
+}
+
+export function setAuthTokens(accessToken: string, refreshToken?: string | null) {
+  memoryToken = accessToken;
+  memoryRefreshToken = refreshToken ?? memoryRefreshToken;
+  if (typeof window !== "undefined") {
+    window.sessionStorage.setItem(TOKEN_KEY, accessToken);
+    if (refreshToken) window.sessionStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+  }
+}
+
 export function setAuthToken(token: string) {
   memoryToken = token;
   if (typeof window !== "undefined") {
@@ -64,8 +82,10 @@ export function setAuthToken(token: string) {
 
 export function clearKlarioSession({ clearSelections = true }: { clearSelections?: boolean } = {}) {
   memoryToken = null;
+  memoryRefreshToken = null;
   if (typeof window === "undefined") return;
   window.sessionStorage.removeItem(TOKEN_KEY);
+  window.sessionStorage.removeItem(REFRESH_TOKEN_KEY);
   if (clearSelections) {
     window.localStorage.removeItem(ACTIVE_FAMILY_KEY);
     window.localStorage.removeItem(ACTIVE_MEMBER_KEY);

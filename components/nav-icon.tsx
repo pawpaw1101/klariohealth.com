@@ -12,7 +12,6 @@ export type NavIconName =
   | "gear"
   | "home"
   | "info"
-  | "logo"
   | "logout"
   | "menu"
   | "product"
@@ -128,13 +127,6 @@ const paths: Record<NavIconName, ReactNode> = {
       <circle cx="12" cy="12" r="9" />
       <path d="M12 11v5" />
       <path d="M12 8h.01" />
-    </>
-  ),
-  logo: (
-    <>
-      <path d="M4 19V5" />
-      <path d="M4 19h16" />
-      <path d="m8 15 3-4 3 3 5-7" />
     </>
   ),
   logout: (

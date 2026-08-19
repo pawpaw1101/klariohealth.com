@@ -5,22 +5,22 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { appNav } from "@/lib/klario-data";
 import { Brand } from "@/components/brand";
-import { NavIcon, type NavIconName } from "@/components/nav-icon";
+import { BioIcon } from "@/components/bio-icon";
+import { NavIcon } from "@/components/nav-icon";
 import { useKlarioApi } from "@/components/klario-api-provider";
+import type { KlarioIconName } from "@/lib/icons";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { logout } = useKlarioApi();
+  const { backendLogout } = useKlarioApi();
   const [menuOpen, setMenuOpen] = useState(false);
-  const navIcons: Record<string, NavIconName> = {
-    "/app/dashboard": "dashboard",
-    "/app/documents": "documents",
-    "/app/upload": "upload",
-    "/app/attention": "shield",
-    "/app/trends": "trends",
-    "/app/timeline": "route",
-    "/app/family": "family"
+  const navIcons: Record<string, KlarioIconName> = {
+    "/app/dashboard": "icon_tab_dashboard",
+    "/app/trends": "icon_tab_trends",
+    "/app/reports": "icon_tab_documents",
+    "/app/family": "icon_tab_family",
+    "/app/settings": "icon_tab_settings"
   };
   const isActiveRoute = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
@@ -49,28 +49,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Brand href="/app/dashboard" />
             {appNav.map((item) => (
               <Link key={item.href} className={`nav-link${isActiveRoute(item.href) ? " is-active" : ""}`} href={item.href} title={item.label} onClick={() => setMenuOpen(false)}>
-                <NavIcon name={navIcons[item.href]} size={17} />
+                <BioIcon name={navIcons[item.href]} size={17} />
                 <span className="nav-label">{item.label}</span>
               </Link>
             ))}
           </div>
           <div className="nav-right">
-            <Link className={`nav-link${isActiveRoute("/app/account") ? " is-active" : ""}`} href="/app/account" title="Profile" onClick={() => setMenuOpen(false)}>
-              <NavIcon name="user" size={17} />
-              <span className="nav-label">Profile</span>
-            </Link>
-            <Link className={`nav-link${isActiveRoute("/app/settings") ? " is-active" : ""}`} href="/app/settings" title="Settings" onClick={() => setMenuOpen(false)}>
-              <NavIcon name="gear" size={17} />
-              <span className="nav-label">Settings</span>
-            </Link>
             <button
               className="button button-ghost nav-action"
               type="button"
               title="Log out"
               onClick={() => {
                 setMenuOpen(false);
-                logout();
-                router.push("/login");
+                void backendLogout().finally(() => router.push("/login"));
               }}
             >
               <NavIcon name="logout" size={17} />

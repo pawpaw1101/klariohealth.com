@@ -1,10 +1,5 @@
-import type { Metadata } from "next";
-import { DocumentsWorkspace } from "@/components/app-workspaces";
-
-export const metadata: Metadata = {
-  title: "Documents"
-};
+import { redirect } from "next/navigation";
 
 export default function DocumentsPage() {
-  return <DocumentsWorkspace />;
+  redirect("/app/reports");
 }

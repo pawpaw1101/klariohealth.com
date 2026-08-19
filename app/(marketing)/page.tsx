@@ -11,15 +11,6 @@ export const metadata: Metadata = {
   description: "Upload lab results once. Klario parses them, plots biomarkers over time, and explains what changed."
 };
 
-const featureIcons = [
-  "icon_doc_add_empty",
-  "icon_tab_trends",
-  "icon_signal_warning",
-  "icon_signal_insights",
-  "icon_tab_family",
-  "icon_timeline_empty"
-];
-
 const showcaseItems = [
   {
     label: "Dashboard",
@@ -72,14 +63,20 @@ export default function HomePage() {
         <FluidHeroCanvas />
         <div className="liquid-hero-sheen" aria-hidden="true" />
         <div className="liquid-hero-copy" style={{ justifySelf: "center", textAlign: "center" }}>
-          <div className="hero-logo-badge" aria-hidden="true">
-            <img src="/klario-logo.jpg" alt="" width={72} height={72} />
-          </div>
-          <span className="glass-eyebrow hero-eyebrow">
+          <span className="eyebrow glass-eyebrow hero-eyebrow">
             <span className="eyebrow-dot" />
             Medical clarity, simplified
           </span>
-          <h1 id="home-hero-title">Klario</h1>
+          <h1 className="hero-wordmark-title" id="home-hero-title">
+            <img
+              alt="Klario"
+              draggable={false}
+              height={67}
+              src="/brand/klario-logo-light.png"
+              srcSet="/brand/klario-logo-light.png 1x, /brand/klario-logo-light@2x.png 2x, /brand/klario-logo-light@3x.png 3x"
+              width={137}
+            />
+          </h1>
           <p className="hero-lead">
             Private health records intelligently organised — so you can focus on feeling better, not filing paperwork.
           </p>
@@ -90,7 +87,7 @@ export default function HomePage() {
             </Link>
             <Link className="button glass-button" href="/features">
               See how it works
-              <BioIcon name="icon_signal_insights" size={18} />
+              <BioIcon name="icon_signal_summary" size={18} />
             </Link>
           </div>
         </div>
@@ -128,7 +125,14 @@ export default function HomePage() {
         <section className="premium-section premium-section-cta">
           <div className="premium-section-copy reveal">
             <div className="cta-logo-badge" aria-hidden="true">
-              <img src="/klario-logo.jpg" alt="" width={56} height={56} />
+              <img
+                alt=""
+                draggable={false}
+                height={67}
+                src="/brand/klario-logo-dark.png"
+                srcSet="/brand/klario-logo-dark.png 1x, /brand/klario-logo-dark@2x.png 2x, /brand/klario-logo-dark@3x.png 3x"
+                width={137}
+              />
             </div>
             <h2>Start with your next report.</h2>
             <p>Add one lab report and Klario begins building the timeline, trend history, and review queue around it.</p>
@@ -139,7 +143,7 @@ export default function HomePage() {
               </Link>
               <Link className="button button-secondary glass-button" href="/features#how-it-works">
                 How it works
-                <BioIcon name="icon_signal_insights" size={18} />
+                <BioIcon name="icon_signal_summary" size={18} />
               </Link>
             </div>
             <p className="note cta-note">

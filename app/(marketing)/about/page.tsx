@@ -3,13 +3,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { BioIcon } from "@/components/bio-icon";
 import { SectionHeader } from "@/components/section";
+import type { KlarioIconName } from "@/lib/icons";
 
 export const metadata: Metadata = {
   title: "About",
   description: "Klario was born from a real need: finding when a parent's blood sugar started spiking across hundreds of lab reports."
 };
 
-const problemCards = [
+const problemCards: Array<{ title: string; body: string; icon: KlarioIconName }> = [
   {
     title: "Reports are scattered",
     body: "Lab results often live across email, paper folders, PDFs, hospital portals, and phone galleries.",
@@ -28,7 +29,7 @@ const problemCards = [
   {
     title: "Medical language is dense",
     body: "Reports can explain what a value is, but not always what it means in plain language for everyday tracking.",
-    icon: "icon_signal_insights"
+    icon: "icon_signal_summary"
   }
 ];
 
@@ -52,7 +53,7 @@ export default function AboutPage() {
       <section className="section">
         <div className="story-block story-block-rich story-block-who">
           <div className="story-card-heading">
-            <span className="feature-icon" aria-hidden="true"><BioIcon name="icon_signal_confidence" size={24} /></span>
+            <span className="feature-icon" aria-hidden="true"><BioIcon name="icon_parser_confidence" size={24} /></span>
 
             <h2>Personal health records, made easier to follow.</h2>
           </div>
@@ -108,7 +109,7 @@ export default function AboutPage() {
       <section className="section">
         <div className="story-block story-block-rich story-block-solution">
           <div className="story-card-heading">
-            <span className="feature-icon" aria-hidden="true"><BioIcon name="icon_signal_insights" size={24} /></span>
+            <span className="feature-icon" aria-hidden="true"><BioIcon name="icon_signal_summary" size={24} /></span>
 
             <h2>Turn every report into something you can act on.</h2>
           </div>

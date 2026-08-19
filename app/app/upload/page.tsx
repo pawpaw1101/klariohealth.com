@@ -1,10 +1,5 @@
-import type { Metadata } from "next";
-import { UploadWorkspace } from "@/components/app-workspaces";
-
-export const metadata: Metadata = {
-  title: "Upload"
-};
+import { redirect } from "next/navigation";
 
 export default function UploadPage() {
-  return <UploadWorkspace />;
+  redirect("/app/reports");
 }

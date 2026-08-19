@@ -38,6 +38,11 @@ export interface PasswordResetRequest {
   new_password: string;
 }
 
+export interface ChangePasswordRequest {
+  current_password: string;
+  new_password: string;
+}
+
 export interface PasswordResetResponse {
   message: string;
   reset_token?: string | null;
@@ -45,7 +50,16 @@ export interface PasswordResetResponse {
 
 export interface TokenResponse {
   access_token: string;
+  refresh_token: string;
   token_type: string;
+}
+
+export interface RefreshTokenRequest {
+  refresh_token: string;
+  device_name?: string;
+  device_type?: string;
+  app_version?: string;
+  os_version?: string;
 }
 
 export interface User {
@@ -93,9 +107,23 @@ export interface FamilyMember {
   updated_at: string;
 }
 
+export type FamilyRelationship =
+  | "self"
+  | "spouse"
+  | "mother"
+  | "father"
+  | "son"
+  | "daughter"
+  | "child"
+  | "sibling"
+  | "grandparent"
+  | "relative"
+  | "other";
+
 export interface MemberCreateRequest {
   display_name: string;
-  relationship: string;
+  relationship: FamilyRelationship;
+  relationship_other_label?: string | null;
   date_of_birth?: string | null;
   sex?: string | null;
 }
@@ -458,6 +486,7 @@ export interface MemberAttentionItem {
   reason_code: string;
   document_id: string;
   status: string;
+  classification?: string;
   created_at: string;
 }
 
@@ -472,6 +501,7 @@ export interface MemberAttentionListResponse {
 export interface DashboardResponse {
   family_id: string;
   member_id: string;
+  banner?: string | null;
   health_summary: HealthSummary;
   needs_attention: DashboardAttentionItem[];
   quick_actions: string[];
@@ -546,6 +576,7 @@ export interface TrendMetricPreview {
   reading_count: number;
   latest_flag: string | null;
   has_attention: boolean;
+  has_readings?: boolean;
   sparkline: { date: string; value: number }[];
 }
 
@@ -644,6 +675,610 @@ export interface InviteCreateResponse extends FamilyInvite {
 
 export interface InviteAcceptRequest {
   invite_token: string;
+}
+
+export interface LinkedPersonalProfile {
+  family_id: string;
+  family_member_id: string;
+  display_name: string;
+  relationship: string;
+}
+
+export interface AccountCapabilities {
+  two_step_verification_available: boolean;
+  account_deletion_available: boolean;
+  data_export_available: boolean;
+  push_notifications_available: boolean;
+  connected_apps_available: boolean;
+}
+
+export interface AccountSummaryResponse {
+  id: string;
+  email: string;
+  full_name: string;
+  email_verified: boolean;
+  member_since: string;
+  linked_personal_profile: LinkedPersonalProfile | null;
+  capabilities: AccountCapabilities;
+}
+
+export interface AccountSession {
+  id: string;
+  device_name: string | null;
+  device_type: string | null;
+  app_version: string | null;
+  os_version: string | null;
+  created_at: string;
+  last_active_at: string | null;
+  expires_at: string;
+  is_current: boolean;
+}
+
+export interface AccountSessionListResponse {
+  sessions: AccountSession[];
+}
+
+export interface RevokeOtherSessionsResponse {
+  revoked_count: number;
+}
+
+export interface SecurityEventListResponse {
+  events: AuditLog[];
+  next_cursor: string | null;
+}
+
+export interface SecurityAlertPreferences {
+  alert_new_device_login: boolean;
+  alert_password_changed: boolean;
+  alert_session_revoked: boolean;
+  alert_family_role_changed: boolean;
+  alert_family_access_removed: boolean;
+  alert_delivery_email: boolean;
+  alert_delivery_push: boolean;
+}
+
+export type SecurityAlertPreferencesUpdate = Partial<SecurityAlertPreferences>;
+
+export interface NotificationDeliveryPreferences {
+  email: boolean;
+  push: boolean;
+}
+
+export interface NotificationDeliveryPreferencesUpdate {
+  email?: boolean | null;
+  push?: boolean | null;
+}
+
+export interface QuietHoursPreferences {
+  enabled: boolean;
+  start: string | null;
+  end: string | null;
+  timezone: string | null;
+}
+
+export interface QuietHoursPreferencesUpdate {
+  enabled?: boolean | null;
+  start?: string | null;
+  end?: string | null;
+  timezone?: string | null;
+}
+
+export interface NotificationCapabilities {
+  email_delivery_available: boolean;
+  push_delivery_available: boolean;
+  reminders_available: boolean;
+  quiet_hours_available: boolean;
+  event_notifications_wired: boolean;
+}
+
+export interface NotificationPreferencesResponse {
+  report_processing_completed: boolean;
+  family_invitation_received: boolean;
+  family_invitation_accepted: boolean;
+  shared_report_available: boolean;
+  reminders_enabled: boolean;
+  delivery: NotificationDeliveryPreferences;
+  quiet_hours: QuietHoursPreferences;
+  capabilities: NotificationCapabilities;
+  updated_at: string;
+}
+
+export interface NotificationPreferencesUpdateRequest {
+  report_processing_completed?: boolean | null;
+  family_invitation_received?: boolean | null;
+  family_invitation_accepted?: boolean | null;
+  shared_report_available?: boolean | null;
+  reminders_enabled?: boolean | null;
+  delivery?: NotificationDeliveryPreferencesUpdate | null;
+  quiet_hours?: QuietHoursPreferencesUpdate | null;
+}
+
+export type UnitHeight = "cm" | "ft_in";
+export type UnitWeight = "kg" | "lb";
+export type UnitTemperature = "celsius" | "fahrenheit";
+export type UnitGlucose = "mmol_l" | "mg_dl";
+export type DisplayTrendsRange = "week" | "month" | "quarter" | "year";
+
+export interface DisplayPreferences {
+  unit_height: UnitHeight;
+  unit_weight: UnitWeight;
+  unit_temperature: UnitTemperature;
+  unit_glucose: UnitGlucose;
+  default_trends_range: DisplayTrendsRange;
+  show_flagged_first: boolean;
+}
+
+export type DisplayPreferencesUpdate = Partial<DisplayPreferences>;
+
+export interface UnitPreferencesResponse {
+  height_unit: UnitHeight;
+  weight_unit: UnitWeight;
+  temperature_unit: UnitTemperature;
+  glucose_unit: UnitGlucose;
+  updated_at: string;
+}
+
+export interface UnitPreferencesUpdateRequest {
+  height_unit?: UnitHeight | null;
+  weight_unit?: UnitWeight | null;
+  temperature_unit?: UnitTemperature | null;
+  glucose_unit?: UnitGlucose | null;
+}
+
+export interface AccountDeletionPreview {
+  can_delete: boolean;
+  blocking_reason: string | null;
+  family_role: string | null;
+  belongs_to_family: boolean;
+  owns_family: boolean;
+  requires_ownership_transfer: boolean;
+  managed_profile_count: number;
+  independent_family_member_count: number;
+  data_categories: string[];
+  shared_data_preserved: boolean;
+}
+
+export interface AccountReauthenticationRequest {
+  password: string;
+}
+
+export interface AccountReauthenticationProof {
+  reauthentication_token: string;
+  purpose: string;
+  expires_at: string;
+}
+
+export interface AccountDeletionRequestCreate {
+  confirmation: "DELETE";
+  reauthentication_token: string;
+  idempotency_key: string;
+}
+
+export interface AccountDeletionRequestResponse {
+  request_id: string;
+  status: "accepted" | "processing" | "completed" | "failed";
+}
+
+export type OnboardingNextStep = "verify_email" | "profile" | "family_setup" | "add_people" | "completed";
+
+export interface OnboardingStatusResponse {
+  email: string;
+  email_verified: boolean;
+  profile_completed: boolean;
+  family_setup_completed: boolean;
+  onboarding_completed: boolean;
+  next_step: OnboardingNextStep;
+  family_id: string | null;
+  profile_id: string | null;
+  full_name: string | null;
+  date_of_birth: string | null;
+  gender: ProfileGender | null;
+  phone_number: string | null;
+  blood_group: BloodGroup | null;
+  height_cm: number | null;
+  weight_kg: number | null;
+  completed_at: string | null;
+}
+
+export interface OnboardingProfileUpdate {
+  full_name: string;
+  date_of_birth: string;
+  gender: ProfileGender;
+  phone_number?: string | null;
+  blood_group?: BloodGroup | null;
+  height_cm?: number | null;
+  weight_kg?: number | null;
+}
+
+export interface OnboardingFamilyCreate {
+  name: string;
+}
+
+export interface OnboardingFamilyResponse {
+  family_id: string;
+  profile_id: string;
+  family_name: string;
+  owner_membership_id: string;
+}
+
+export interface OnboardingDependentCreate {
+  full_name: string;
+  relationship: FamilyRelationship;
+  relationship_other_label?: string | null;
+  date_of_birth?: string | null;
+  gender?: ProfileGender | null;
+  phone_number?: string | null;
+  contact_email?: string | null;
+  blood_group?: BloodGroup | null;
+  height_cm?: number | null;
+  weight_kg?: number | null;
+}
+
+export interface OnboardingDependentResponse {
+  profile_id: string;
+  full_name: string;
+}
+
+export interface OnboardingInviteCreate {
+  email: string;
+  role: FamilyRoleType;
+  message?: string | null;
+}
+
+export interface MetricCatalogItem {
+  canonical_id: string;
+  display_name: string;
+  category: string;
+  aliases: string[];
+  supported_units: string[];
+  value_type: string;
+  requires_unit: boolean;
+  report_range_only: boolean;
+}
+
+export interface MetricCategory {
+  category_id: string;
+  display_name: string;
+  metric_count: number;
+  sort_order: number;
+  is_active: boolean;
+}
+
+export interface MetricCategoryListResponse {
+  categories: MetricCategory[];
+}
+
+export interface TrackedMetricCreate {
+  canonical_metric_id: string;
+}
+
+export interface TrackedMetricResponse {
+  id: string;
+  family_member_id: string;
+  canonical_metric_id: string;
+  created_at: string;
+}
+
+export interface TrendPreferencesResponse {
+  member_id: string;
+  hidden_metric_ids: string[];
+  hidden_category_ids: string[];
+  tracked_metric_ids: string[];
+  updated_at: string | null;
+}
+
+export type ReminderType = "custom" | "report_follow_up" | "appointment" | "health_check";
+export type RecurrenceFrequency = "daily" | "weekly" | "monthly" | "yearly" | "custom_weekdays";
+export type DeliveryChannel = "email" | "push";
+
+export interface RecurrenceRuleRequest {
+  frequency: RecurrenceFrequency;
+  interval?: number;
+  weekdays?: string[] | null;
+  end_at?: string | null;
+}
+
+export interface RecurrenceRuleResponse {
+  frequency: string;
+  interval: number;
+  weekdays: string[] | null;
+  end_at: string | null;
+}
+
+export interface ReminderProfileSummary {
+  id: string;
+  display_name: string;
+}
+
+export interface ReminderScheduleResponse {
+  scheduled_at: string | null;
+  timezone: string;
+  recurrence: RecurrenceRuleResponse | null;
+}
+
+export interface ReminderCreateRequest {
+  title: string;
+  notes?: string | null;
+  reminder_type?: ReminderType;
+  family_member_id?: string | null;
+  scheduled_at?: string | null;
+  timezone: string;
+  recurrence?: RecurrenceRuleRequest | null;
+  delivery_channels: DeliveryChannel[];
+  is_enabled?: boolean;
+}
+
+export interface ReminderUpdateRequest {
+  title?: string | null;
+  notes?: string | null;
+  reminder_type?: ReminderType | null;
+  family_member_id?: string | null;
+  scheduled_at?: string | null;
+  timezone?: string | null;
+  recurrence?: RecurrenceRuleRequest | null;
+  delivery_channels?: DeliveryChannel[] | null;
+  is_enabled?: boolean | null;
+}
+
+export interface ReminderResponse {
+  id: string;
+  title: string;
+  notes: string | null;
+  reminder_type: string;
+  profile: ReminderProfileSummary | null;
+  schedule: ReminderScheduleResponse;
+  delivery_channels: string[];
+  is_enabled: boolean;
+  next_trigger_at: string | null;
+  last_triggered_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReminderListResponse {
+  reminders: ReminderResponse[];
+  next_cursor: string | null;
+}
+
+export type ProfileGender = "female" | "male" | "other" | "prefer_not_to_say";
+export type ProfileStatus = "active" | "archived";
+export type BloodGroup = "a_positive" | "a_negative" | "b_positive" | "b_negative" | "ab_positive" | "ab_negative" | "o_positive" | "o_negative";
+
+export interface ProfileCapabilities {
+  can_view_profile: boolean;
+  can_edit_profile: boolean;
+  can_change_profile_photo: boolean;
+  can_link_account: boolean;
+  can_unlink_account: boolean;
+  can_archive_profile: boolean;
+  can_restore_profile: boolean;
+}
+
+export interface LinkedFamilyAccount {
+  membership_id: string;
+  display_name: string;
+  email: string;
+  role: FamilyRoleType;
+}
+
+export type EligibleFamilyAccount = LinkedFamilyAccount;
+
+export interface FamilyProfileDetail {
+  id: string;
+  family_id: string;
+  full_name: string;
+  date_of_birth: string | null;
+  age: number | null;
+  age_months: number | null;
+  gender: ProfileGender | null;
+  relationship: string;
+  relationship_other_label: string | null;
+  phone_number: string | null;
+  contact_email: string | null;
+  blood_group: BloodGroup | null;
+  height_cm: number | null;
+  weight_kg: number | null;
+  profile_photo_url: string | null;
+  status: ProfileStatus;
+  linked_account: LinkedFamilyAccount | null;
+  capabilities: ProfileCapabilities;
+  created_at: string;
+  updated_at: string;
+  archived_at: string | null;
+}
+
+export interface FamilyProfileUpdate {
+  full_name?: string | null;
+  date_of_birth?: string | null;
+  gender?: ProfileGender | null;
+  relationship?: FamilyRelationship | null;
+  relationship_other_label?: string | null;
+  phone_number?: string | null;
+  contact_email?: string | null;
+  blood_group?: BloodGroup | null;
+  height_cm?: number | null;
+  weight_kg?: number | null;
+  expected_updated_at?: string | null;
+}
+
+export interface ProfilePhotoUploadIntentRequest {
+  content_type: string;
+  file_size: number;
+  checksum_sha256?: string | null;
+}
+
+export interface ProfilePhotoUploadIntentResponse {
+  storage_key: string;
+  upload_url: string;
+  expires_at: string;
+  required_headers: Record<string, string>;
+}
+
+export interface ProfilePhotoUploadCompleteRequest {
+  checksum_sha256?: string | null;
+}
+
+export interface LinkProfileAccountRequest {
+  membership_id: string;
+}
+
+export type ReportPublicStatus = "uploading" | "queued" | "processing" | "needs_review" | "ready" | "failed" | "archived";
+export type ReportSort = "recent" | "oldest" | "name_asc" | "name_desc" | "status";
+export type ReportDateSource = "document" | "uploaded" | "parsed" | "unknown";
+
+export interface ReportMemberSummary {
+  id: string;
+  display_name: string;
+}
+
+export interface ReportTypeSummary {
+  id: string;
+  display_name: string;
+}
+
+export interface ReportProgress {
+  stage: string;
+  fraction: number | null;
+  completed_pages: number | null;
+  total_pages: number | null;
+  message: string;
+}
+
+export interface ReportReviewSummary {
+  required: boolean;
+  attention_count: number;
+  route_available: boolean;
+}
+
+export interface ReportCapabilities {
+  can_view: boolean;
+  can_review: boolean;
+  can_retry: boolean;
+  can_rename: boolean;
+  can_archive: boolean;
+  can_restore: boolean;
+  can_delete: boolean;
+}
+
+export interface ReportSummary {
+  id: string;
+  display_name: string;
+  original_filename: string;
+  family_id: string;
+  member: ReportMemberSummary;
+  report_type: ReportTypeSummary;
+  status: ReportPublicStatus;
+  status_label: string;
+  status_message: string;
+  status_reason_codes: string[];
+  progress: ReportProgress | null;
+  attention_count: number;
+  review_required: boolean;
+  review_route_available: boolean;
+  review: ReportReviewSummary;
+  uploaded_at: string | null;
+  document_date: string | null;
+  updated_at: string;
+  processing_completed_at: string | null;
+  display_date: string | null;
+  display_date_source: ReportDateSource;
+  can_retry: boolean;
+  can_rename: boolean;
+  can_archive: boolean;
+  can_delete: boolean;
+  capabilities: ReportCapabilities;
+}
+
+export interface ReportsOverview {
+  all: number;
+  ready: number;
+  needs_review: number;
+  processing: number;
+  failed: number;
+  archived: number;
+}
+
+export interface ReportListResponse {
+  items: ReportSummary[];
+  summary: ReportsOverview;
+  page: {
+    next_cursor: string | null;
+    has_more: boolean;
+    limit: number;
+  };
+  applied_filters: {
+    member_id: string | null;
+    report_type: string | null;
+    status: ReportPublicStatus | null;
+    search: string | null;
+    sort: ReportSort;
+    date_from: string | null;
+    date_to: string | null;
+    include_archived: boolean;
+  };
+  generated_at: string;
+  has_active_reports: boolean;
+}
+
+export interface ReportResultDetail {
+  id: string;
+  canonical_metric_id: string;
+  name: string;
+  parser_name: string;
+  category: string;
+  value_type: string;
+  parsed_value: string | null;
+  user_corrected_value: string | null;
+  effective_value: string | null;
+  value_source: string;
+  unit: string | null;
+  parser_unit: string | null;
+  reference_range: string | null;
+  parser_reference_range: string | null;
+  result_flag: string | null;
+  parser_result_flag: string | null;
+  measured_at: string | null;
+  correction_note: string | null;
+  corrected_at: string | null;
+  parser_confidence: number;
+  ocr_confidence: number | null;
+  parser_version: string;
+  status: string;
+  can_edit: boolean;
+}
+
+export interface ReportDetail extends ReportSummary {
+  version: number;
+  provider_name: string | null;
+  notes: string | null;
+  tags: string[];
+  category: DocumentType;
+  can_edit: boolean;
+  results: ReportResultDetail[];
+}
+
+export interface ReportResultUpdate {
+  id: string;
+  restore_parser_value?: boolean;
+  display_name?: string | null;
+  value?: string | null;
+  unit?: string | null;
+  reference_range?: string | null;
+  result_flag?: string | null;
+  measured_at?: string | null;
+  note?: string | null;
+}
+
+export interface ReportUpdateRequest {
+  version: number;
+  display_name?: string | null;
+  document_date?: string | null;
+  provider_name?: string | null;
+  category?: DocumentType | null;
+  family_member_id?: string | null;
+  notes?: string | null;
+  tags?: string[] | null;
+  results?: ReportResultUpdate[] | null;
 }
 
 export interface APIErrorResponse {

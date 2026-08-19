@@ -4,17 +4,18 @@ import Link from "next/link";
 import { BioIcon } from "@/components/bio-icon";
 import { SectionHeader } from "@/components/section";
 import { productUseCases } from "@/lib/klario-data";
+import type { KlarioIconName } from "@/lib/icons";
 
 export const metadata: Metadata = {
   title: "Features",
   description: "AI-powered parsing, biomarker charts, actionable insights, and family tracking from one medical report app."
 };
 
-const features = [
+const features: Array<{ title: string; body: string; icon: KlarioIconName }> = [
   {
     title: "AI powered",
     body: "Klario uses AI to extract meaningful health data from uploaded medical reports and turn it into structured records.",
-    icon: "icon_signal_insights"
+    icon: "icon_signal_summary"
   },
   {
     title: "Tuned engine",
@@ -39,7 +40,7 @@ const features = [
   {
     title: "Record explanations",
     body: "Klario explains what a record means in plain language and what the tracked value is doing in the body.",
-    icon: "icon_signal_confidence"
+    icon: "icon_parser_confidence"
   }
 ];
 

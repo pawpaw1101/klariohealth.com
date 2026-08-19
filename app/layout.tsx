@@ -1,21 +1,31 @@
 import type { Metadata } from "next";
-import { DM_Sans, Space_Grotesk } from "next/font/google";
+import localFont from "next/font/local";
 import { AmbientEffects } from "@/components/ambient-effects";
 import { KlarioApiProvider } from "@/components/klario-api-provider";
+import { SplashGate } from "@/components/splash-gate";
 import "../styles.css";
 
-const dmSans = DM_Sans({
-  subsets: ["latin"],
+const inter = localFont({
   variable: "--font-body-next",
   display: "swap",
-  weight: ["400", "500", "600", "700"]
+  src: [
+    { path: "../public/fonts/Inter-Regular.ttf", weight: "400", style: "normal" },
+    { path: "../public/fonts/Inter-Medium.ttf", weight: "500", style: "normal" },
+    { path: "../public/fonts/Inter-SemiBold.ttf", weight: "600", style: "normal" },
+    { path: "../public/fonts/Inter-Bold.ttf", weight: "700", style: "normal" }
+  ]
 });
 
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
+const plusJakartaSans = localFont({
   variable: "--font-display-next",
   display: "swap",
-  weight: ["400", "500", "600", "700"]
+  src: [
+    { path: "../public/fonts/PlusJakartaSans-Regular.ttf", weight: "400", style: "normal" },
+    { path: "../public/fonts/PlusJakartaSans-Medium.ttf", weight: "500", style: "normal" },
+    { path: "../public/fonts/PlusJakartaSans-SemiBold.ttf", weight: "600", style: "normal" },
+    { path: "../public/fonts/PlusJakartaSans-Bold.ttf", weight: "700", style: "normal" },
+    { path: "../public/fonts/PlusJakartaSans-ExtraBold.ttf", weight: "800", style: "normal" }
+  ]
 });
 
 export const metadata: Metadata = {
@@ -28,9 +38,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${dmSans.variable} ${spaceGrotesk.variable}`}>
+    <html lang="en" className={`${inter.variable} ${plusJakartaSans.variable}`}>
       <body>
         <KlarioApiProvider>
+          <SplashGate />
           <AmbientEffects />
           {children}
         </KlarioApiProvider>

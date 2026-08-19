@@ -1,7 +1,8 @@
 import type { CSSProperties } from "react";
+import type { KlarioIconName } from "@/lib/icons";
 
 type BioIconProps = {
-  name: string;
+  name: KlarioIconName;
   size?: number;
   label?: string;
   className?: string;

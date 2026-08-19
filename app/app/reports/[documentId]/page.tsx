@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ReportDetailWorkspace } from "@/components/app-workspaces";
+import { ReportDetailWorkspace } from "@/components/workspaces/reports";
 
 export const metadata: Metadata = {
   title: "Report Detail"

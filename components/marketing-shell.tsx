@@ -75,7 +75,7 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <header className={`site-header${menuOpen ? " is-mobile-open" : ""}${navCollapsed ? " is-scrolled" : ""}`}>
+      <header className={`site-header marketing-header${menuOpen ? " is-mobile-open" : ""}${navCollapsed ? " is-scrolled" : ""}`}>
         <nav className="navbar" aria-label="Main navigation">
           <div className="mobile-nav-head">
             <Brand onClick={handleLogoClick} />

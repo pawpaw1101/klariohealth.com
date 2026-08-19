@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
+import { BioIcon } from "@/components/bio-icon";
 
 export function HeroGallery() {
   const sectionRef = useRef<HTMLDivElement>(null);
@@ -11,11 +12,11 @@ export function HeroGallery() {
     offset: ["start start", "end end"]
   });
 
-  // Left phone (Report): waits until halfway through the track, then slides out smoothly
-  const xLeft = useTransform(scrollYProgress, [0.45, 0.85], [0, -280]);
+  // Left phone (Report): starts with a small peek, then spreads quickly on scroll.
+  const xLeft = useTransform(scrollYProgress, [0, 0.36], [-56, -340]);
 
-  // Right phone (Trends): waits until halfway through the track, then slides out smoothly
-  const xRight = useTransform(scrollYProgress, [0.45, 0.85], [0, 280]);
+  // Right phone (Trends): starts with a small peek, then spreads quickly on scroll.
+  const xRight = useTransform(scrollYProgress, [0, 0.36], [56, 340]);
 
   return (
     <section
@@ -46,6 +47,9 @@ export function HeroGallery() {
           alt="Klario mobile trends view"
           style={{ x: xRight }}
         />
+        <a className="scroll-cue" href="#premium-content" aria-label="Scroll to product showcase">
+          <BioIcon name="icon_action_continue" size={20} />
+        </a>
       </div>
     </section>
   );

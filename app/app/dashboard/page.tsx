@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { DashboardWorkspace } from "@/components/app-workspaces";
+import { DashboardWorkspace } from "@/components/workspaces/dashboard";
 
 export const metadata: Metadata = {
   title: "Home"
