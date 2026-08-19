@@ -57,6 +57,19 @@ export function SettingsWorkspace() {
     },
     onError: (error) => setMessage(error instanceof Error ? error.message : "Unit preferences could not be saved.")
   });
+  // Switching family reloads members/roles in the provider and persists the choice, so every
+  // workspace query keyed on the family id has to be dropped afterwards.
+  const familySwitchMutation = useMutation({
+    mutationFn: async (familyId: string) => {
+      await api.setActiveFamilyId(familyId);
+      await api.invalidateWorkspaceData();
+    },
+    onSuccess: (_result, familyId) => {
+      const name = api.families.find((family) => family.id === familyId)?.name;
+      setMessage(name ? `Switched to ${name}.` : "Active family switched.");
+    },
+    onError: (error) => setMessage(error instanceof Error ? error.message : "Family could not be switched.")
+  });
   const revokeSessionMutation = useMutation({
     mutationFn: accountApi.revokeSession,
     onSuccess: async () => {
@@ -126,6 +139,36 @@ export function SettingsWorkspace() {
           {account?.linked_personal_profile ? (
             <Link className="inline-action" href={`/app/family/${account.linked_personal_profile.family_member_id}`}>Open personal profile</Link>
           ) : null}
+        </Card>
+
+        <Card className="settings-section-card">
+          <KlarioSectionHeader
+            title="Family"
+            subtitle={api.families.length > 1 ? "Choose which family workspace this device uses." : "The family workspace this device uses."}
+            action={api.currentRole ? <StatusPill tone="brand">{prettyStatus(api.currentRole)}</StatusPill> : null}
+          />
+          {api.families.length ? (
+            <>
+              <label className="select-field">
+                <span className="control-label">Active family</span>
+                <select
+                  value={api.activeFamily?.id ?? ""}
+                  disabled={api.status !== "live" || familySwitchMutation.isPending}
+                  onChange={(event) => familySwitchMutation.mutate(event.target.value)}
+                >
+                  {api.families.map((family) => <option key={family.id} value={family.id}>{family.name}</option>)}
+                </select>
+              </label>
+              <p className="note">
+                {familySwitchMutation.isPending
+                  ? "Switching family…"
+                  : `${api.members.length} ${api.members.length === 1 ? "profile" : "profiles"} in this family. Dashboard, trends, and reports follow this choice.`}
+              </p>
+              <Link className="inline-action" href="/app/family">Manage family profiles</Link>
+            </>
+          ) : (
+            <EmptyState title="No family yet" body="Create a family to start adding profiles and reports." />
+          )}
         </Card>
 
         <Card className="settings-section-card settings-support-card">

@@ -43,7 +43,17 @@ export type KlarioIconName =
   | "icon_filter_type"
   | "icon_filter_status"
   | "icon_filter_metric"
-  | "icon_filter_clear";
+  | "icon_filter_clear"
+  | "icon_zone_cardio"
+  | "icon_zone_metabolic"
+  | "icon_zone_kidney"
+  | "icon_zone_blood"
+  | "icon_zone_brain"
+  | "icon_zone_thyroid"
+  | "icon_zone_liver"
+  | "icon_zone_inflammation"
+  | "icon_flag_attention"
+  | "icon_flag_score";
 
 export type ReviewStatus = "pending" | "confirmed" | "edited" | "rejected";
 
