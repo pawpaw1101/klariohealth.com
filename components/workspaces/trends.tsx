@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -17,11 +17,13 @@ import {
   StatusPill
 } from "@/components/klario-ui";
 import { metricsApi, trendsApi } from "@/lib/api/klario-api";
+import { protectedQueryKey, queryFreshness } from "@/lib/query-cache";
 import type { MetricCatalogItem, MetricCategory, TrendCategoryGroup, TrendMetricPreview, TrendRange } from "@/lib/api/types";
 import { toneForLabFlag, toneForStatus, type BioStatusTone } from "@/lib/tone";
-import { ApiStatusBanner, EmptyState, Sparkline, formatDate, prettyStatus, statusClass, valueWithUnit } from "@/components/workspaces/shared";
+import { ApiStatusBanner, EmptyState, InteractiveTrendChart, Sparkline, formatDate, prettyStatus, statusClass, valueWithUnit } from "@/components/workspaces/shared";
 
 const rangeOptions: TrendRange[] = ["week", "month", "6m", "year", "all"];
+const emptyTrendCategories: TrendCategoryGroup[] = [];
 
 function categoryTone(categoryId: string): BioStatusTone {
   const normalized = categoryId.toLowerCase();
@@ -55,6 +57,42 @@ function referenceRange(data: Awaited<ReturnType<typeof trendsApi.detail>> | und
     }
   }
   return null;
+}
+
+function ReferenceRangeScale({
+  minimum,
+  maximum,
+  value,
+  unit
+}: {
+  minimum: number;
+  maximum: number;
+  value: number | null | undefined;
+  unit: string | null;
+}) {
+  const api = useKlarioApi();
+  const span = Math.max(maximum - minimum, 1);
+  const domainStart = minimum - span * 0.22;
+  const domainEnd = maximum + span * 0.22;
+  const position = value === null || value === undefined
+    ? null
+    : Math.max(0, Math.min(100, ((value - domainStart) / (domainEnd - domainStart)) * 100));
+
+  return (
+    <div className="trend-reference-scale" aria-label={`Reference range ${minimum} to ${maximum}${unit ? ` ${unit}` : ""}`}>
+      <div className="trend-reference-scale-markers" aria-hidden="true">
+        <i className="is-bound is-start" />
+        <i className="is-bound is-end" />
+        {position !== null ? <i className="is-reading" style={{ "--reference-value-position": `${position}%` } as CSSProperties} /> : null}
+      </div>
+      <div className="trend-reference-scale-track" aria-hidden="true"><span /></div>
+      <div className="trend-reference-scale-labels" aria-hidden="true">
+        <span>{minimum}</span>
+        <span>{maximum}</span>
+        {position !== null && value !== null && value !== undefined ? <strong style={{ "--reference-value-position": `${position}%` } as CSSProperties}>{value}</strong> : null}
+      </div>
+    </div>
+  );
 }
 
 function TrendMetricRow({
@@ -95,6 +133,7 @@ function AddMetricsModal({
   onClose: () => void;
   onChanged: () => Promise<void>;
 }) {
+  const api = useKlarioApi();
   const [query, setQuery] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [message, setMessage] = useState("");
@@ -106,9 +145,10 @@ function AddMetricsModal({
   }, [categories, categoryId]);
 
   const catalogQuery = useQuery({
-    queryKey: ["metrics", "catalog", categoryId, query],
+    queryKey: protectedQueryKey(api.user?.id, "metrics", "catalog", categoryId, query),
     queryFn: () => metricsApi.catalog({ category_id: categoryId || undefined, search: query || undefined }),
-    enabled: Boolean(memberId)
+    enabled: Boolean(api.user?.id && memberId),
+    ...queryFreshness.catalog
   });
 
   const trackMutation = useMutation({
@@ -210,22 +250,25 @@ export function TrendsWorkspace() {
   }, [api.activeMember?.id, memberId]);
 
   const trendsQuery = useQuery({
-    queryKey: ["trends", "list", familyId, memberId],
+    queryKey: protectedQueryKey(api.user?.id, "trends", "list", familyId, memberId),
     queryFn: () => trendsApi.list(familyId!, memberId),
-    enabled: api.status === "live" && Boolean(familyId && memberId)
+    enabled: api.status === "live" && Boolean(api.user?.id && familyId && memberId),
+    ...queryFreshness.workspace
   });
   const trackedQuery = useQuery({
-    queryKey: ["metrics", "tracked", familyId, memberId],
+    queryKey: protectedQueryKey(api.user?.id, "metrics", "tracked", familyId, memberId),
     queryFn: () => metricsApi.tracked(familyId!, memberId),
-    enabled: api.status === "live" && Boolean(familyId && memberId)
+    enabled: api.status === "live" && Boolean(api.user?.id && familyId && memberId),
+    ...queryFreshness.workspace
   });
   const categoriesQuery = useQuery({
-    queryKey: ["metrics", "categories"],
+    queryKey: protectedQueryKey(api.user?.id, "metrics", "categories"),
     queryFn: () => metricsApi.categories({ active_only: true }),
-    enabled: api.status === "live"
+    enabled: api.status === "live" && Boolean(api.user?.id),
+    ...queryFreshness.catalog
   });
 
-  const categories = trendsQuery.data?.categories ?? [];
+  const categories = trendsQuery.data?.categories ?? emptyTrendCategories;
   const flatMetrics = useMemo(
     () => categories.flatMap((category) => category.metrics.map((metric) => ({ ...metric, categoryName: category.display_name, categoryId: category.category }))),
     [categories]
@@ -247,7 +290,7 @@ export function TrendsWorkspace() {
   useEffect(() => {
     if (!filteredCategories.length) {
       didInitializeExpandedCategories.current = false;
-      setExpandedCategories(new Set());
+      setExpandedCategories((current) => current.size ? new Set() : current);
       return;
     }
     if (!didInitializeExpandedCategories.current) {
@@ -354,100 +397,222 @@ export function TrendsWorkspace() {
 export function TrendDetailWorkspace({ metricId }: { metricId: string }) {
   const api = useKlarioApi();
   const [range, setRange] = useState<TrendRange>("all");
+  const [detailTab, setDetailTab] = useState<"trend" | "history">("trend");
   const familyId = api.activeFamily?.id;
   const memberId = api.activeMember?.id;
   const trendQuery = useQuery({
-    queryKey: ["trends", "detail", familyId, memberId, metricId, range],
+    queryKey: protectedQueryKey(api.user?.id, "trends", "detail", familyId, memberId, metricId, range),
     queryFn: () => trendsApi.detail(familyId!, memberId!, metricId, range),
-    enabled: api.status === "live" && Boolean(familyId && memberId && metricId)
+    enabled: api.status === "live" && Boolean(api.user?.id && familyId && memberId && metricId),
+    ...queryFreshness.workspace
   });
 
   const data = trendQuery.data;
-  const points = pointValues(data);
+
+  const points = data && "points" in data ? (data.points as any[]) : [];
   const rangeBand = referenceRange(data);
   const latest = data && "latest" in data ? data.latest : null;
   const summary = data && "summary" in data ? data.summary : null;
 
+  const getChangeValue = () => {
+    if (!summary || !("change_from_previous" in summary)) return "—";
+    const change = summary.change_from_previous;
+    if (change === null) return "—";
+    const arrow = change > 0 ? "↑" : change < 0 ? "↓" : "→";
+    return `${arrow} ${Math.abs(change)}${data?.unit ? ` ${data.unit}` : ""}`;
+  };
+
+  const getObservedRange = () => {
+    if (!summary || !("minimum" in summary) || !("maximum" in summary)) return "—";
+    if (summary.minimum === null || summary.maximum === null) return "—";
+    return `${summary.minimum}–${summary.maximum}`;
+  };
+
+  const getDateRangeString = () => {
+    if (points.length === 0) return "";
+    const firstDate = formatDate(points[0].date).split(',')[0];
+    const lastDate = formatDate(points[points.length - 1].date).split(',')[0];
+    if (firstDate === lastDate) return firstDate;
+    return `${firstDate} – ${lastDate}`;
+  };
+
+  const trendSummary = useMemo(() => {
+    const values = points.map((point) => point.value).filter((value): value is number => value !== null);
+    if (values.length < 2) return { label: "Trend unavailable", tone: "muted" };
+    const change = values[values.length - 1] - values[0];
+    if (change === 0) return { label: "Values remained stable", tone: "stable" };
+    return change > 0
+      ? { label: "Upward trend", tone: "attention" }
+      : { label: "Downward trend", tone: "attention" };
+  }, [points]);
+
   return (
-    <div className="trend-detail-workspace">
-      <RootPageHeader
-        title={data?.display_name ?? prettyStatus(metricId)}
-        subtitle={data && "category" in data ? `${data.category} trend for ${api.activeMember?.display_name ?? "this profile"}.` : "Metric detail from the backend trends API."}
-        action={<Link className="button button-ghost" href="/app/trends">All trends</Link>}
-      />
+    <div className="trend-detail-workspace" style={{ maxWidth: "1360px", padding: "0 24px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "32px", width: "100%" }}>
       <ApiStatusBanner />
 
-      <Card className="trend-detail-toolbar">
-        <div className="filter-group" aria-label="Trend range">
-          {rangeOptions.map((option) => (
-            <FilterChip key={option} active={range === option} tone="brand" onClick={() => setRange(option)}>
-              {option === "6m" ? "6M" : prettyStatus(option)}
-            </FilterChip>
-          ))}
+      {/* HEADER */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div>
+          <h1 style={{ fontSize: "28px", fontWeight: "700", marginBottom: "6px" }}>
+            {data?.display_name ?? prettyStatus(metricId)}
+          </h1>
+          <p style={{ fontSize: "14px", color: "var(--text-secondary)", margin: 0 }}>
+            {summary?.reading_count ? `${summary.reading_count} readings · ${getDateRangeString()}` : "No readings yet"}
+          </p>
         </div>
-      </Card>
+        <Link className="button button-ghost" href="/app/trends" style={{ flexShrink: 0 }}>
+          Back to all trends
+        </Link>
+      </div>
 
-      <section className="trend-detail-grid">
-        <Card className="trend-chart-detail-card">
-          <KlarioSectionHeader
-            title={data?.display_name ?? "Trend chart"}
-            subtitle={latest ? `Latest ${formatDate(latest.date)}` : "No latest reading yet."}
-          />
-          {data ? (
-            <>
-              <div className="trend-detail-hero">
-                <IconBadge icon="icon_filter_metric" tone={latest ? toneForLabFlag(latest.flag) : "gray"} size={44} />
-                <strong>{latest ? valueWithUnit(latest.value, latest.unit) : valueWithUnit(null, data.unit)}</strong>
-                {latest?.flag ? <StatusPill tone={toneForLabFlag(latest.flag)}>{prettyStatus(latest.flag)}</StatusPill> : <StatusPill tone="gray">Range unavailable</StatusPill>}
-              </div>
-              <div className="trend-chart-frame is-detail">
-                {rangeBand ? (
-                  <div className="trend-reference-band" aria-hidden="true">
-                    <span>Reference range</span>
-                  </div>
-                ) : null}
-                <Sparkline points={points} />
-                <div className="trend-axis-row">
-                  <span>{data.range ? prettyStatus(data.range) : "Range"}</span>
-                  <span>{points.length} points</span>
-                </div>
-              </div>
-              {data.unit_warning ? <p className="form-alert">{data.unit_warning}</p> : null}
-            </>
-          ) : (
-            <EmptyState title="No metric data" body="Sign in and select a member with parsed reports to see this trend." />
-          )}
-        </Card>
+      {data ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
 
-        <Card className="trend-reference-card">
-          <KlarioSectionHeader title="Reference range" subtitle="Report-supplied range when available." />
-          {rangeBand ? (
-            <>
-              <div className="trend-reference-scale">
-                <span>{rangeBand.min}</span>
-                <span>{rangeBand.max}</span>
-              </div>
-              <StatusPill tone={latest?.flag ? toneForStatus(latest.flag) : "green"}>{latest?.flag ? prettyStatus(latest.flag) : "In range"}</StatusPill>
-            </>
-          ) : (
-            <EmptyState title="No reference range" body="Reference ranges appear when reports provide validated lower and upper bounds." />
-          )}
-        </Card>
-
-        <Card className="trend-reference-card">
-          <KlarioSectionHeader title="Summary" subtitle="Readings in the selected range." />
-          {summary ? (
-            <div className="trend-summary-list">
-              <span><strong>{summary.reading_count}</strong> readings</span>
-              {"average" in summary ? <span><strong>{summary.average ?? "n/a"}</strong> average</span> : null}
-              {"minimum" in summary ? <span><strong>{summary.minimum ?? "n/a"}</strong> minimum</span> : null}
-              {"maximum" in summary ? <span><strong>{summary.maximum ?? "n/a"}</strong> maximum</span> : null}
+          {/* LATEST VALUE + STATUS */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <span style={{ fontSize: "14px", color: "var(--text-secondary)" }}>Latest result</span>
+            <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+              <span style={{ fontSize: "24px", fontWeight: "700", color: latest?.flag ? `var(--status-${toneForStatus(latest.flag)}-text, var(--text-primary))` : "var(--text-primary)" }}>
+                {latest ? valueWithUnit(latest.value, latest.unit) : "—"}
+              </span>
+              {latest?.flag && (
+                <StatusPill tone={toneForStatus(latest.flag)}>
+                  {prettyStatus(latest.flag)}
+                </StatusPill>
+              )}
             </div>
-          ) : (
-            <EmptyState title="No summary" body="Summary values appear after parsed readings are available." />
-          )}
+          </div>
+
+          {/* TIME RANGE */}
+          <div style={{ width: "fit-content", background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", borderRadius: "var(--radius-full)", padding: "4px" }}>
+            <div style={{ display: "flex", gap: "4px" }}>
+              {rangeOptions.map((option) => (
+                <button
+                  key={option}
+                  onClick={() => setRange(option)}
+                  style={{
+                    padding: "6px 16px",
+                    borderRadius: "var(--radius-full)",
+                    border: "none",
+                    background: range === option ? "var(--bg-muted)" : "transparent",
+                    color: range === option ? "var(--text-primary)" : "var(--text-secondary)",
+                    fontWeight: range === option ? "600" : "500",
+                    fontSize: "14px",
+                    cursor: "pointer",
+                    transition: "all 0.2s ease"
+                  }}
+                >
+                  {option === "6m" ? "6M" : option === "all" ? "All" : prettyStatus(option)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* SUMMARY CARDS */}
+          <Card style={{ padding: "0" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "16px", padding: "16px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>Latest</span>
+                <span style={{ fontSize: "16px", fontWeight: "600" }}>{latest ? valueWithUnit(latest.value, latest.unit) : "—"}</span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>Readings</span>
+                <span style={{ fontSize: "16px", fontWeight: "600" }}>{summary?.reading_count ?? 0}</span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>Average</span>
+                <span style={{ fontSize: "16px", fontWeight: "600" }}>
+                  {summary && "average" in summary && summary.average !== null ? valueWithUnit(summary.average, data.unit) : "—"}
+                </span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>Range</span>
+                <span style={{ fontSize: "16px", fontWeight: "600" }}>{getObservedRange()}</span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>Change</span>
+                <span style={{ fontSize: "16px", fontWeight: "600", color: summary && "change_from_previous" in summary && summary.change_from_previous ? "var(--status-orange-text)" : "var(--text-primary)" }}>
+                  {getChangeValue()}
+                </span>
+              </div>
+            </div>
+            <div className="trend-summary-context">
+              <span><BioIcon name="icon_filter_metric" size={14} /> {"category" in data ? data.category : "Health metric"}</span>
+              <span>{summary?.reading_count === 1 ? "1 reading" : `${summary?.reading_count ?? 0} readings`}</span>
+              {latest?.flag ? <StatusPill tone={toneForStatus(latest.flag)} fill="tinted">{prettyStatus(latest.flag)}</StatusPill> : null}
+            </div>
+          </Card>
+
+          <Card className="trend-detail-content-card">
+            <div className="trend-detail-tabs" role="tablist" aria-label="Metric detail content">
+              <button className={detailTab === "trend" ? "is-active" : ""} type="button" role="tab" aria-selected={detailTab === "trend"} onClick={() => setDetailTab("trend")}>Trend</button>
+              <button className={detailTab === "history" ? "is-active" : ""} type="button" role="tab" aria-selected={detailTab === "history"} onClick={() => setDetailTab("history")}>History <span>{points.length}</span></button>
+            </div>
+            {detailTab === "trend" ? (
+              <div className="trend-detail-tab-panel" role="tabpanel">
+                <div className="trend-chart-heading">
+                  <div>
+                    <h2>Trend</h2>
+                    <p className={`trend-direction is-${trendSummary.tone}`}>{trendSummary.label}</p>
+                  </div>
+                  <span className="trend-period-label">{getDateRangeString()}</span>
+                </div>
+                <InteractiveTrendChart points={points} referenceMin={rangeBand?.min ?? null} referenceMax={rangeBand?.max ?? null} unit={data.unit} />
+                <div className="trend-chart-legend">
+                  <span><i className="is-reading" /> Reading</span>
+                  {rangeBand ? <span><i className="is-reference" /> Reference range</span> : null}
+                </div>
+                {data.unit_warning ? <p className="form-alert">{data.unit_warning}</p> : null}
+              </div>
+            ) : (
+              <div className="trend-history-panel" role="tabpanel">
+                {points.length ? [...points].reverse().map((point) => (
+                  <Link className="trend-history-row" href={`/app/reports/${point.document_id}`} key={point.id}>
+                    <i className={point.flag && point.flag !== "normal" ? "is-out-of-range" : ""} />
+                    <span>{formatDate(point.date)}</span>
+                    <strong>{valueWithUnit(point.value, point.unit ?? data.unit)}</strong>
+                    {point.flag ? <StatusPill tone={toneForStatus(point.flag)} fill="tinted">{prettyStatus(point.flag)}</StatusPill> : <StatusPill tone="gray">Unknown</StatusPill>}
+                    <BioIcon name="icon_action_continue" size={16} />
+                  </Link>
+                )) : <EmptyState title="No history yet" body="Imported report readings will appear here." />}
+              </div>
+            )}
+          </Card>
+
+          {/* REFERENCE RANGE & SOURCE */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "16px", maxWidth: "600px" }}>
+            <Card style={{ padding: "20px" }}>
+              <h3 style={{ fontSize: "16px", fontWeight: "600", marginBottom: "8px" }}>Reference range</h3>
+              {rangeBand ? (
+                <>
+                  <div style={{ fontSize: "20px", fontWeight: "600", marginBottom: "16px" }}>
+                    {rangeBand.min ?? "—"}–{rangeBand.max ?? "—"} {data.unit}
+                  </div>
+                  <ReferenceRangeScale minimum={rangeBand.min} maximum={rangeBand.max} value={latest?.value} unit={data.unit} />
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <StatusPill tone={latest?.flag ? toneForStatus(latest.flag) : "gray"}>
+                      {latest?.flag ? prettyStatus(latest.flag) : "Unknown"}
+                    </StatusPill>
+                    {latest && (
+                      <span style={{ fontSize: "14px", color: "var(--text-secondary)" }}>
+                        Your latest reading: {latest.value} {data.unit}
+                      </span>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div style={{ fontSize: "14px", color: "var(--text-secondary)" }}>
+                  Reference range unavailable
+                </div>
+              )}
+            </Card>
+          </div>
+        </div>
+      ) : (
+        <Card>
+          <EmptyState title="No metric data" body="Sign in and select a member with parsed reports to see this trend." />
         </Card>
-      </section>
+      )}
     </div>
   );
 }

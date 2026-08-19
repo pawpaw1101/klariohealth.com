@@ -16,6 +16,7 @@ import {
   profilesApi
 } from "@/lib/api/klario-api";
 import type { BloodGroup, FamilyInvite, FamilyProfileDetail, FamilyProfileUpdate, FamilyRelationship, FamilyRoleType, ProfileGender } from "@/lib/api/types";
+import { protectedQueryKey, queryFreshness } from "@/lib/query-cache";
 import { ApiStatusBanner, EmptyState, formatDate, prettyStatus, statusClass } from "@/components/workspaces/shared";
 
 const avatarGradients = [
@@ -143,28 +144,24 @@ export function FamilyWorkspace() {
   }, [role, roleOptions]);
 
   const activeProfilesQuery = useQuery({
-    queryKey: ["profiles", "active", familyId],
+    queryKey: protectedQueryKey(api.user?.id, "profiles", "active", familyId),
     queryFn: () => profilesApi.list(familyId!, "active"),
-    enabled: api.status === "live" && Boolean(familyId)
-  });
-  const archivedProfilesQuery = useQuery({
-    queryKey: ["profiles", "archived", familyId],
-    queryFn: () => profilesApi.list(familyId!, "archived"),
-    enabled: api.status === "live" && Boolean(familyId)
+    enabled: api.status === "live" && Boolean(api.user?.id && familyId),
+    ...queryFreshness.workspace
   });
   const invitesQuery = useQuery({
-    queryKey: ["invites", "family", familyId],
+    queryKey: protectedQueryKey(api.user?.id, "invites", familyId),
     queryFn: () => invitesApi.list(familyId!),
-    enabled: api.status === "live" && Boolean(familyId) && invitesAllowed
+    enabled: api.status === "live" && Boolean(api.user?.id && familyId) && invitesAllowed,
+    ...queryFreshness.processing
   });
 
   const activeProfiles = activeProfilesQuery.data ?? [];
-  const archivedProfiles = archivedProfilesQuery.data ?? [];
   const pendingInvites = (invitesQuery.data ?? []).filter((invite) => invite.status === "pending");
 
   const refetchFamilyWorkspace = async () => {
     await api.invalidateWorkspaceData();
-    await Promise.all([activeProfilesQuery.refetch(), archivedProfilesQuery.refetch(), invitesQuery.refetch()]);
+    await Promise.all([activeProfilesQuery.refetch(), invitesQuery.refetch()]);
   };
 
   const createMember = async (event: FormEvent<HTMLFormElement>) => {
@@ -188,15 +185,6 @@ export function FamilyWorkspace() {
       setMessage(error instanceof Error ? error.message : "Profile could not be created.");
     }
   };
-
-  const restoreProfileMutation = useMutation({
-    mutationFn: (profileId: string) => profilesApi.restore(familyId!, profileId),
-    onSuccess: async () => {
-      setMessage("Profile restored.");
-      await refetchFamilyWorkspace();
-    },
-    onError: (error) => setMessage(error instanceof Error ? error.message : "Profile could not be restored.")
-  });
 
   const createInvite = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -232,15 +220,15 @@ export function FamilyWorkspace() {
     <div className="family-workspace">
       <RootPageHeader
         title="Family"
-        subtitle="Every report and result stays scoped to the selected Klario profile."
+        subtitle={api.activeFamily ? `${api.activeFamily.name} · every health profile keeps its own reports and results.` : "Every health profile keeps its own reports and results."}
       />
       <ApiStatusBanner />
 
       <section className="family-layout-grid">
         <Card className="family-section-card family-profiles-card">
           <KlarioSectionHeader
-            title="Active profiles"
-            subtitle="People currently available for reports and trends."
+            title="Health Profiles"
+            subtitle="Select a profile to manage its health information."
             action={(
               <div className="family-header-actions">
                 <button
@@ -250,7 +238,7 @@ export function FamilyWorkspace() {
                   onClick={() => setActiveDialog("add-profile")}
                 >
                   <BioIcon name="icon_family_add" size={16} />
-                  Add profile
+                  Add
                 </button>
                 <button
                   className="button button-secondary"
@@ -259,7 +247,7 @@ export function FamilyWorkspace() {
                   onClick={() => setActiveDialog("invitations")}
                 >
                   <BioIcon name="icon_family_header" size={16} />
-                  Pending invites
+                  Family Updates
                   {pendingInvites.length ? <span className="button-count">{pendingInvites.length}</span> : null}
                 </button>
               </div>
@@ -276,39 +264,39 @@ export function FamilyWorkspace() {
                 />
               ))
             ) : (
-              <EmptyState title="No members yet" body="Add a family member to assign reports and trends." />
+              <EmptyState title="No profiles" body="Add a profile before uploading reports." />
             )}
           </div>
         </Card>
 
-        <Card className="family-section-card family-archived-card">
-          <KlarioSectionHeader title="Archived profiles" subtitle="Profiles removed from the active list." />
-          <div className="record-list">
-            {archivedProfiles.length ? (
-              archivedProfiles.map((profile) => (
-                <article className="record" key={profile.id}>
-                  <div className="record-meta">
-                    <span>{profile.full_name}</span>
-                    <span>{profile.archived_at ? `Archived ${formatDate(profile.archived_at)}` : "Archived"}</span>
-                  </div>
-                  <p>{profileMeta(profile) || "Archived profile"}</p>
-                  <div className="button-row compact">
-                    <Link className="button button-ghost" href={`/app/family/${profile.id}`}>Details</Link>
-                    <button
-                      className="button button-secondary"
-                      type="button"
-                      disabled={!profile.capabilities.can_restore_profile || restoreProfileMutation.isPending}
-                      onClick={() => restoreProfileMutation.mutate(profile.id)}
-                    >
-                      Restore
-                    </button>
-                  </div>
-                </article>
-              ))
-            ) : (
-              <EmptyState title="No archived profiles" body="Archived family profiles will appear here." />
-            )}
-          </div>
+        <Card className="family-section-card family-updates-card">
+          <KlarioSectionHeader
+            title="Family Updates"
+            subtitle={invitesAllowed ? "Pending invitations and access updates." : "Family access updates available to owners and admins."}
+            action={api.currentRole ? <StatusPill tone="brand">{prettyStatus(api.currentRole)}</StatusPill> : null}
+          />
+          {invitesAllowed ? (
+            pendingInvites.length ? (
+              <div className="family-updates-list">
+                {pendingInvites.map((invite) => (
+                  <article className="family-update-row" key={invite.id}>
+                    <span className="family-update-icon"><BioIcon name="icon_family_header" size={17} /></span>
+                    <div>
+                      <strong>{invite.invited_email}</strong>
+                      <p>{prettyStatus(invite.role)} · Pending</p>
+                    </div>
+                    <div className="button-row compact">
+                      <button className="button button-ghost" type="button" onClick={() => void actOnInvite(invite, "resend")}>Resend</button>
+                      <button className="button button-ghost danger-action" type="button" onClick={() => void actOnInvite(invite, "revoke")}>Revoke</button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : <EmptyState title="No family updates" body="Pending invitations will show here." />
+          ) : (
+            <EmptyState title="Your access" body="Your role can view health information. Klario verifies every action against the family permissions on the server." />
+          )}
+          <button className="inline-action family-archived-link" type="button" onClick={() => setActiveDialog("invitations")} disabled={!invitesAllowed}>Manage invitations</button>
         </Card>
       </section>
 
@@ -394,9 +382,10 @@ export function FamilyProfileDetailWorkspace({ memberId }: { memberId: string })
   const familyId = api.activeFamily?.id;
   const [message, setMessage] = useState("");
   const profileQuery = useQuery({
-    queryKey: ["profiles", "detail", familyId, memberId],
+    queryKey: protectedQueryKey(api.user?.id, "profiles", "detail", familyId, memberId),
     queryFn: () => profilesApi.get(familyId!, memberId),
-    enabled: api.status === "live" && Boolean(familyId) && Boolean(memberId)
+    enabled: api.status === "live" && Boolean(api.user?.id && familyId && memberId),
+    ...queryFreshness.workspace
   });
   const profile = profileQuery.data;
   const [form, setForm] = useState({

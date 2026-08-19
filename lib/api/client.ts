@@ -156,7 +156,9 @@ export async function apiFetch<T>(path: string, options: ApiRequestOptions = {})
     const errorPayload = payload as APIErrorResponse | null;
     const code = errorPayload?.detail?.code ?? "internal_error";
     const message = errorPayload?.detail?.message ?? safeApiMessage(code);
-    if (response.status === 401 && auth) {
+    const requiresSecureSessionClear = response.status === 401
+      || (response.status === 403 && ["unauthenticated", "inactive_user", "session_expired", "access_revoked"].includes(code));
+    if (requiresSecureSessionClear && auth) {
       clearKlarioSession();
       if (typeof window !== "undefined") {
         window.dispatchEvent(new Event("klario:session-expired"));

@@ -49,7 +49,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Brand href="/app/dashboard" />
             {appNav.map((item) => (
               <Link key={item.href} className={`nav-link${isActiveRoute(item.href) ? " is-active" : ""}`} href={item.href} title={item.label} onClick={() => setMenuOpen(false)}>
-                <BioIcon name={navIcons[item.href]} size={17} />
+                <BioIcon name={navIcons[item.href]} size={24} />
                 <span className="nav-label">{item.label}</span>
               </Link>
             ))}

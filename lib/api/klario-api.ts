@@ -60,6 +60,10 @@ import type {
   RoleCreateRequest,
   RoleUpdateRequest,
   SecurityEventListResponse,
+  SecurityAlertPreferences,
+  SecurityAlertPreferencesUpdate,
+  NotificationPreferencesResponse,
+  NotificationPreferencesUpdateRequest,
   TokenResponse,
   TrackedMetricCreate,
   TrackedMetricResponse,
@@ -100,6 +104,12 @@ export const accountApi = {
   revokeOtherSessions: () => apiFetch<RevokeOtherSessionsResponse>("/account/sessions/revoke-others", { method: "POST" }),
   securityEvents: (params: { limit?: number; before?: string } = {}) =>
     apiFetch<SecurityEventListResponse>(withQuery("/account/security-events", params)),
+  notificationPreferences: () => apiFetch<NotificationPreferencesResponse>("/account/notification-preferences"),
+  updateNotificationPreferences: (body: NotificationPreferencesUpdateRequest) =>
+    apiFetch<NotificationPreferencesResponse>("/account/notification-preferences", { method: "PATCH", body }),
+  securityAlertPreferences: () => apiFetch<SecurityAlertPreferences>("/account/security-alert-preferences"),
+  updateSecurityAlertPreferences: (body: SecurityAlertPreferencesUpdate) =>
+    apiFetch<SecurityAlertPreferences>("/account/security-alert-preferences", { method: "PATCH", body }),
   unitPreferences: () => apiFetch<UnitPreferencesResponse>("/account/unit-preferences"),
   updateUnitPreferences: (body: UnitPreferencesUpdateRequest) =>
     apiFetch<UnitPreferencesResponse>("/account/unit-preferences", { method: "PATCH", body }),

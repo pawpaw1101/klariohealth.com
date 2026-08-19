@@ -9,7 +9,6 @@ import { useKlarioApi } from "@/components/klario-api-provider";
 import { PageTitle, SectionHeader } from "@/components/section";
 import {
   Card,
-  FilterChip,
   IconBadge,
   RootPageHeader,
   SearchField,
@@ -24,6 +23,7 @@ import {
   reportsApi
 } from "@/lib/api/klario-api";
 import { uploadAndParseReport, validateReportFile, type UploadStatusUpdate } from "@/lib/api/upload";
+import { protectedQueryKey, queryFreshness } from "@/lib/query-cache";
 import type {
   DocumentType,
   ReportPublicStatus,
@@ -61,10 +61,10 @@ function asDocumentType(value: string): DocumentType {
 export function DocumentsWorkspace() {
   const api = useKlarioApi();
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState("All");
   const [memberFilter, setMemberFilter] = useState("All");
   const [typeFilter, setTypeFilter] = useState<DocumentType | "All">("All");
-  const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [isAddOptionsOpen, setIsAddOptionsOpen] = useState(false);
+  const [uploadSource, setUploadSource] = useState<"files" | "photos" | null>(null);
   const [editingDocument, setEditingDocument] = useState<ReportSummary | null>(null);
   const [portalHost, setPortalHost] = useState<HTMLElement | null>(null);
   const familyId = api.activeFamily?.id;
@@ -74,16 +74,17 @@ export function DocumentsWorkspace() {
   }, []);
 
   const liveReportsQuery = useQuery({
-    queryKey: ["reports", "list", familyId, memberFilter, typeFilter, status, query],
+    queryKey: protectedQueryKey(api.user?.id, "reports", "list", familyId, memberFilter, typeFilter, query),
     queryFn: () => reportsApi.list(familyId!, {
       member_id: memberFilter === "All" ? undefined : memberFilter,
       report_type: typeFilter === "All" ? undefined : typeFilter,
-      status: status === "All" ? undefined : status as ReportPublicStatus,
+      status: undefined,
       search: query || undefined,
-      include_archived: status === "archived",
+      include_archived: false,
       limit: 100
     }),
-    enabled: api.status === "live" && Boolean(familyId)
+    enabled: api.status === "live" && Boolean(api.user?.id && familyId),
+    ...queryFreshness.processing
   });
 
   const liveReports = liveReportsQuery.data?.items ?? null;
@@ -101,12 +102,10 @@ export function DocumentsWorkspace() {
       await api.invalidateWorkspaceData();
     }
   });
-  const statusOptions: Array<"All" | ReportPublicStatus> = ["All", "ready", "needs_review", "processing", "queued", "uploading", "failed", "archived"];
   const memberOptions = api.members.length ? [{ id: "All", display_name: "All profiles" }, ...api.members] : [{ id: "All", display_name: "All profiles" }];
-  const hasActiveFilters = query.trim() !== "" || status !== "All" || memberFilter !== "All" || typeFilter !== "All";
+  const hasActiveFilters = query.trim() !== "" || memberFilter !== "All" || typeFilter !== "All";
   const clearFilters = () => {
     setQuery("");
-    setStatus("All");
     setMemberFilter("All");
     setTypeFilter("All");
   };
@@ -114,9 +113,9 @@ export function DocumentsWorkspace() {
     <div className="flat-workspace reports-workspace">
       <RootPageHeader
         title="Reports"
-        subtitle="Your Klario medical documents and processing status."
+        subtitle="Search, review, and manage your medical reports."
         action={(
-          <button className="button button-primary" type="button" onClick={() => setIsUploadOpen(true)}>
+          <button className="button button-primary" type="button" onClick={() => setIsAddOptionsOpen(true)}>
             <BioIcon name="icon_doc_add_empty" size={17} />
             Add report
           </button>
@@ -138,13 +137,6 @@ export function DocumentsWorkspace() {
             {documentTypes.map((type) => <option key={type} value={type}>{prettyStatus(type)}</option>)}
           </select>
         </label>
-        <div className="filter-group" aria-label="Filter reports">
-          {statusOptions.map((option) => (
-            <FilterChip key={option} active={status === option} icon={option === "All" ? "icon_filter_clear" : "icon_filter_status"} onClick={() => setStatus(option)}>
-              {prettyStatus(option)}
-            </FilterChip>
-          ))}
-        </div>
         <button className="button button-ghost reports-clear-filter" type="button" disabled={!hasActiveFilters} onClick={clearFilters}>
           <BioIcon name="icon_filter_clear" size={16} />
           Clear
@@ -181,7 +173,20 @@ export function DocumentsWorkspace() {
         )}
       </section>
 
-      {isUploadOpen && portalHost ? createPortal(<ReportUploadModal onClose={() => setIsUploadOpen(false)} />, portalHost) : null}
+      {isAddOptionsOpen && portalHost ? createPortal(
+        <ReportAddOptionsModal
+          onClose={() => setIsAddOptionsOpen(false)}
+          onChoose={(source) => {
+            setIsAddOptionsOpen(false);
+            setUploadSource(source);
+          }}
+        />,
+        portalHost
+      ) : null}
+      {uploadSource && portalHost ? createPortal(
+        <ReportUploadModal source={uploadSource} onClose={() => setUploadSource(null)} />,
+        portalHost
+      ) : null}
       {editingDocument && portalHost ? createPortal(
         <ReportEditModal
           report={editingDocument}
@@ -196,20 +201,51 @@ export function DocumentsWorkspace() {
   );
 }
 
-export function ReportUploadModal({ onClose }: { onClose: () => void }) {
+function ReportAddOptionsModal({ onClose, onChoose }: { onClose: () => void; onChoose: (source: "files" | "photos") => void }) {
+  return (
+    <div className="klario-modal-overlay" role="presentation">
+      <div className="klario-modal report-add-options-modal" role="dialog" aria-modal="true" aria-labelledby="report-add-options-title">
+        <div className="klario-modal-head">
+          <div>
+            <h2 id="report-add-options-title">Add Report</h2>
+            <p>Choose how you want to add one or more report pages.</p>
+          </div>
+          <button className="button button-ghost icon-button" type="button" aria-label="Close add report" onClick={onClose}>
+            <BioIcon name="icon_action_reject" size={18} />
+          </button>
+        </div>
+        <div className="report-add-options-list">
+          <button className="report-add-option" type="button" onClick={() => onChoose("photos")}>
+            <IconBadge icon="icon_doc_scan_import" tone="blue" />
+            <span><strong>Choose from Photos</strong><small>Pick report images from this device.</small></span>
+            <BioIcon name="icon_action_continue" size={16} />
+          </button>
+          <button className="report-add-option" type="button" onClick={() => onChoose("files")}>
+            <IconBadge icon="icon_doc_choose_file" tone="gray" />
+            <span><strong>Import PDF or File</strong><small>Choose a PDF or report image from your files.</small></span>
+            <BioIcon name="icon_action_continue" size={16} />
+          </button>
+          <p className="report-add-platform-note"><BioIcon name="icon_doc_scan_import" size={15} /> Scan Document is managed from the Klario iOS app.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function ReportUploadModal({ source = "files", onClose }: { source?: "files" | "photos"; onClose: () => void }) {
   return (
     <div className="klario-modal-overlay" role="presentation">
       <div className="klario-modal report-upload-modal" role="dialog" aria-modal="true" aria-labelledby="report-upload-title">
         <div className="klario-modal-head">
           <div>
             <h2 id="report-upload-title">Add Report</h2>
-            <p>Assign one report to a Klario profile before analysis.</p>
+            <p>Assign a report to a Klario profile before analysis.</p>
           </div>
           <button className="button button-ghost icon-button" type="button" aria-label="Close upload" onClick={onClose}>
             <BioIcon name="icon_action_reject" size={18} />
           </button>
         </div>
-        <UploadWorkspace />
+        <UploadWorkspace source={source} />
       </div>
     </div>
   );
@@ -230,7 +266,6 @@ function ReportDocumentCard({
 }) {
   const statusTone = getReportStatusTone(report.status);
   const typeIcon = documentTypeIconMap[asDocumentType(report.report_type.id)];
-  const statusIcon = getReportStatusIcon(report.status);
 
   return (
     <Card className="report-document-card">
@@ -245,9 +280,7 @@ function ReportDocumentCard({
         <p>{report.original_filename}. {report.status_message}</p>
       </div>
       <div className="report-document-card-actions">
-        <BioIcon name={statusIcon} size={18} />
         <Link className="button button-secondary" href={`/app/reports/${report.id}`}>Open</Link>
-        {report.can_retry ? <StatusPill tone="orange">Retry available</StatusPill> : null}
         <button className="button button-ghost" type="button" disabled={!report.can_rename || editing} onClick={() => onEdit(report)}>
           {editing ? "Saving" : "Edit"}
         </button>
@@ -319,7 +352,7 @@ function ReportEditModal({
   );
 }
 
-export function UploadWorkspace() {
+export function UploadWorkspace({ source = "files" }: { source?: "files" | "photos" }) {
   const api = useKlarioApi();
   const [selectedMemberId, setSelectedMemberId] = useState("");
   const [documentType, setDocumentType] = useState<DocumentType>("lab_report");
@@ -399,8 +432,8 @@ export function UploadWorkspace() {
     <div className="flat-workspace upload-workspace">
       <div className="flat-workspace-head">
         <div>
-          <h1>Upload report</h1>
-          <p>Add one medical file and assign it to a profile.</p>
+          <h1>{source === "photos" ? "Choose report images" : "Import report"}</h1>
+          <p>Assign your report to a profile, then let Klario analyze it.</p>
         </div>
       </div>
       <ApiStatusBanner />
@@ -435,11 +468,15 @@ export function UploadWorkspace() {
             <div className="upload-file-column">
               <div>
                 <h2>Report file</h2>
-                <p>PDF or image up to 25 MB.</p>
+                <p>{source === "photos" ? "Choose an image up to 25 MB." : "PDF or image up to 25 MB."}</p>
               </div>
               <label className="drop-zone">
-                <input type="file" accept="application/pdf,image/jpeg,image/png,image/heic,image/heif" onChange={onFileChange} />
-                <span>{fileName || "Choose PDF, JPEG, PNG, HEIC, or HEIF"}</span>
+                <input
+                  type="file"
+                  accept={source === "photos" ? "image/jpeg,image/png,image/heic,image/heif" : "application/pdf,image/jpeg,image/png,image/heic,image/heif"}
+                  onChange={onFileChange}
+                />
+                <span>{fileName || (source === "photos" ? "Choose JPEG, PNG, HEIC, or HEIF" : "Choose PDF, JPEG, PNG, HEIC, or HEIF")}</span>
               </label>
               <button className="button button-primary" type="button" disabled={isUploading || !selectedFile || !uploadAllowed || !selectedMemberId} onClick={startParsing}>
                 <BioIcon name={isUploading ? "icon_action_loading" : "icon_action_confirm_safe"} size={17} />
@@ -458,9 +495,10 @@ export function TimelineWorkspace() {
   const api = useKlarioApi();
   const familyId = api.activeFamily?.id;
   const documentsQuery = useQuery({
-    queryKey: ["reports", "timeline", familyId],
+    queryKey: protectedQueryKey(api.user?.id, "reports", "timeline", familyId),
     queryFn: () => reportsApi.list(familyId!, { limit: 100 }),
-    enabled: api.status === "live" && Boolean(familyId)
+    enabled: api.status === "live" && Boolean(api.user?.id && familyId),
+    ...queryFreshness.workspace
   });
 
   const liveEvents = (documentsQuery.data?.items ?? [])
@@ -512,19 +550,11 @@ export function ReportDetailWorkspace({ documentId }: { documentId: string }) {
     },
     onError: (error) => setMessage(error instanceof Error ? error.message : "Report could not be restored.")
   });
-  const retryReportMutation = useMutation({
-    mutationFn: () => reportsApi.retry(familyId!, documentId),
-    onSuccess: async () => {
-      setMessage("Report retry started.");
-      await api.invalidateWorkspaceData();
-      await reportQuery.refetch();
-    },
-    onError: (error) => setMessage(error instanceof Error ? error.message : "Report could not be retried.")
-  });
   const reportQuery = useQuery({
-    queryKey: ["reports", "detail", familyId, documentId],
+    queryKey: protectedQueryKey(api.user?.id, "reports", "detail", familyId, documentId),
     queryFn: () => reportsApi.detail(familyId!, documentId),
-    enabled: api.status === "live" && Boolean(familyId && documentId)
+    enabled: api.status === "live" && Boolean(api.user?.id && familyId && documentId),
+    ...queryFreshness.processing
   });
   const report = reportQuery.data;
   const statusTone = report ? getReportStatusTone(report.status) : "gray";
@@ -550,11 +580,6 @@ export function ReportDetailWorkspace({ documentId }: { documentId: string }) {
           <div className="button-row compact">
             <button className="button button-secondary" type="button" disabled={!report} onClick={() => void openDownload()}>View report</button>
             <Link className="button button-ghost" href="/app/reports">All reports</Link>
-            {report?.can_retry ? (
-              <button className="button button-secondary" type="button" disabled={retryReportMutation.isPending} onClick={() => retryReportMutation.mutate()}>
-                {retryReportMutation.isPending ? "Retrying" : "Retry"}
-              </button>
-            ) : null}
             {report?.status === "archived" ? (
               <button className="button button-secondary" type="button" disabled={restoreReportMutation.isPending} onClick={() => restoreReportMutation.mutate()}>
                 {restoreReportMutation.isPending ? "Restoring" : "Restore"}

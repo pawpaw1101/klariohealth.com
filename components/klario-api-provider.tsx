@@ -15,6 +15,7 @@ import {
   setStoredActiveMemberId
 } from "@/lib/api/client";
 import { authApi, familiesApi, membersApi, onboardingApi, rolesApi } from "@/lib/api/klario-api";
+import { protectedQueryKey, protectedQueryPrefix, queryFreshness } from "@/lib/query-cache";
 import type {
   Family,
   FamilyCreateRequest,
@@ -71,7 +72,9 @@ export function KlarioApiProvider({ children }: { children: React.ReactNode }) {
         defaultOptions: {
           queries: {
             retry: 1,
-            staleTime: 30000
+            ...queryFreshness.workspace,
+            refetchOnReconnect: true,
+            refetchOnMount: true
           }
         }
       })
@@ -137,12 +140,14 @@ function KlarioSessionProvider({ children }: { children: React.ReactNode }) {
 
       const [memberResult, roleResult] = await Promise.allSettled([
         queryClient.fetchQuery({
-          queryKey: ["members", "list", familyId],
-          queryFn: () => membersApi.list(familyId)
+          queryKey: protectedQueryKey(currentUser?.id, "members", familyId),
+          queryFn: () => membersApi.list(familyId),
+          ...queryFreshness.workspace
         }),
         queryClient.fetchQuery({
-          queryKey: ["roles", "list", familyId],
-          queryFn: () => rolesApi.list(familyId)
+          queryKey: protectedQueryKey(currentUser?.id, "roles", familyId),
+          queryFn: () => rolesApi.list(familyId),
+          ...queryFreshness.account
         })
       ]);
 
@@ -171,9 +176,9 @@ function KlarioSessionProvider({ children }: { children: React.ReactNode }) {
   const loadWorkspace = useCallback(
     async (currentUser: User) => {
       const onboardingStatus = await queryClient.fetchQuery({
-        queryKey: ["onboarding", "status"],
+        queryKey: protectedQueryKey(currentUser.id, "onboarding"),
         queryFn: onboardingApi.status,
-        staleTime: 0
+        ...queryFreshness.account
       });
 
       setOnboarding(onboardingStatus);
@@ -193,8 +198,9 @@ function KlarioSessionProvider({ children }: { children: React.ReactNode }) {
       }
 
       const nextFamilies = await queryClient.fetchQuery({
-        queryKey: ["families", "list"],
-        queryFn: familiesApi.list
+        queryKey: protectedQueryKey(currentUser.id, "families"),
+        queryFn: familiesApi.list,
+        ...queryFreshness.account
       });
       const storedFamilyId = getStoredActiveFamilyId();
       const nextFamilyId = nextFamilies.some((family) => family.id === storedFamilyId) ? storedFamilyId : nextFamilies[0]?.id ?? null;
@@ -218,7 +224,7 @@ function KlarioSessionProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const currentUser = await queryClient.fetchQuery({
-        queryKey: ["auth", "me"],
+        queryKey: ["klario", "auth", "me"],
         queryFn: authApi.authMe,
         staleTime: 0
       });
@@ -250,9 +256,11 @@ function KlarioSessionProvider({ children }: { children: React.ReactNode }) {
   const completeOtpLogin = useCallback(
     async (request: OtpVerifyRequest) => {
       const tokenResponse = await authApi.verifyOtp(request);
+      // A new identity must start with no observable responses from a prior identity.
+      queryClient.clear();
       setAuthTokens(tokenResponse.access_token, tokenResponse.refresh_token);
       const currentUser = await queryClient.fetchQuery({
-        queryKey: ["auth", "me"],
+        queryKey: ["klario", "auth", "me"],
         queryFn: authApi.authMe,
         staleTime: 0
       });
@@ -313,7 +321,7 @@ function KlarioSessionProvider({ children }: { children: React.ReactNode }) {
     try {
       await queryClient.invalidateQueries();
       const currentUser = await queryClient.fetchQuery({
-        queryKey: ["auth", "me"],
+        queryKey: ["klario", "auth", "me"],
         queryFn: authApi.authMe,
         staleTime: 0
       });
@@ -330,9 +338,9 @@ function KlarioSessionProvider({ children }: { children: React.ReactNode }) {
   const refreshOnboarding = useCallback(async () => {
     if (!user) return null;
     const onboardingStatus = await queryClient.fetchQuery({
-      queryKey: ["onboarding", "status"],
+      queryKey: protectedQueryKey(user.id, "onboarding"),
       queryFn: onboardingApi.status,
-      staleTime: 0
+      ...queryFreshness.account
     });
     setOnboarding(onboardingStatus);
     if (onboardingStatus.onboarding_completed) {
@@ -346,19 +354,23 @@ function KlarioSessionProvider({ children }: { children: React.ReactNode }) {
   const createFamily = useCallback(
     async (request: FamilyCreateRequest) => {
       const family = await familiesApi.create(request);
-      await queryClient.invalidateQueries({ queryKey: ["families"] });
-      const nextFamilies = await familiesApi.list();
+      await queryClient.invalidateQueries({ queryKey: protectedQueryPrefix(user?.id, "families") });
+      const nextFamilies = await queryClient.fetchQuery({
+        queryKey: protectedQueryKey(user?.id, "families"),
+        queryFn: familiesApi.list,
+        ...queryFreshness.account
+      });
       setFamilies(nextFamilies);
       await setActiveFamilyId(family.id);
       return family;
     },
-    [queryClient, setActiveFamilyId]
+    [queryClient, setActiveFamilyId, user?.id]
   );
 
   const createMember = useCallback(
     async (familyId: string, request: MemberCreateRequest) => {
       const member = await membersApi.create(familyId, request);
-      await queryClient.invalidateQueries({ queryKey: ["members", "list", familyId] });
+      await queryClient.invalidateQueries({ queryKey: protectedQueryPrefix(user?.id, "members") });
       await loadFamilyContext(familyId, user);
       setActiveMemberId(member.id);
       return member;
@@ -368,14 +380,16 @@ function KlarioSessionProvider({ children }: { children: React.ReactNode }) {
 
   const invalidateWorkspaceData = useCallback(async () => {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["documents"] }),
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
-      queryClient.invalidateQueries({ queryKey: ["trends"] }),
-      queryClient.invalidateQueries({ queryKey: ["attention"] }),
-      queryClient.invalidateQueries({ queryKey: ["invites"] })
+      queryClient.invalidateQueries({ queryKey: protectedQueryPrefix(user?.id, "reports") }),
+      queryClient.invalidateQueries({ queryKey: protectedQueryPrefix(user?.id, "dashboard") }),
+      queryClient.invalidateQueries({ queryKey: protectedQueryPrefix(user?.id, "trends") }),
+      queryClient.invalidateQueries({ queryKey: protectedQueryPrefix(user?.id, "metrics") }),
+      queryClient.invalidateQueries({ queryKey: protectedQueryPrefix(user?.id, "attention") }),
+      queryClient.invalidateQueries({ queryKey: protectedQueryPrefix(user?.id, "invites") }),
+      queryClient.invalidateQueries({ queryKey: protectedQueryPrefix(user?.id, "profiles") })
     ]);
     setLastSyncAt(new Date().toISOString());
-  }, [queryClient]);
+  }, [queryClient, user?.id]);
 
   const activeFamily = useMemo(
     () => families.find((family) => family.id === activeFamilyId) ?? null,

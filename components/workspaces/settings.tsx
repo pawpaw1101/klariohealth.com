@@ -6,7 +6,8 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useKlarioApi } from "@/components/klario-api-provider";
 import { Card, IconBadge, RootPageHeader, SectionHeader as KlarioSectionHeader, StatusPill } from "@/components/klario-ui";
 import { accountApi, authApi } from "@/lib/api/klario-api";
-import type { UnitGlucose, UnitHeight, UnitTemperature, UnitWeight } from "@/lib/api/types";
+import { protectedQueryKey, queryFreshness } from "@/lib/query-cache";
+import type { NotificationPreferencesUpdateRequest, UnitGlucose, UnitHeight, UnitTemperature, UnitWeight } from "@/lib/api/types";
 import { ApiStatusBanner, EmptyState, formatDate, prettyStatus, statusClass } from "@/components/workspaces/shared";
 
 const heightOptions: UnitHeight[] = ["cm", "ft_in"];
@@ -20,33 +21,45 @@ export function AccountWorkspace() {
 
 export function SettingsWorkspace() {
   const api = useKlarioApi();
+  const [activeSection, setActiveSection] = useState<"account" | "family" | "preferences" | "privacy" | "help">("account");
   const [message, setMessage] = useState("");
   const [passwordForm, setPasswordForm] = useState({ current_password: "", new_password: "", confirm_password: "" });
   const [deletePassword, setDeletePassword] = useState("");
   const accountQuery = useQuery({
-    queryKey: ["account", "summary"],
+    queryKey: protectedQueryKey(api.user?.id, "account", "summary"),
     queryFn: accountApi.get,
-    enabled: api.status === "live"
+    enabled: api.status === "live" && Boolean(api.user?.id),
+    ...queryFreshness.account
   });
   const sessionsQuery = useQuery({
-    queryKey: ["account", "sessions"],
+    queryKey: protectedQueryKey(api.user?.id, "account", "sessions"),
     queryFn: accountApi.sessions,
-    enabled: api.status === "live"
+    enabled: api.status === "live" && Boolean(api.user?.id),
+    ...queryFreshness.account
   });
   const securityEventsQuery = useQuery({
-    queryKey: ["account", "security-events"],
+    queryKey: protectedQueryKey(api.user?.id, "account", "security-events"),
     queryFn: () => accountApi.securityEvents({ limit: 5 }),
-    enabled: api.status === "live"
+    enabled: api.status === "live" && Boolean(api.user?.id),
+    ...queryFreshness.account
   });
   const unitPrefsQuery = useQuery({
-    queryKey: ["account", "unit-preferences"],
+    queryKey: protectedQueryKey(api.user?.id, "account", "unit-preferences"),
     queryFn: accountApi.unitPreferences,
-    enabled: api.status === "live"
+    enabled: api.status === "live" && Boolean(api.user?.id),
+    ...queryFreshness.account
   });
   const deletionPreviewQuery = useQuery({
-    queryKey: ["account", "deletion-preview"],
+    queryKey: protectedQueryKey(api.user?.id, "account", "deletion-preview"),
     queryFn: accountApi.deletionPreview,
-    enabled: api.status === "live"
+    enabled: api.status === "live" && Boolean(api.user?.id),
+    ...queryFreshness.account
+  });
+  const notificationPreferencesQuery = useQuery({
+    queryKey: protectedQueryKey(api.user?.id, "account", "notification-preferences"),
+    queryFn: accountApi.notificationPreferences,
+    enabled: api.status === "live" && Boolean(api.user?.id),
+    ...queryFreshness.account
   });
 
   const unitMutation = useMutation({
@@ -56,6 +69,14 @@ export function SettingsWorkspace() {
       await unitPrefsQuery.refetch();
     },
     onError: (error) => setMessage(error instanceof Error ? error.message : "Unit preferences could not be saved.")
+  });
+  const notificationMutation = useMutation({
+    mutationFn: accountApi.updateNotificationPreferences,
+    onSuccess: async () => {
+      setMessage("Notification preferences saved.");
+      await notificationPreferencesQuery.refetch();
+    },
+    onError: (error) => setMessage(error instanceof Error ? error.message : "Notification preferences could not be saved.")
   });
   // Switching family reloads members/roles in the provider and persists the choice, so every
   // workspace query keyed on the family id has to be dropped afterwards.
@@ -115,19 +136,28 @@ export function SettingsWorkspace() {
   const unitPrefs = unitPrefsQuery.data;
   const deletionPreview = deletionPreviewQuery.data;
   const canSubmitPassword = Boolean(passwordForm.current_password && passwordForm.new_password.length >= 8 && passwordForm.new_password === passwordForm.confirm_password);
+  const notifications = notificationPreferencesQuery.data;
+  const navItems = [
+    ["account", "Account"], ["family", "Family & Access"], ["preferences", "Preferences"],
+    ["privacy", "Privacy & Data"], ["help", "Help & Support"]
+  ] as const;
 
   return (
     <div className="settings-workspace">
       <RootPageHeader
         title="Settings"
-        subtitle="Account, units, sessions, privacy, and support."
-        action={<button className="button button-ghost" type="button" onClick={() => void api.backendLogout()}>Log out</button>}
+        subtitle="Manage your account, privacy, family access and preferences."
       />
       <ApiStatusBanner />
 
+      <div className="settings-desktop-layout">
+        <aside className="settings-sidebar" aria-label="Settings sections">
+          {navItems.map(([key, label]) => <button className={activeSection === key ? "is-active" : ""} type="button" key={key} onClick={() => setActiveSection(key)}>{label}</button>)}
+          <button className="settings-sign-out" type="button" onClick={() => void api.backendLogout()}>Sign out</button>
+        </aside>
       <section className="settings-grid">
-        <Card className="settings-section-card settings-account-card">
-          <KlarioSectionHeader title="Account" subtitle={account?.email ?? api.user?.email ?? "Not signed in"} />
+        <Card className={`settings-section-card settings-account-card${activeSection === "account" ? "" : " is-hidden"}`}>
+          <KlarioSectionHeader title="Profile" subtitle={account?.email ?? api.user?.email ?? "Not signed in"} />
           <div className="settings-summary-row">
             <IconBadge icon="icon_parser_confidence" tone="brand" size={42} />
             <div>
@@ -141,9 +171,9 @@ export function SettingsWorkspace() {
           ) : null}
         </Card>
 
-        <Card className="settings-section-card">
+        <Card className={`settings-section-card${activeSection === "family" ? "" : " is-hidden"}`}>
           <KlarioSectionHeader
-            title="Family"
+            title="Family Members"
             subtitle={api.families.length > 1 ? "Choose which family workspace this device uses." : "The family workspace this device uses."}
             action={api.currentRole ? <StatusPill tone="brand">{prettyStatus(api.currentRole)}</StatusPill> : null}
           />
@@ -171,7 +201,7 @@ export function SettingsWorkspace() {
           )}
         </Card>
 
-        <Card className="settings-section-card settings-support-card">
+        <Card className={`settings-section-card settings-support-card${activeSection === "help" ? "" : " is-hidden"}`}>
           <KlarioSectionHeader title="Contact support" subtitle="Get help with your Klario account." />
           <p>Send us your question and include the account email shown above so we can help faster.</p>
           <div className="button-row compact">
@@ -179,8 +209,8 @@ export function SettingsWorkspace() {
           </div>
         </Card>
 
-        <Card className="settings-section-card">
-          <KlarioSectionHeader title="Password" subtitle="Change the password for this account." />
+        <Card className={`settings-section-card settings-account-security-card${activeSection === "account" ? "" : " is-hidden"}`}>
+          <KlarioSectionHeader title="Account & Security" subtitle="Password and account security." />
           <form className="form-grid" onSubmit={(event) => {
             event.preventDefault();
             if (!canSubmitPassword) {
@@ -201,7 +231,7 @@ export function SettingsWorkspace() {
           </form>
         </Card>
 
-        <Card className="settings-section-card">
+        <Card className={`settings-section-card${activeSection === "preferences" ? "" : " is-hidden"}`}>
           <KlarioSectionHeader title="Units" subtitle="Preferred measurements for health profile fields." />
           {unitPrefs ? (
             <div className="settings-unit-grid">
@@ -235,9 +265,34 @@ export function SettingsWorkspace() {
           )}
         </Card>
 
-        <Card className="settings-section-card settings-wide-card">
+        <Card className={`settings-section-card${activeSection === "preferences" ? "" : " is-hidden"}`}>
+          <KlarioSectionHeader title="Notifications & Reminders" subtitle="Choose which Klario updates are delivered to you." />
+          {notifications ? (
+            <div className="settings-toggle-list">
+              {([
+                ["Report processing completed", "report_processing_completed"],
+                ["Family invitation received", "family_invitation_received"],
+                ["Invitation accepted", "family_invitation_accepted"],
+                ["Shared report available", "shared_report_available"],
+                ["Reminder delivery", "reminders_enabled"]
+              ] as Array<[string, keyof NotificationPreferencesUpdateRequest]>).map(([label, key]) => (
+                <label className="settings-toggle-row" key={key}>
+                  <span>{label}</span>
+                  <input type="checkbox" checked={Boolean(notifications[key])} disabled={notificationMutation.isPending} onChange={(event) => notificationMutation.mutate({ [key]: event.target.checked })} />
+                </label>
+              ))}
+              <label className="settings-toggle-row">
+                <span>Email notifications</span>
+                <input type="checkbox" checked={notifications.delivery.email} disabled={notificationMutation.isPending || !notifications.capabilities.email_delivery_available} onChange={(event) => notificationMutation.mutate({ delivery: { email: event.target.checked } })} />
+              </label>
+              <p className="note">{notifications.capabilities.event_notifications_wired ? "Changes apply to supported Klario notifications." : "Preference saved · delivery for some events is not available yet."}</p>
+            </div>
+          ) : <EmptyState title="Notifications unavailable" body="Sign in to load notification preferences." />}
+        </Card>
+
+        <Card className={`settings-section-card settings-wide-card settings-sessions-card${activeSection === "account" ? "" : " is-hidden"}`}>
           <KlarioSectionHeader
-            title="Sessions"
+            title="Active Sessions"
             subtitle={`${sessionsQuery.data?.sessions.length ?? 0} signed-in sessions.`}
             action={
               <button className="button button-ghost" type="button" disabled={revokeOtherSessionsMutation.isPending} onClick={() => revokeOtherSessionsMutation.mutate()}>
@@ -245,7 +300,7 @@ export function SettingsWorkspace() {
               </button>
             }
           />
-          <div className="record-list compact">
+          <div className="record-list compact settings-sessions-grid">
             {sessionsQuery.data?.sessions.length ? (
               sessionsQuery.data.sessions.map((session) => (
                 <article className="record" key={session.id}>
@@ -270,8 +325,8 @@ export function SettingsWorkspace() {
           </div>
         </Card>
 
-        <Card className="settings-section-card">
-          <KlarioSectionHeader title="Recent security events" subtitle="Latest account audit entries." />
+        <Card className={`settings-section-card settings-security-events-card${activeSection === "account" ? "" : " is-hidden"}`}>
+          <KlarioSectionHeader title="Security Center" subtitle="Recent account activity and security events." />
           <div className="record-list compact">
             {securityEventsQuery.data?.events.length ? (
               securityEventsQuery.data.events.map((event) => (
@@ -289,14 +344,14 @@ export function SettingsWorkspace() {
           </div>
         </Card>
 
-        <Card className="settings-section-card settings-wide-card">
+        <Card className={`settings-section-card settings-privacy-info-card${activeSection === "privacy" ? "" : " is-hidden"}`}>
           <KlarioSectionHeader title="Privacy & Data" subtitle="How Klario stores and protects your data." />
           <p>Account details, family profiles, reports, parsed health values, dashboard summaries, and trends are uploaded to and stored by the Klario service.</p>
           <p>Klario may retain user-scoped response caches and protected temporary upload files for network resilience. Signing out clears account caches.</p>
           <p>Klario Health organizes information extracted from uploaded health reports. It does not provide a medical diagnosis or replace professional medical advice.</p>
         </Card>
 
-        <Card className="settings-section-card settings-wide-card">
+        <Card className={`settings-section-card settings-wide-card settings-danger-zone${activeSection === "privacy" ? "" : " is-hidden"}`}>
           <KlarioSectionHeader title="Delete account" subtitle={deletionPreview?.can_delete ? "Permanently remove your account." : "Deletion may require resolving family ownership first."} />
           {deletionPreview ? (
             <>
@@ -323,6 +378,7 @@ export function SettingsWorkspace() {
           )}
         </Card>
       </section>
+      </div>
       {message ? <p className="note">{message}</p> : null}
     </div>
   );

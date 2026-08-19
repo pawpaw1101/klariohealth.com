@@ -1,8 +1,9 @@
-﻿"use client";
+"use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { BioIcon } from "@/components/bio-icon";
-import { EmptyState as KlarioEmptyState } from "@/components/klario-ui";
+import { EmptyState as KlarioEmptyState, StatusPill } from "@/components/klario-ui";
 import { useKlarioApi } from "@/components/klario-api-provider";
 import type { KlarioIconName } from "@/lib/icons";
 import { toneClass, toneForStatus } from "@/lib/tone";
@@ -12,7 +13,8 @@ import type {
   DocumentType,
   MemberAttentionItem,
   ParsedResult,
-  TrendMetricPreview
+  TrendMetricPreview,
+  TrendPoint
 } from "@/lib/api/types";
 export const documentTypes: DocumentType[] = ["lab_report", "prescription", "imaging", "discharge", "vaccination", "invoice", "general"];
 
@@ -194,6 +196,114 @@ export function Sparkline({ points }: { points: number[] }) {
         return <circle key={`${point}-${index}`} cx={x} cy={y} r="4" />;
       })}
     </svg>
+  );
+}
+
+export function InteractiveTrendChart({
+  points,
+  referenceMin,
+  referenceMax,
+  unit
+}: {
+  points: TrendPoint[];
+  referenceMin: number | null;
+  referenceMax: number | null;
+  unit: string | null;
+}) {
+  const [selectedPoint, setSelectedPoint] = useState<TrendPoint | null>(null);
+
+  useEffect(() => {
+    setSelectedPoint(points.at(-1) ?? null);
+  }, [points, points.length]);
+
+  if (points.length === 0) {
+    return <div className="trend-empty">No trend data yet</div>;
+  }
+
+  const width = 760;
+  const height = 238;
+  const padding = { top: 14, right: 20, bottom: 34, left: 46 };
+  const chartHeight = height - padding.top - padding.bottom;
+  const chartWidth = width - padding.left - padding.right;
+  const chartPoints = points.filter((point): point is TrendPoint & { value: number } => point.value !== null);
+  const values = chartPoints.map((point) => point.value);
+  const validMin = values.length ? Math.min(...values) : 0;
+  const validMax = values.length ? Math.max(...values) : 1;
+  const refMin = referenceMin ?? validMin;
+  const refMax = referenceMax ?? validMax;
+  const domainPadding = Math.max((Math.max(validMax, refMax) - Math.min(validMin, refMin)) * 0.12, 1);
+  const plotMin = Math.min(validMin, refMin) - domainPadding;
+  const plotMax = Math.max(validMax, refMax) + domainPadding;
+  const spread = (plotMax - plotMin) || 1;
+
+  const getX = (index: number) => {
+    if (chartPoints.length === 1) return padding.left + chartWidth / 2;
+    return padding.left + (index / (chartPoints.length - 1)) * chartWidth;
+  };
+
+  const getY = (value: number) => padding.top + (1 - (value - plotMin) / spread) * chartHeight;
+
+  const path = chartPoints.length > 1 ? chartPoints
+    .map((point, index) => {
+      const x = getX(index);
+      const y = getY(point.value);
+      return `${index === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(1)}`;
+    })
+    .join(" ") : "";
+  const area = path ? `${path} L ${getX(chartPoints.length - 1)} ${height - padding.bottom} L ${getX(0)} ${height - padding.bottom} Z` : "";
+  const yTicks = [0, 1 / 3, 2 / 3, 1].map((ratio) => plotMax - ratio * spread);
+  const labelPoints = chartPoints.filter((_, index) => index === 0 || index === chartPoints.length - 1 || index % Math.ceil(chartPoints.length / 4) === 0);
+  const selectedIndex = selectedPoint ? chartPoints.findIndex((point) => point.id === selectedPoint.id) : -1;
+
+  return (
+    <div className="interactive-trend-chart-wrap">
+      <svg className="interactive-trend-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Interactive biomarker trend chart">
+        <defs>
+          <linearGradient id="trend-area" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="#ff9400" stopOpacity="0.12" />
+            <stop offset="100%" stopColor="#ff9400" stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
+        {yTicks.map((value) => (
+          <g key={value}>
+            <line x1={padding.left} y1={getY(value)} x2={width - padding.right} y2={getY(value)} className="interactive-trend-grid" />
+            <text x={padding.left - 9} y={getY(value)} className="interactive-trend-axis" textAnchor="end" dominantBaseline="middle">{Number(value.toFixed(1))}</text>
+          </g>
+        ))}
+        {referenceMin !== null && referenceMax !== null && (
+          <rect
+            x={padding.left}
+            y={getY(referenceMax)}
+            width={chartWidth}
+            height={getY(referenceMin) - getY(referenceMax)}
+            className="interactive-trend-reference-band"
+          />
+        )}
+        {referenceMin !== null && <line x1={padding.left} y1={getY(referenceMin)} x2={width - padding.right} y2={getY(referenceMin)} className="interactive-trend-reference-edge" />}
+        {referenceMax !== null && <line x1={padding.left} y1={getY(referenceMax)} x2={width - padding.right} y2={getY(referenceMax)} className="interactive-trend-reference-edge" />}
+        {area ? <path d={area} className="interactive-trend-area" /> : null}
+        {path ? <path d={path} className="interactive-trend-line" /> : null}
+        {selectedIndex >= 0 ? <line x1={getX(selectedIndex)} y1={padding.top} x2={getX(selectedIndex)} y2={height - padding.bottom} className="interactive-trend-selection-line" /> : null}
+        {chartPoints.map((point, index) => {
+          const x = getX(index);
+          const y = getY(point.value);
+          return (
+            <g key={`${point.value}-${index}`}
+              onPointerDown={() => setSelectedPoint(point)}
+              className="interactive-trend-point"
+            >
+              <circle cx={x} cy={y} r="20" fill="transparent" />
+              <circle cx={x} cy={y} r={selectedPoint?.id === point.id ? "7" : "4"} className={`interactive-trend-marker${point.flag && point.flag !== "normal" ? " is-out-of-range" : ""}${selectedPoint?.id === point.id ? " is-selected" : ""}`} />
+            </g>
+          );
+        })}
+        {labelPoints.map((point) => {
+          const index = chartPoints.findIndex((candidate) => candidate.id === point.id);
+          return <text key={point.id} x={getX(index)} y={height - 10} className="interactive-trend-axis" textAnchor="middle">{formatDate(point.date).replace(/, \d{4}/, "")}</text>;
+        })}
+      </svg>
+      {selectedPoint ? <p className="interactive-trend-selected-value"><strong>{valueWithUnit(selectedPoint.value, unit)}</strong><span>{formatDate(selectedPoint.date)}</span></p> : null}
+    </div>
   );
 }
 

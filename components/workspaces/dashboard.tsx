@@ -21,6 +21,7 @@ import type {
   TrendPreview
 } from "@/lib/api/types";
 import type { KlarioIconName } from "@/lib/icons";
+import { protectedQueryKey, queryFreshness } from "@/lib/query-cache";
 import {
   ApiStatusBanner,
   AttentionRecord,
@@ -40,16 +41,17 @@ export function DashboardWorkspace() {
   const [portalHost, setPortalHost] = useState<HTMLElement | null>(null);
   const familyId = api.activeFamily?.id;
   const memberId = api.activeMember?.id;
-  const hasLiveContext = api.status === "live" && Boolean(familyId && memberId);
+  const hasLiveContext = api.status === "live" && Boolean(api.user?.id && familyId && memberId);
 
   useEffect(() => {
     setPortalHost(document.body);
   }, []);
 
   const dashboardQuery = useQuery({
-    queryKey: ["dashboard", familyId, memberId],
+    queryKey: protectedQueryKey(api.user?.id, "dashboard", familyId, memberId),
     queryFn: () => dashboardApi.get(familyId!, memberId!),
-    enabled: hasLiveContext
+    enabled: hasLiveContext,
+    ...queryFreshness.workspace
   });
 
   const activeLabel = api.activeMember?.display_name ?? "your profile";
@@ -202,6 +204,7 @@ export function DashboardWorkspace() {
       {metricSheet ? (
         <DashboardMetricModal
           kind={metricSheet}
+          userId={api.user?.id}
           familyId={familyId}
           memberId={memberId}
           healthScore={summary?.score ?? 0}
@@ -218,6 +221,7 @@ export function DashboardWorkspace() {
 
 function DashboardMetricModal({
   kind,
+  userId,
   familyId,
   memberId,
   healthScore,
@@ -227,6 +231,7 @@ function DashboardMetricModal({
   onClose
 }: {
   kind: MetricSheetKind;
+  userId?: string;
   familyId?: string;
   memberId?: string;
   healthScore: number;
@@ -238,14 +243,16 @@ function DashboardMetricModal({
   const title = kind === "score" ? "Health Score" : `${prettyStatus(kind)} metrics`;
   const usesTrendList = kind === "normal" || kind === "score";
   const trendsQuery = useQuery({
-    queryKey: ["dashboard", "metric-modal", "trends", familyId, memberId],
+    queryKey: protectedQueryKey(userId, "dashboard", "metric-modal", "trends", familyId, memberId),
     queryFn: () => trendsApi.list(familyId!, memberId!),
-    enabled: usesTrendList && Boolean(familyId && memberId)
+    enabled: usesTrendList && Boolean(userId && familyId && memberId),
+    ...queryFreshness.workspace
   });
   const attentionQuery = useQuery({
-    queryKey: ["dashboard", "metric-modal", "attention", familyId, memberId, kind],
+    queryKey: protectedQueryKey(userId, "dashboard", "metric-modal", "attention", familyId, memberId, kind),
     queryFn: () => dashboardApi.attention(familyId!, memberId!, "open", 100, 0, kind),
-    enabled: !usesTrendList && Boolean(familyId && memberId)
+    enabled: !usesTrendList && Boolean(userId && familyId && memberId),
+    ...queryFreshness.workspace
   });
   const normalItems = trendsQuery.data
     ? trendsQuery.data.categories
@@ -309,9 +316,10 @@ export function AttentionWorkspace() {
   const familyId = api.activeFamily?.id;
   const memberId = api.activeMember?.id;
   const attentionQuery = useQuery({
-    queryKey: ["attention", "list", familyId, memberId, filter],
+    queryKey: protectedQueryKey(api.user?.id, "attention", "list", familyId, memberId, filter),
     queryFn: () => dashboardApi.attention(familyId!, memberId!, filter, 100, 0),
-    enabled: api.status === "live" && Boolean(familyId && memberId)
+    enabled: api.status === "live" && Boolean(api.user?.id && familyId && memberId),
+    ...queryFreshness.workspace
   });
   const resolveAllowed = canResolveAttention(api.currentRole);
 
