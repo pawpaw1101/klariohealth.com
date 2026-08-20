@@ -1,6 +1,6 @@
 export interface OtpRequest {
   email: string;
-  purpose: "login" | "register";
+  purpose: "login" | "register" | "password_reset";
   password?: string;
   full_name?: string;
 }

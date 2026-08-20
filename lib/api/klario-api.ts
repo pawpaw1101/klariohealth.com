@@ -49,6 +49,7 @@ import type {
   PasswordResetRequest,
   PasswordResetVerifyRequest,
   PasswordResetResponse,
+  PasswordResetVerifyRequest,
   RefreshTokenRequest,
   RegisterRequest,
   ReportDetail,
@@ -92,9 +93,9 @@ export const authApi = {
   changePassword: (body: ChangePasswordRequest) => apiFetch<TokenResponse>("/auth/change-password", { method: "POST", body }),
   forgotPassword: (body: ForgotPasswordRequest) =>
     apiFetch<PasswordResetResponse>("/auth/forgot-password", { method: "POST", body, auth: false }),
-  requestForgotPasswordCode: (body: ForgotPasswordRequest) =>
+  requestPasswordResetOtp: (body: ForgotPasswordRequest) =>
     apiFetch<OtpRequestResponse>("/auth/forgot-password/request", { method: "POST", body, auth: false }),
-  verifyForgotPasswordCode: (body: PasswordResetVerifyRequest) =>
+  verifyPasswordResetOtp: (body: PasswordResetVerifyRequest) =>
     apiFetch<PasswordResetResponse>("/auth/forgot-password/verify", { method: "POST", body, auth: false }),
   resetForgotPassword: (body: PasswordResetRequest) =>
     apiFetch<PasswordResetResponse>("/auth/forgot-password/reset", { method: "POST", body, auth: false }),
