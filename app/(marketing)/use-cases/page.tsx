@@ -51,15 +51,6 @@ export default function UseCasesPage() {
           ))}
         </div>
       </section>
-
-      <section className="cta-banner">
-        <h2>Start with one real report.</h2>
-        <p>Klario gets more useful as your timeline and trend history grow.</p>
-        <div className="button-row">
-          <Link className="button button-primary" href="/login">Try now / Download</Link>
-          <Link className="button button-secondary" href="/features">Explore product</Link>
-        </div>
-      </section>
     </main>
   );
 }

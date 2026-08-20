@@ -6,6 +6,7 @@ type BioIconProps = {
   size?: number;
   label?: string;
   className?: string;
+  style?: CSSProperties;
 };
 
 type IconStyle = CSSProperties & {
@@ -13,7 +14,7 @@ type IconStyle = CSSProperties & {
   "--icon-size": string;
 };
 
-export function BioIcon({ name, size = 20, label, className }: BioIconProps) {
+export function BioIcon({ name, size = 20, label, className, style }: BioIconProps) {
   return (
     <span
       aria-hidden={label ? undefined : "true"}
@@ -21,6 +22,7 @@ export function BioIcon({ name, size = 20, label, className }: BioIconProps) {
       className={`bio-icon${className ? ` ${className}` : ""}`}
       role={label ? "img" : undefined}
       style={{
+        ...style,
         "--icon-url": `url("/icons/${name}.svg")`,
         "--icon-size": `${size}px`
       } as IconStyle}
