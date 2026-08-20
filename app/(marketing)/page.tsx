@@ -16,43 +16,43 @@ const showcaseItems = [
     label: "Dashboard",
     title: "Know what needs attention.",
     body: "Review items, recent documents, and family records are organized around the next health task.",
-    image: "/app-screens/dashboard.png",
-    alt: "Klario mobile dashboard showing scan report actions, health score, latest report, and attention cards"
+    image: "/investor-screens/03_dashboard_body_populated.png",
+    alt: "Klario health dashboard"
   },
   {
     label: "Trends",
     title: "See movement across every test.",
     body: "Repeated values become trend lines, so changes are easier to spot across months and years.",
-    image: "/app-screens/trends.png",
-    alt: "Klario mobile trends screen showing searchable biomarker metrics"
+    image: "/investor-screens/14_trends_overview_populated.png",
+    alt: "Klario longitudinal health trends"
   },
   {
     label: "Reports",
     title: "Keep every report easy to find.",
     body: "Saved reports stay searchable by person, type, date, and review status.",
-    image: "/app-screens/reports.png",
-    alt: "Klario mobile reports screen showing saved lab reports"
+    image: "/investor-screens/07_reports_populated.png",
+    alt: "Klario medical reports"
   },
   {
     label: "Family",
     title: "Manage family records separately.",
     body: "Assign each report to the right person or pet before values enter the shared account.",
-    image: "/app-screens/family.png",
-    alt: "Klario mobile family screen showing family member profiles"
+    image: "/investor-screens/22_family_overview_populated.png",
+    alt: "Klario family health profiles"
   },
   {
     label: "Document",
     title: "Open the source when context matters.",
     body: "The original report stays connected to extracted results, so numbers never float away from their source.",
-    image: "/app-screens/document-preview.png",
-    alt: "Klario mobile document preview screen showing a health checkup report PDF"
+    image: "/investor-screens/11_report_provenance.png",
+    alt: "Klario report source evidence"
   },
   {
     label: "Review",
     title: "Inspect each extracted value.",
     body: "Metric sheets keep values, units, flags, and reference ranges together before you act on them.",
-    image: "/app-screens/metric-sheet.png",
-    alt: "Klario mobile metric review sheet showing extracted metric details"
+    image: "/investor-screens/09_report_detail_structured.png",
+    alt: "Klario structured laboratory report"
   }
 ];
 
@@ -62,19 +62,14 @@ export default function HomePage() {
       <section className="liquid-hero" id="hero" aria-labelledby="home-hero-title">
         <FluidHeroCanvas />
         <div className="liquid-hero-sheen" aria-hidden="true" />
-        <div className="liquid-hero-copy" style={{ justifySelf: "center", textAlign: "center" }}>
-          <span className="eyebrow glass-eyebrow hero-eyebrow">
-            <span className="eyebrow-dot" />
-            Medical clarity, simplified
-          </span>
+        <div className="liquid-hero-copy home-hero-copy">
           <h1 className="hero-wordmark-title" id="home-hero-title">
             <img
               alt="Klario"
               draggable={false}
-              height={67}
-              src="/brand/klario-logo-light.png"
-              srcSet="/brand/klario-logo-light.png 1x, /brand/klario-logo-light@2x.png 2x, /brand/klario-logo-light@3x.png 3x"
-              width={137}
+              height={874}
+              src="/brand/klario-logo-hero-white.png"
+              width={1799}
             />
           </h1>
           <p className="hero-lead">

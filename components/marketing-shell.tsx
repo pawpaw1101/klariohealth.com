@@ -91,6 +91,8 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
           </div>
           <div className="nav-left">
             <Brand onClick={handleLogoClick} />
+          </div>
+          <div className="nav-right">
             {navItems.map((item) => {
               const baseHref = item.href.split("#")[0];
               const isActive = item.href === "/" ? pathname === "/" && !homeNavActive : pathname === baseHref && item.href.indexOf("#") === -1;
@@ -108,8 +110,6 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
                 </Link>
               );
             })}
-          </div>
-          <div className="nav-right">
             <Link className={`button button-primary nav-action${pathname === "/login" ? " is-active" : ""}`} href="/login" title="Try now / Download" onClick={closeMenus}>
               <NavIcon name="arrow" size={17} />
               <span className="nav-label">Try now / Download</span>

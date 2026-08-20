@@ -33,7 +33,7 @@ export function HomeShowcase({ items }: { items: ShowcaseItem[] }) {
       </div>
       <div className="showcase-body">
         <figure className="screenshot-card showcase-image">
-          <img src={active.image} alt={active.alt} />
+          <img src={active.image} alt={active.alt} loading="lazy" />
 
         </figure>
         <div className="showcase-copy">

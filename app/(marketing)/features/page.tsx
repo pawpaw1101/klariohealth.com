@@ -69,7 +69,7 @@ export default function FeaturesPage() {
           </div>
         </div>
         <figure className="hero-image">
-          <Image src="/app-screens/document-preview.png" alt="Klario document preview screen showing a health report" width={726} height={1514} priority sizes="(max-width: 900px) 100vw, 540px" />
+          <Image src="/investor-screens/09_report_detail_structured.png" alt="Klario structured laboratory report" width={1320} height={2868} priority sizes="(max-width: 900px) 100vw, 540px" />
         </figure>
       </section>
 

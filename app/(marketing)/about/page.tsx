@@ -46,7 +46,7 @@ export default function AboutPage() {
           </p>
         </div>
         <figure className="hero-image">
-          <Image src="/app-screens/trends.png" alt="Klario workspace showing biomarker trends" width={726} height={1514} priority sizes="(max-width: 900px) 100vw, 540px" />
+          <Image src="/investor-screens/16_trend_hba1c_year.png" alt="Klario longitudinal health trend" width={1206} height={2622} priority sizes="(max-width: 900px) 100vw, 540px" />
         </figure>
       </section>
 
