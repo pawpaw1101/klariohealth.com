@@ -21,6 +21,9 @@ import type {
   FamilyMember,
   FamilyProfileDetail,
   FamilyProfileUpdate,
+  ProfilePhotoUploadCompleteRequest,
+  ProfilePhotoUploadIntentRequest,
+  ProfilePhotoUploadIntentResponse,
   FamilyRole,
   FamilyRoleType,
   ForgotPasswordRequest,
@@ -266,6 +269,12 @@ export const profilesApi = {
   get: (familyId: string, profileId: string) => apiFetch<FamilyProfileDetail>(`/families/${familyId}/profiles/${profileId}`),
   update: (familyId: string, profileId: string, body: FamilyProfileUpdate) =>
     apiFetch<FamilyProfileDetail>(`/families/${familyId}/profiles/${profileId}`, { method: "PATCH", body }),
+  createPhotoUploadIntent: (familyId: string, profileId: string, body: ProfilePhotoUploadIntentRequest) =>
+    apiFetch<ProfilePhotoUploadIntentResponse>(`/families/${familyId}/profiles/${profileId}/photo/upload-intent`, { method: "POST", body }),
+  completePhotoUpload: (familyId: string, profileId: string, body: ProfilePhotoUploadCompleteRequest) =>
+    apiFetch<FamilyProfileDetail>(`/families/${familyId}/profiles/${profileId}/photo/upload-complete`, { method: "POST", body }),
+  removePhoto: (familyId: string, profileId: string) =>
+    apiFetch<FamilyProfileDetail>(`/families/${familyId}/profiles/${profileId}/photo`, { method: "DELETE" }),
   archive: (familyId: string, profileId: string) =>
     apiFetch<FamilyProfileDetail>(`/families/${familyId}/profiles/${profileId}/archive`, { method: "POST" }),
   restore: (familyId: string, profileId: string) =>

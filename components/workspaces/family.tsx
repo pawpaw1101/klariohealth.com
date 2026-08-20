@@ -18,7 +18,7 @@ import {
 } from "@/lib/api/klario-api";
 import type { BloodGroup, FamilyInvite, FamilyProfileDetail, FamilyProfileUpdate, FamilyRelationship, FamilyRoleType, ProfileGender } from "@/lib/api/types";
 import { protectedQueryKey, queryFreshness } from "@/lib/query-cache";
-import { ApiError } from "@/lib/api/client";
+import { ApiError, resolveExternalOrRelativeUrl } from "@/lib/api/client";
 import { ApiStatusBanner, EmptyState, formatDate, prettyStatus, statusClass } from "@/components/workspaces/shared";
 
 const avatarGradients = [
@@ -90,6 +90,39 @@ function numberOrNull(value: string) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+const profilePhotoTypes = new Set(["image/jpeg", "image/png", "image/heic", "image/heif"]);
+const maxProfilePhotoBytes = 8 * 1024 * 1024;
+
+async function sha256File(file: File) {
+  const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function uploadProfilePhoto(familyId: string, profileId: string, file: File) {
+  if (!profilePhotoTypes.has(file.type)) {
+    throw new Error("Choose a JPEG, PNG, HEIC, or HEIF profile photo.");
+  }
+  if (file.size > maxProfilePhotoBytes) {
+    throw new Error("Profile photos must be 8 MB or smaller.");
+  }
+
+  const checksum = await sha256File(file);
+  const intent = await profilesApi.createPhotoUploadIntent(familyId, profileId, {
+    content_type: file.type,
+    file_size: file.size,
+    checksum_sha256: checksum
+  });
+  const headers = new Headers(intent.required_headers);
+  if (!headers.has("Content-Type")) headers.set("Content-Type", file.type);
+  const response = await fetch(resolveExternalOrRelativeUrl(intent.upload_url), {
+    method: "PUT",
+    body: file,
+    headers
+  });
+  if (!response.ok) throw new Error("Profile photo upload could not be verified.");
+  await profilesApi.completePhotoUpload(familyId, profileId, { checksum_sha256: checksum });
+}
+
 function ProfileCard({
   profile
 }: {
@@ -125,6 +158,15 @@ export function FamilyWorkspace() {
   const [memberName, setMemberName] = useState("");
   const [relationship, setRelationship] = useState<FamilyRelationship | "">("");
   const [relationshipOtherLabel, setRelationshipOtherLabel] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [gender, setGender] = useState<ProfileGender | "">("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [bloodGroup, setBloodGroup] = useState<BloodGroup | "">("");
+  const [heightCm, setHeightCm] = useState("");
+  const [weightKg, setWeightKg] = useState("");
+  const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
+  const [isCreatingProfile, setIsCreatingProfile] = useState(false);
   const [email, setEmail] = useState("");
   const roleOptions = inviteRoleOptions(api.currentRole);
   const [role, setRole] = useState<Exclude<FamilyRoleType, "owner">>("viewer");
@@ -170,21 +212,68 @@ export function FamilyWorkspace() {
     event.preventDefault();
     if (!familyId) return;
     setMessage("");
+    const fullName = memberName.trim();
+    const otherLabel = relationshipOtherLabel.trim();
+    const phoneDigits = phoneNumber.replace(/\D/g, "");
+    const height = numberOrNull(heightCm);
+    const weight = numberOrNull(weightKg);
+    if (!fullName) return setMessage("Enter a full name.");
+    if (!relationship) return setMessage("Select a relationship.");
+    if (relationship === "other" && !otherLabel) return setMessage("Add a relationship label.");
+    if (!dateOfBirth) return setMessage("Add a date of birth.");
+    if (new Date(`${dateOfBirth}T00:00:00`).getTime() > Date.now()) return setMessage("Date of birth cannot be in the future.");
+    if (phoneNumber.trim() && (phoneDigits.length < 7 || phoneDigits.length > 15)) return setMessage("Enter a valid phone number.");
+    if (contactEmail.trim() && !/^\S+@\S+\.\S+$/.test(contactEmail.trim())) return setMessage("Enter a valid contact email.");
+    if (heightCm.trim() && (height === null || height < 30 || height > 300)) return setMessage("Height must be between 30 and 300 cm.");
+    if (weightKg.trim() && (weight === null || weight < 1 || weight > 500)) return setMessage("Weight must be between 1 and 500 kg.");
+
+    setIsCreatingProfile(true);
     try {
-      if (!relationship) return;
-      await api.createMember(familyId, {
-        display_name: memberName,
+      const member = await api.createMember(familyId, {
+        display_name: fullName,
         relationship,
-        relationship_other_label: relationship === "other" ? relationshipOtherLabel : null
+        date_of_birth: dateOfBirth,
+        sex: gender || null
       });
+      await profilesApi.update(familyId, member.id, {
+        relationship,
+        relationship_other_label: relationship === "other" ? otherLabel : null,
+        date_of_birth: dateOfBirth,
+        gender: gender || null,
+        phone_number: phoneNumber.trim() || null,
+        contact_email: contactEmail.trim().toLowerCase() || null,
+        blood_group: bloodGroup || null,
+        height_cm: height,
+        weight_kg: weight,
+        expected_updated_at: member.updated_at
+      });
+
+      let successMessage = "Family profile added.";
+      if (profilePhoto) {
+        try {
+          await uploadProfilePhoto(familyId, member.id, profilePhoto);
+        } catch {
+          successMessage = "Family profile added, but the photo could not be uploaded. You can add it from the profile.";
+        }
+      }
       setMemberName("");
       setRelationship("");
       setRelationshipOtherLabel("");
-      setMessage("Profile created.");
+      setDateOfBirth("");
+      setGender("");
+      setPhoneNumber("");
+      setContactEmail("");
+      setBloodGroup("");
+      setHeightCm("");
+      setWeightKg("");
+      setProfilePhoto(null);
+      setMessage(successMessage);
       setActiveDialog(null);
       await refetchFamilyWorkspace();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Profile could not be created.");
+    } finally {
+      setIsCreatingProfile(false);
     }
   };
 
@@ -308,25 +397,86 @@ export function FamilyWorkspace() {
           <div className="klario-modal family-action-modal" role="dialog" aria-modal="true" aria-labelledby="family-add-profile-title">
             <div className="klario-modal-head">
               <div>
-                <h2 id="family-add-profile-title">Add profile</h2>
-                <p>Create a profile for another person in this family.</p>
+                <h2 id="family-add-profile-title">Add health profile</h2>
+                <p>A health profile holds records for someone in your family. It does not create a sign-in account.</p>
               </div>
               <button className="button button-ghost icon-button" type="button" aria-label="Close add profile" onClick={() => setActiveDialog(null)}>
                 <BioIcon name="icon_action_reject" size={18} />
               </button>
             </div>
             <form className="family-modal-form" onSubmit={createMember}>
-              <input value={memberName} onChange={(event) => setMemberName(event.target.value)} placeholder="Display name" required />
-              <select value={relationship} onChange={(event) => setRelationship(event.target.value as FamilyRelationship | "")} required>
-                <option value="" disabled>Relationship</option>
-                {relationshipOptions.map((option) => <option key={option} value={option}>{prettyStatus(option)}</option>)}
-              </select>
-              {relationship === "other" ? (
-                <input value={relationshipOtherLabel} onChange={(event) => setRelationshipOtherLabel(event.target.value)} placeholder="Describe relationship" required />
-              ) : null}
+              <div className="family-add-profile-grid">
+                <label className="family-add-profile-field is-wide">
+                  <span className="control-label">Full name</span>
+                  <input value={memberName} onChange={(event) => setMemberName(event.target.value)} autoComplete="name" required />
+                </label>
+                <label className="family-add-profile-field">
+                  <span className="control-label">Relationship</span>
+                  <select value={relationship} onChange={(event) => setRelationship(event.target.value as FamilyRelationship | "")} required>
+                    <option value="" disabled>Select relationship</option>
+                    {relationshipOptions.map((option) => <option key={option} value={option}>{prettyStatus(option)}</option>)}
+                  </select>
+                </label>
+                {relationship === "other" ? (
+                  <label className="family-add-profile-field">
+                    <span className="control-label">Relationship label</span>
+                    <input value={relationshipOtherLabel} onChange={(event) => setRelationshipOtherLabel(event.target.value)} required />
+                  </label>
+                ) : null}
+                <label className="family-add-profile-field">
+                  <span className="control-label">Date of birth</span>
+                  <input type="date" value={dateOfBirth} max={new Date().toISOString().slice(0, 10)} onChange={(event) => setDateOfBirth(event.target.value)} required />
+                </label>
+                <label className="family-add-profile-field">
+                  <span className="control-label">Gender</span>
+                  <select value={gender} onChange={(event) => setGender(event.target.value as ProfileGender | "")}>
+                    {genderOptions.map((option) => <option key={option || "none"} value={option}>{option ? prettyStatus(option) : "Not set"}</option>)}
+                  </select>
+                </label>
+              </div>
+
+              <fieldset className="family-add-profile-section">
+                <legend>Contact details</legend>
+                <div className="family-add-profile-grid">
+                  <label className="family-add-profile-field">
+                    <span className="control-label">Phone number</span>
+                    <input value={phoneNumber} onChange={(event) => setPhoneNumber(event.target.value)} inputMode="tel" autoComplete="tel" />
+                  </label>
+                  <label className="family-add-profile-field">
+                    <span className="control-label">Contact email</span>
+                    <input value={contactEmail} onChange={(event) => setContactEmail(event.target.value)} type="email" autoComplete="email" />
+                  </label>
+                </div>
+                <p>This email is for contact only and will not create an account.</p>
+              </fieldset>
+
+              <fieldset className="family-add-profile-section">
+                <legend>Basic health details</legend>
+                <div className="family-add-profile-grid">
+                  <label className="family-add-profile-field">
+                    <span className="control-label">Blood group</span>
+                    <select value={bloodGroup} onChange={(event) => setBloodGroup(event.target.value as BloodGroup | "")}>
+                      {bloodGroupOptions.map((option) => <option key={option || "none"} value={option}>{option ? prettyStatus(option) : "Not set"}</option>)}
+                    </select>
+                  </label>
+                  <label className="family-add-profile-field">
+                    <span className="control-label">Height (cm)</span>
+                    <input value={heightCm} onChange={(event) => setHeightCm(event.target.value)} inputMode="decimal" />
+                  </label>
+                  <label className="family-add-profile-field">
+                    <span className="control-label">Weight (kg)</span>
+                    <input value={weightKg} onChange={(event) => setWeightKg(event.target.value)} inputMode="decimal" />
+                  </label>
+                  <label className="family-add-profile-field">
+                    <span className="control-label">Profile photo</span>
+                    <input type="file" accept="image/jpeg,image/png,image/heic,image/heif" onChange={(event) => setProfilePhoto(event.target.files?.[0] ?? null)} />
+                  </label>
+                </div>
+                {profilePhoto ? <p>Selected photo: {profilePhoto.name}</p> : null}
+              </fieldset>
               <div className="family-modal-actions">
-                <button className="button button-ghost" type="button" onClick={() => setActiveDialog(null)}>Cancel</button>
-                <button className="button button-primary" type="submit" disabled={!familyId || !memberCreateAllowed}>Add profile</button>
+                <button className="button button-ghost" type="button" disabled={isCreatingProfile} onClick={() => setActiveDialog(null)}>Cancel</button>
+                <button className="button button-primary" type="submit" disabled={!familyId || !memberCreateAllowed || isCreatingProfile}>{isCreatingProfile ? "Adding..." : "Add member"}</button>
               </div>
             </form>
           </div>

@@ -2,6 +2,7 @@
 
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { BioIcon } from "@/components/bio-icon";
@@ -22,7 +23,7 @@ import {
   documentsApi,
   reportsApi
 } from "@/lib/api/klario-api";
-import { uploadAndParseReport, validateReportFile, type UploadStatusUpdate } from "@/lib/api/upload";
+import { validateReportFile } from "@/lib/api/upload";
 import { protectedQueryKey, queryFreshness } from "@/lib/query-cache";
 import type {
   DocumentType,
@@ -95,9 +96,9 @@ export function DocumentsWorkspace() {
   });
   const deleteDocumentMutation = useMutation({
     mutationFn: (documentId: string) => documentsApi.delete(documentId),
-    onSuccess: async () => {
+    onSuccess: async (_data, documentId) => {
       setDocumentPendingDeletion(null);
-      await api.invalidateWorkspaceData();
+      await api.forgetDeletedDocument(documentId);
     }
   });
   const editReportMutation = useMutation({
@@ -265,7 +266,7 @@ export function ReportUploadModal({ source = "files", onClose }: { source?: "fil
             <BioIcon name="icon_action_reject" size={18} />
           </button>
         </div>
-        <UploadWorkspace source={source} />
+        <UploadWorkspace source={source} onStarted={onClose} />
       </div>
     </div>
   );
@@ -288,11 +289,26 @@ function ReportDocumentCard({
   editing: boolean;
   onEdit: (report: ReportSummary) => void;
 }) {
+  const router = useRouter();
   const statusTone = getReportStatusTone(report.status);
   const typeIcon = documentTypeIconMap[asDocumentType(report.report_type.id)];
+  const openReport = () => router.push(`/app/reports/${report.id}`);
 
   return (
-    <Card className="report-document-card">
+    <Card
+      className="report-document-card is-clickable"
+      role="link"
+      tabIndex={0}
+      aria-label={`Open ${report.display_name}`}
+      onClick={openReport}
+      onKeyDown={(event) => {
+        if (event.target !== event.currentTarget) return;
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          openReport();
+        }
+      }}
+    >
       <IconBadge icon={typeIcon} tone={statusTone} />
       <div className="report-document-card-main">
         <div className="record-meta">
@@ -304,15 +320,31 @@ function ReportDocumentCard({
         <p>{report.original_filename}. {report.status_message}</p>
       </div>
       <div className="report-document-card-actions">
-        <Link className="button button-secondary" href={`/app/reports/${report.id}`}>Open</Link>
-        <button className="button button-ghost" type="button" disabled={!report.can_rename || editing} onClick={() => onEdit(report)}>
+        <button className="button button-ghost" type="button" disabled={!report.can_rename || editing} onClick={(event) => {
+          event.stopPropagation();
+          onEdit(report);
+        }}>
           {editing ? "Saving" : "Edit"}
         </button>
-        <button className="button button-ghost danger-action" type="button" disabled={!report.can_archive || deleting} onClick={() => onDelete(report.id)}>
+        <button className="button button-ghost danger-action" type="button" disabled={!report.can_archive || deleting} onClick={(event) => {
+          event.stopPropagation();
+          onDelete(report.id);
+        }}>
           {deleting ? "Archiving" : "Archive"}
         </button>
-        <button className="button button-ghost danger-action" type="button" disabled={!report.can_archive || permanentlyDeleting} onClick={() => onPermanentDelete(report)}>
-          {permanentlyDeleting ? "Deleting" : "Delete"}
+        <button
+          className="button button-ghost danger-action icon-button report-delete-button"
+          type="button"
+          aria-label={permanentlyDeleting ? `Deleting ${report.display_name}` : `Delete ${report.display_name}`}
+          title="Delete report"
+          disabled={!report.can_archive || permanentlyDeleting}
+          onClick={(event) => {
+            event.stopPropagation();
+            onPermanentDelete(report);
+          }}
+        >
+          <BioIcon name={permanentlyDeleting ? "icon_action_loading" : "icon_action_delete"} size={18} />
+          <span className="sr-only">{permanentlyDeleting ? "Deleting" : "Delete"}</span>
         </button>
       </div>
     </Card>
@@ -414,7 +446,7 @@ function ReportEditModal({
   );
 }
 
-export function UploadWorkspace({ source = "files" }: { source?: "files" | "photos" }) {
+export function UploadWorkspace({ source = "files", onStarted }: { source?: "files" | "photos"; onStarted?: () => void }) {
   const api = useKlarioApi();
   const [selectedMemberId, setSelectedMemberId] = useState("");
   const [documentType, setDocumentType] = useState<DocumentType>("lab_report");
@@ -422,7 +454,6 @@ export function UploadWorkspace({ source = "files" }: { source?: "files" | "phot
   const [fileName, setFileName] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [statusMessage, setStatusMessage] = useState("");
-  const [isUploading, setIsUploading] = useState(false);
   const uploadAllowed = canUpload(api.currentRole);
 
   useEffect(() => {
@@ -451,7 +482,7 @@ export function UploadWorkspace({ source = "files" }: { source?: "files" | "phot
     api.setActiveMemberId(memberId);
   };
 
-  const startParsing = async () => {
+  const startParsing = () => {
     if (!selectedFile) {
       setStatusMessage("Choose a supported report file first.");
       return;
@@ -467,27 +498,17 @@ export function UploadWorkspace({ source = "files" }: { source?: "files" | "phot
       return;
     }
 
-    setIsUploading(true);
-    setStatusMessage("Starting upload");
-
-    try {
-      await uploadAndParseReport({
-        familyId: api.activeFamily.id,
-        memberId: selectedMemberId,
-        file: selectedFile,
-        title,
-        documentType,
-        onStatus: (update: UploadStatusUpdate) => setStatusMessage(update.message)
-      });
-      setStatusMessage("Report processed. Dashboard, reports, trends, and attention lists will refresh.");
-      setSelectedFile(null);
-      setFileName("");
-      await api.invalidateWorkspaceData();
-    } catch (uploadError) {
-      setStatusMessage(uploadError instanceof Error ? uploadError.message : "Upload could not be completed. Please try again.");
-    } finally {
-      setIsUploading(false);
-    }
+    api.startReportUpload({
+      familyId: api.activeFamily.id,
+      memberId: selectedMemberId,
+      file: selectedFile,
+      title,
+      documentType
+    });
+    setSelectedFile(null);
+    setFileName("");
+    setStatusMessage(onStarted ? "" : "Your report is being processed in the background. You can keep browsing." );
+    onStarted?.();
   };
 
   return (
@@ -540,9 +561,9 @@ export function UploadWorkspace({ source = "files" }: { source?: "files" | "phot
                 />
                 <span>{fileName || (source === "photos" ? "Choose JPEG, PNG, HEIC, or HEIF" : "Choose PDF, JPEG, PNG, HEIC, or HEIF")}</span>
               </label>
-              <button className="button button-primary" type="button" disabled={isUploading || !selectedFile || !uploadAllowed || !selectedMemberId} onClick={startParsing}>
-                <BioIcon name={isUploading ? "icon_action_loading" : "icon_action_confirm_safe"} size={17} />
-                {isUploading ? "Analyzing" : "Analyze report"}
+              <button className="button button-primary" type="button" disabled={api.uploadState?.tone === "progress" || !selectedFile || !uploadAllowed || !selectedMemberId} onClick={startParsing}>
+                <BioIcon name={api.uploadState?.tone === "progress" ? "icon_action_loading" : "icon_action_confirm_safe"} size={17} />
+                {api.uploadState?.tone === "progress" ? "Processing report" : "Analyze report"}
               </button>
               {statusMessage ? <p className={statusMessage.includes("permission") || statusMessage.includes("supported") ? "form-alert" : "note"}>{statusMessage}</p> : null}
             </div>
@@ -594,6 +615,7 @@ export function TimelineWorkspace() {
 export function ReportDetailWorkspace({ documentId }: { documentId: string }) {
   const api = useKlarioApi();
   const [message, setMessage] = useState("");
+  const [isOpeningOriginal, setIsOpeningOriginal] = useState(false);
   const familyId = api.activeFamily?.id;
   const archiveReportMutation = useMutation({
     mutationFn: () => reportsApi.archive(familyId!, documentId),
@@ -625,11 +647,24 @@ export function ReportDetailWorkspace({ documentId }: { documentId: string }) {
 
   const openDownload = async () => {
     setMessage("");
+    setIsOpeningOriginal(true);
+    // Open the tab during the click event so browsers do not treat the authenticated
+    // download-url request as an unsolicited popup. The returned URL is short-lived and
+    // authorized by the same backend endpoint used by iOS.
+    const originalWindow = window.open("", "_blank");
+    if (originalWindow) originalWindow.opener = null;
     try {
       const download = await documentsApi.downloadUrl(documentId);
-      window.open(download.download_url, "_blank", "noopener,noreferrer");
+      if (originalWindow) {
+        originalWindow.location.replace(download.download_url);
+      } else {
+        window.open(download.download_url, "_blank", "noopener,noreferrer");
+      }
     } catch (error) {
+      originalWindow?.close();
       setMessage(error instanceof Error ? error.message : "Report download is not available.");
+    } finally {
+      setIsOpeningOriginal(false);
     }
   };
 
@@ -640,7 +675,9 @@ export function ReportDetailWorkspace({ documentId }: { documentId: string }) {
         subtitle="Editable report detail from the backend reports API."
         action={
           <div className="button-row compact">
-            <button className="button button-secondary" type="button" disabled={!report} onClick={() => void openDownload()}>View report</button>
+            <button className="button button-secondary" type="button" disabled={!report || isOpeningOriginal} onClick={() => void openDownload()}>
+              {isOpeningOriginal ? "Opening..." : "View original report"}
+            </button>
             <Link className="button button-ghost" href="/app/reports">All reports</Link>
             {report?.status === "archived" ? (
               <button className="button button-secondary" type="button" disabled={restoreReportMutation.isPending} onClick={() => restoreReportMutation.mutate()}>
