@@ -2,24 +2,27 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { appNav } from "@/lib/klario-data";
 import { Brand } from "@/components/brand";
-import { NavIcon, type NavIconName } from "@/components/nav-icon";
+import { BioIcon } from "@/components/bio-icon";
+import { NavIcon } from "@/components/nav-icon";
+import { useKlarioApi } from "@/components/klario-api-provider";
+import type { KlarioIconName } from "@/lib/icons";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { backendLogout } = useKlarioApi();
   const [menuOpen, setMenuOpen] = useState(false);
-  const navIcons: Record<string, NavIconName> = {
-    "/app/dashboard": "dashboard",
-    "/app/documents": "documents",
-    "/app/upload": "upload",
-    "/app/timeline": "calendar",
-    "/app/trends": "trends",
-    "/app/attention": "info",
-    "/app/invites": "sparkles",
-    "/app/family": "family"
+  const navIcons: Record<string, KlarioIconName> = {
+    "/app/dashboard": "icon_tab_dashboard",
+    "/app/trends": "icon_tab_trends",
+    "/app/reports": "icon_tab_documents",
+    "/app/family": "icon_tab_family",
+    "/app/settings": "icon_tab_settings"
   };
+  const isActiveRoute = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
   useEffect(() => {
     setMenuOpen(false);
@@ -28,7 +31,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <header className={`site-header floating-glass-nav app-floating-nav${menuOpen ? " is-mobile-open" : ""}`}>
+      <header className={`site-header${menuOpen ? " is-mobile-open" : ""}`}>
         <nav className="navbar" aria-label="App navigation">
           <div className="mobile-nav-head">
             <Brand href="/app/dashboard" />
@@ -44,26 +47,26 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
           <div className="app-nav">
             <Brand href="/app/dashboard" />
+          </div>
+          <div className="nav-right">
             {appNav.map((item) => (
-              <Link key={item.href} className={`nav-link${pathname === item.href ? " is-active" : ""}`} href={item.href} title={item.label} onClick={() => setMenuOpen(false)}>
-                <NavIcon name={navIcons[item.href]} size={17} />
+              <Link key={item.href} className={`nav-link${isActiveRoute(item.href) ? " is-active" : ""}`} href={item.href} title={item.label} onClick={() => setMenuOpen(false)}>
+                <BioIcon name={navIcons[item.href]} size={24} />
                 <span className="nav-label">{item.label}</span>
               </Link>
             ))}
-          </div>
-          <div className="nav-right">
-            <Link className={`nav-link${pathname === "/app/account" ? " is-active" : ""}`} href="/app/account" title="Profile" onClick={() => setMenuOpen(false)}>
-              <NavIcon name="user" size={17} />
-              <span className="nav-label">Profile</span>
-            </Link>
-            <Link className={`nav-link${pathname === "/app/settings" ? " is-active" : ""}`} href="/app/settings" title="Settings" onClick={() => setMenuOpen(false)}>
-              <NavIcon name="gear" size={17} />
-              <span className="nav-label">Settings</span>
-            </Link>
-            <Link className="button button-ghost nav-action" href="/" title="Log out" onClick={() => setMenuOpen(false)}>
+            <button
+              className="button button-ghost nav-action"
+              type="button"
+              title="Log out"
+              onClick={() => {
+                setMenuOpen(false);
+                void backendLogout().finally(() => router.push("/login"));
+              }}
+            >
               <NavIcon name="logout" size={17} />
               <span className="nav-label">Log out</span>
-            </Link>
+            </button>
           </div>
         </nav>
       </header>

@@ -1,17 +1,16 @@
+import type { KlarioIconName } from "@/lib/icons";
+
 export const publicNav = [
-  { label: "About", href: "/about" },
-  { label: "Features", href: "/features" }
+  { label: "Product", href: "/features", icon: "product" },
+  { label: "About", href: "/about", icon: "info" }
 ];
 
 export const appNav = [
   { label: "Dashboard", href: "/app/dashboard" },
-  { label: "Documents", href: "/app/documents" },
-  { label: "Upload", href: "/app/upload" },
-  { label: "Timeline", href: "/app/timeline" },
   { label: "Trends", href: "/app/trends" },
-  { label: "Attention", href: "/app/attention" },
-  { label: "Invites", href: "/app/invites" },
-  { label: "Family", href: "/app/family" }
+  { label: "Reports", href: "/app/reports" },
+  { label: "Family", href: "/app/family" },
+  { label: "Settings", href: "/app/settings" }
 ];
 
 export const featureSnapshots = [
@@ -41,125 +40,37 @@ export const featureSnapshots = [
   }
 ];
 
-export const appMetrics = [
-  { value: "14", label: "Documents", body: "Reports saved in Klario." },
-  { value: "3", label: "Review needed", body: "Values waiting for confirmation." },
-  { value: "2", label: "Out-of-range labs", body: "Results outside reference range." },
-  { value: "4", label: "Recommendations", body: "Suggested follow-up items." }
-];
-
-export const documents = [
+export const productUseCases: Array<{ title: string; body: string; icon: KlarioIconName }> = [
   {
-    title: "CBC + Ferritin Panel",
-    source: "Apollo Diagnostics",
-    date: "18 May 2025",
-    owner: "Joel",
-    status: "Needs review",
-    summary: "Ferritin below range. Three extracted values need confirmation.",
-    tags: ["Ferritin low", "CBC", "Review"]
+    title: "Track long-term biomarkers",
+    body: "Follow HbA1c, ferritin, vitamin D, thyroid, cholesterol, CBC, and other repeated values across reports.",
+    icon: "icon_tab_trends"
   },
   {
-    title: "Pediatric Visit - May 2025",
-    source: "Fortis Hospital",
-    date: "15 May 2025",
-    owner: "Mia",
-    status: "Saved",
-    summary: "Visit notes, medication plan, and growth metrics saved to timeline.",
-    tags: ["Visit", "Medication", "Timeline"]
+    title: "Prepare for doctor visits",
+    body: "Bring a cleaner view of recent reports, flagged values, and timeline context into appointments.",
+    icon: "icon_med_visit"
   },
   {
-    title: "Iron + Vitamin D",
-    source: "Thyrocare",
-    date: "10 April 2025",
-    owner: "Joel",
-    status: "Watch",
-    summary: "Vitamin D marked as watch with a repeat-test reminder.",
-    tags: ["Vitamin D", "Iron", "Watch"]
+    title: "Care for parents",
+    body: "Keep older family members' reports organized and compare changes without hunting through old files.",
+    icon: "icon_tab_family"
   },
   {
-    title: "Annual Wellness Panel",
-    source: "CityLab",
-    date: "3 February 2025",
-    owner: "Dad",
-    status: "Saved",
-    summary: "Metabolic markers, lipids, and HbA1c added to long-term trends.",
-    tags: ["HbA1c", "Lipids", "Saved"]
+    title: "Manage child records",
+    body: "Store visits, prescriptions, vaccines, growth metrics, and lab reports in one chronological record.",
+    icon: "icon_med_vaccine"
+  },
+  {
+    title: "Review new reports faster",
+    body: "See what needs attention, what changed, and which values should be confirmed before saving.",
+    icon: "icon_review_required"
+  },
+  {
+    title: "Build a family timeline",
+    body: "Connect reports, appointments, medications, and notes by date while keeping profiles separate.",
+    icon: "icon_timeline_empty"
   }
-];
-
-export const timelineEvents = [
-  {
-    date: "18 May 2025",
-    title: "CBC + Ferritin Panel",
-    body: "Apollo Diagnostics. Ferritin low and awaiting review."
-  },
-  {
-    date: "15 May 2025",
-    title: "Pediatric check-up",
-    body: "Fortis Hospital. Dr. Gupta. Visit notes added for Mia."
-  },
-  {
-    date: "10 April 2025",
-    title: "Thyroid + Vitamin D",
-    body: "Thyrocare. Vitamin D borderline with repeat-test reminder."
-  },
-  {
-    date: "8 April 2025",
-    title: "Amoxicillin 250mg",
-    body: "Seven-day course recorded as a medication event."
-  },
-  {
-    date: "3 February 2025",
-    title: "Iron panel",
-    body: "Thyrocare. All values in range."
-  }
-];
-
-export const biomarkerTrends = [
-  {
-    name: "Ferritin",
-    value: "22",
-    unit: "ng/mL",
-    range: "30-400 ng/mL",
-    status: "Low",
-    description: "Iron storage marker trending below the reference range.",
-    points: [34, 31, 28, 26, 24, 22]
-  },
-  {
-    name: "Vitamin D (25-OH)",
-    value: "24",
-    unit: "ng/mL",
-    range: "30-100 ng/mL",
-    status: "Watch",
-    description: "Borderline value with a repeat-test reminder queued.",
-    points: [18, 21, 26, 24]
-  },
-  {
-    name: "Haemoglobin",
-    value: "12.4",
-    unit: "g/dL",
-    range: "11.5-16.0 g/dL",
-    status: "In range",
-    description: "Stable across the last five reports.",
-    points: [12.0, 12.2, 12.1, 12.5, 12.4]
-  },
-  {
-    name: "WBC",
-    value: "7.2",
-    unit: "x10^9/L",
-    range: "4.0-11.0 x10^9/L",
-    status: "In range",
-    description: "White blood cell count remains within range.",
-    points: [6.4, 7.1, 6.9, 7.5, 7.2]
-  }
-];
-
-export const familyProfiles = [
-  { name: "Joel", role: "Workspace owner", detail: "Adult profile", documents: 8 },
-  { name: "Mia", role: "Child", detail: "Eight years old", documents: 3 },
-  { name: "Dad", role: "Parent", detail: "Sixty two years old", documents: 2 },
-  { name: "Mom", role: "Parent", detail: "Fifty eight years old", documents: 1 },
-  { name: "Pet profile", role: "Companion care", detail: "Species selected before upload", documents: 0 }
 ];
 
 export const uploadMethods = [

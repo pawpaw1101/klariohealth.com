@@ -21,15 +21,19 @@ export function AmbientEffects() {
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const isTouch = window.matchMedia("(pointer: coarse)").matches;
     const hasHeroWebGL = pathname === "/";
+    const isWorkspaceRoute = pathname.startsWith("/app");
     document.documentElement.classList.toggle("is-touch", isTouch);
 
     const cleanups: Array<() => void> = [];
     if (webglRef.current) {
-      webglRef.current.style.display = hasHeroWebGL ? "none" : "";
-      if (!hasHeroWebGL) cleanups.push(initWebGL(webglRef.current, mouseRef.current, reducedMotion));
+      webglRef.current.style.display = hasHeroWebGL || isWorkspaceRoute ? "none" : "";
+      if (!hasHeroWebGL && !isWorkspaceRoute) cleanups.push(initWebGL(webglRef.current, mouseRef.current, reducedMotion));
     }
-    if (particlesRef.current) cleanups.push(initParticles(particlesRef.current, mouseRef.current, reducedMotion || isTouch));
-    if (cursorRef.current) cleanups.push(initCursor(cursorRef.current, mouseRef.current, reducedMotion || isTouch));
+    if (particlesRef.current) {
+      particlesRef.current.style.display = isWorkspaceRoute ? "none" : "";
+      if (!isWorkspaceRoute) cleanups.push(initParticles(particlesRef.current, mouseRef.current, reducedMotion || isTouch));
+    }
+    if (cursorRef.current) cleanups.push(initCursor(cursorRef.current, mouseRef.current, true));
 
     return () => cleanups.forEach((cleanup) => cleanup());
   }, [pathname]);
@@ -118,7 +122,7 @@ export function AmbientEffects() {
 
   return (
     <>
-      <canvas id="klario-webgl" className={pathname === "/" ? "is-home-hidden" : undefined} ref={webglRef} aria-hidden="true" />
+      <canvas id="klario-webgl" className={pathname === "/" || pathname.startsWith("/app") ? "is-home-hidden" : undefined} ref={webglRef} aria-hidden="true" />
       <canvas id="klario-particles" ref={particlesRef} aria-hidden="true" />
       <div id="klario-cursor" ref={cursorRef} aria-hidden="true" />
     </>
@@ -424,6 +428,10 @@ function initReveal(reducedMotion: boolean) {
     ".timeline-list > *",
     ".liquid-hero-copy > *",
     ".liquid-hero-panel",
+    ".premium-section-copy",
+    ".premium-step",
+    ".premium-feature",
+    ".premium-section .reveal",
     ".cascade-card",
     ".cascade-feature",
     ".cascade-step"
@@ -461,25 +469,11 @@ function initInteractions(disabled: boolean) {
 
   const cleanup: Array<() => void> = [];
   document.querySelectorAll<HTMLElement>(".button-primary, .button-secondary").forEach((button) => {
-    button.classList.add("magnetic");
-    const onMove = (event: MouseEvent) => {
-      const rect = button.getBoundingClientRect();
-      const x = event.clientX - rect.left - rect.width / 2;
-      const y = event.clientY - rect.top - rect.height / 2;
-      button.style.transform = `translate(${x * 0.16}px, ${y * 0.2}px)`;
-    };
-    const onLeave = () => {
-      button.style.transform = "";
-    };
-    button.addEventListener("mousemove", onMove);
-    button.addEventListener("mouseleave", onLeave);
-    cleanup.push(() => {
-      button.removeEventListener("mousemove", onMove);
-      button.removeEventListener("mouseleave", onLeave);
-    });
+    button.classList.remove("magnetic");
+    button.style.transform = "";
   });
 
-  document.querySelectorAll<HTMLElement>(".card, .screenshot-card, .metric, .form-panel, .hero-image, .record, .liquid-hero-panel, .cascade-feature, .cascade-step").forEach((card) => {
+  document.querySelectorAll<HTMLElement>(".card, .screenshot-card, .metric, .form-panel, .hero-image, .record, .liquid-hero-panel, .premium-step, .premium-feature, .cascade-feature, .cascade-step").forEach((card) => {
     card.classList.add("tilt-card");
     const onMove = (event: MouseEvent) => {
       const rect = card.getBoundingClientRect();

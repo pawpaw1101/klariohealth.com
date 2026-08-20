@@ -1,20 +1,21 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import uploadImage from "@/assets/screenshots/klario-add-document.jpeg";
 import { BioIcon } from "@/components/bio-icon";
 import { SectionHeader } from "@/components/section";
+import { productUseCases } from "@/lib/klario-data";
+import type { KlarioIconName } from "@/lib/icons";
 
 export const metadata: Metadata = {
   title: "Features",
   description: "AI-powered parsing, biomarker charts, actionable insights, and family tracking from one medical report app."
 };
 
-const features = [
+const features: Array<{ title: string; body: string; icon: KlarioIconName }> = [
   {
     title: "AI powered",
     body: "Klario uses AI to extract meaningful health data from uploaded medical reports and turn it into structured records.",
-    icon: "icon_signal_insights"
+    icon: "icon_signal_summary"
   },
   {
     title: "Tuned engine",
@@ -39,7 +40,7 @@ const features = [
   {
     title: "Record explanations",
     body: "Klario explains what a record means in plain language and what the tracked value is doing in the body.",
-    icon: "icon_signal_confidence"
+    icon: "icon_parser_confidence"
   }
 ];
 
@@ -52,27 +53,27 @@ const steps = [
 
 export default function FeaturesPage() {
   return (
-    <main className="content cascade-page">
+    <main className="content premium-page">
       <section className="hero">
         <div className="hero-copy">
-          <p className="eyebrow"><span className="eyebrow-dot" aria-hidden="true" /> Features</p>
+
           <h1>From uploaded report to useful health timeline.</h1>
           <p className="hero-lead">
             Klario is designed around the full flow: capture a report, parse it accurately, review important values, chart changes, and explain what the record means.
           </p>
           <div className="button-row">
             <Link className="button button-primary" href="/login">
-              Try for free
+              Try now / Download
               <BioIcon name="icon_action_continue" size={18} />
             </Link>
           </div>
         </div>
         <figure className="hero-image">
-          <Image src={uploadImage} alt="Klario upload screen showing report import methods" priority sizes="(max-width: 900px) 100vw, 540px" />
+          <Image src="/investor-screens/09_report_detail_structured.png" alt="Klario structured laboratory report" width={1320} height={2868} priority sizes="(max-width: 900px) 100vw, 540px" />
         </figure>
       </section>
 
-      <section className="section">
+      <section className="section" id="capabilities">
         <SectionHeader
           label="Capabilities"
           title="Core features"
@@ -89,7 +90,7 @@ export default function FeaturesPage() {
         </div>
       </section>
 
-      <section className="section">
+      <section className="section" id="how-it-works">
         <SectionHeader
           label="Workflow"
           title="How it works"
@@ -106,11 +107,28 @@ export default function FeaturesPage() {
         </div>
       </section>
 
-      <section className="cta-banner">
+      <section className="section" id="use-cases">
+        <SectionHeader
+          label="Scenarios"
+          title="Use cases"
+          intro="Each workflow starts with a report and ends with a clearer timeline, trend, or review queue."
+        />
+        <div className="grid feature-grid">
+          {productUseCases.map((item) => (
+            <article className="card" key={item.title}>
+              <span className="feature-icon" aria-hidden="true"><BioIcon name={item.icon} size={24} /></span>
+              <h3>{item.title}</h3>
+              <p>{item.body}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="cta-banner" id="start">
         <h2>Ready to see your data differently?</h2>
         <p>Upload your first report and watch Klario build your health timeline.</p>
         <div className="button-row">
-          <Link className="button button-primary" href="/login">Try for free</Link>
+          <Link className="button button-primary" href="/login">Try now / Download</Link>
           <Link className="button button-secondary" href="/about">Learn our story</Link>
         </div>
       </section>

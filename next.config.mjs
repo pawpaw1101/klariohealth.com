@@ -6,6 +6,8 @@ const nextConfig = {
       { source: "/about.html", destination: "/about", permanent: false },
       { source: "/features.html", destination: "/features", permanent: false },
       { source: "/login.html", destination: "/login", permanent: false },
+      { source: "/forgot-password.html", destination: "/forgot-password", permanent: false },
+      { source: "/reset-password.html", destination: "/reset-password", permanent: false },
       { source: "/app/dashboard.html", destination: "/app/dashboard", permanent: false },
       { source: "/app/documents.html", destination: "/app/documents", permanent: false },
       { source: "/app/upload.html", destination: "/app/upload", permanent: false },

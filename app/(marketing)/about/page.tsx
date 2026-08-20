@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import trendsImage from "@/assets/screenshots/klario-trends.jpeg";
 import { BioIcon } from "@/components/bio-icon";
 import { SectionHeader } from "@/components/section";
+import type { KlarioIconName } from "@/lib/icons";
 
 export const metadata: Metadata = {
   title: "About",
   description: "Klario was born from a real need: finding when a parent's blood sugar started spiking across hundreds of lab reports."
 };
 
-const problemCards = [
+const problemCards: Array<{ title: string; body: string; icon: KlarioIconName }> = [
   {
     title: "Reports are scattered",
     body: "Lab results often live across email, paper folders, PDFs, hospital portals, and phone galleries.",
@@ -29,16 +29,16 @@ const problemCards = [
   {
     title: "Medical language is dense",
     body: "Reports can explain what a value is, but not always what it means in plain language for everyday tracking.",
-    icon: "icon_signal_insights"
+    icon: "icon_signal_summary"
   }
 ];
 
 export default function AboutPage() {
   return (
-    <main className="content cascade-page">
+    <main className="content premium-page">
       <section className="hero">
         <div className="hero-copy">
-          <p className="eyebrow"><span className="eyebrow-dot" aria-hidden="true" /> About Klario</p>
+
           <h1>Health records should not feel impossible to follow.</h1>
           <p className="hero-lead">
             Klario helps people organize medical reports, track biomarker changes, and understand what their records are saying over time.
@@ -46,15 +46,15 @@ export default function AboutPage() {
           </p>
         </div>
         <figure className="hero-image">
-          <Image src={trendsImage} alt="Klario workspace showing biomarker trends" priority sizes="(max-width: 900px) 100vw, 540px" />
+          <Image src="/investor-screens/16_trend_hba1c_year.png" alt="Klario longitudinal health trend" width={1206} height={2622} priority sizes="(max-width: 900px) 100vw, 540px" />
         </figure>
       </section>
 
       <section className="section">
         <div className="story-block story-block-rich story-block-who">
           <div className="story-card-heading">
-            <span className="feature-icon" aria-hidden="true"><BioIcon name="icon_signal_confidence" size={24} /></span>
-            <p className="section-label">Who we are</p>
+            <span className="feature-icon" aria-hidden="true"><BioIcon name="icon_parser_confidence" size={24} /></span>
+
             <h2>Personal health records, made easier to follow.</h2>
           </div>
           <div className="story-block-content">
@@ -74,7 +74,7 @@ export default function AboutPage() {
         <div className="story-block story-block-rich story-block-started">
           <div className="story-card-heading">
             <span className="feature-icon" aria-hidden="true"><BioIcon name="icon_tab_trends" size={24} /></span>
-            <p className="section-label">How we started</p>
+
             <h2>One family question became the product brief.</h2>
           </div>
           <div className="story-block-content">
@@ -109,8 +109,8 @@ export default function AboutPage() {
       <section className="section">
         <div className="story-block story-block-rich story-block-solution">
           <div className="story-card-heading">
-            <span className="feature-icon" aria-hidden="true"><BioIcon name="icon_signal_insights" size={24} /></span>
-            <p className="section-label">Our solution</p>
+            <span className="feature-icon" aria-hidden="true"><BioIcon name="icon_signal_summary" size={24} /></span>
+
             <h2>Turn every report into something you can act on.</h2>
           </div>
           <div className="story-block-content">

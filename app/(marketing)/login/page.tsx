@@ -15,15 +15,29 @@ const benefits = [
   "Manage health records for your whole family"
 ];
 
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams
+}: {
+  searchParams: Promise<{ reset?: string | string[]; session?: string | string[] }>;
+}) {
+  const params = await searchParams;
+  const reset = Array.isArray(params.reset) ? params.reset[0] : params.reset;
+  const session = Array.isArray(params.session) ? params.session[0] : params.session;
+  const notice =
+    reset === "success"
+      ? "Password has been reset successfully. Sign in with your new password."
+      : session === "expired"
+        ? "Your session expired. Please sign in again."
+        : undefined;
+
   return (
-    <main className="content cascade-page">
+    <main className="content auth-page">
       <section className="hero">
         <div className="hero-copy">
-          <p className="eyebrow"><span className="eyebrow-dot" aria-hidden="true" /> Try for free</p>
-          <h1>Enter the Klario web app.</h1>
+
+          <h1>Sign in to Klario.</h1>
           <p className="hero-lead">
-            Create an account or sign in to upload reports, view biomarker charts, review extracted values, and manage family records all in one place.
+            Sign in with your password, then confirm with a one-time code sent to your email.
           </p>
           <div className="login-benefits">
             {benefits.map((benefit) => (
@@ -34,18 +48,7 @@ export default function LoginPage() {
             ))}
           </div>
         </div>
-        <LoginForm />
-      </section>
-
-      <section className="section">
-        <SectionHeader
-          label="Next steps"
-          title="What happens next"
-          intro="After login, you enter the web app where you can explore the full Klario experience: dashboard, documents, trends, timeline, and family profiles."
-        />
-        <div className="button-row">
-          <Link className="button button-secondary" href="/app/dashboard">Open app</Link>
-        </div>
+        <LoginForm notice={notice} />
       </section>
     </main>
   );

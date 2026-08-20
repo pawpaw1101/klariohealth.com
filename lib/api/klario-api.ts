@@ -1,19 +1,32 @@
-import { apiFetch, getApiRootUrl } from "@/lib/api/client";
+import { apiFetch } from "@/lib/api/client";
 import type {
+  AccountDeletionPreview,
+  AccountDeletionRequestCreate,
+  AccountDeletionRequestResponse,
+  AccountReauthenticationProof,
+  AccountReauthenticationRequest,
+  AccountSessionListResponse,
+  AccountSummaryResponse,
   AttentionItem,
   AttentionPatchRequest,
   BloodPressureTrendResponse,
+  ChangePasswordRequest,
   DashboardResponse,
   Document as KlarioDocument,
-  DocumentCreateRequest,
   DocumentUpdateRequest,
   DownloadUrlResponse,
   Family,
   FamilyCreateRequest,
   FamilyInvite,
   FamilyMember,
+  FamilyProfileDetail,
+  FamilyProfileUpdate,
+  ProfilePhotoUploadCompleteRequest,
+  ProfilePhotoUploadIntentRequest,
+  ProfilePhotoUploadIntentResponse,
   FamilyRole,
   FamilyRoleType,
+  ForgotPasswordRequest,
   FamilyUpdateRequest,
   InviteAcceptRequest,
   InviteCreateRequest,
@@ -23,17 +36,46 @@ import type {
   MemberAttentionListResponse,
   MemberCreateRequest,
   MemberUpdateRequest,
-  ParseJob,
+  MetricCatalogItem,
+  MetricCategoryListResponse,
+  OnboardingDependentCreate,
+  OnboardingDependentResponse,
+  OnboardingFamilyCreate,
+  OnboardingFamilyResponse,
+  OnboardingInviteCreate,
+  OnboardingProfileUpdate,
+  OnboardingStatusResponse,
+  OtpRequest,
+  OtpRequestResponse,
+  OtpVerifyRequest,
   ParseJobCreateResponse,
-  ParsedResult,
-  ParserRun,
+  PasswordResetRequest,
+  PasswordResetVerifyRequest,
+  PasswordResetResponse,
+  RefreshTokenRequest,
   RegisterRequest,
+  ReportDetail,
+  ReportListResponse,
+  ReportPublicStatus,
+  ReportSort,
+  ReportSummary,
+  ReportUpdateRequest,
+  RevokeOtherSessionsResponse,
   RoleCreateRequest,
   RoleUpdateRequest,
+  SecurityEventListResponse,
+  SecurityAlertPreferences,
+  SecurityAlertPreferencesUpdate,
+  NotificationPreferencesResponse,
+  NotificationPreferencesUpdateRequest,
   TokenResponse,
+  TrackedMetricCreate,
+  TrackedMetricResponse,
   TrendDetailResponse,
   TrendRange,
   TrendsListResponse,
+  UnitPreferencesResponse,
+  UnitPreferencesUpdateRequest,
   UploadCompleteRequest,
   UploadCompleteResponse,
   UploadIntentRequest,
@@ -42,23 +84,79 @@ import type {
 } from "@/lib/api/types";
 
 export const authApi = {
-  register: (body: RegisterRequest) => apiFetch<User>("/auth/register", { method: "POST", body, auth: false }),
-  login: (body: LoginRequest) => apiFetch<TokenResponse>("/auth/login", { method: "POST", body, auth: false }),
-  me: () => apiFetch<User>("/users/me")
+  register: (body: RegisterRequest) =>
+    apiFetch<OtpRequestResponse>("/auth/register", { method: "POST", body, auth: false }),
+  login: (body: LoginRequest) =>
+    apiFetch<OtpRequestResponse>("/auth/login", { method: "POST", body, auth: false }),
+  requestOtp: (body: OtpRequest) => apiFetch<OtpRequestResponse>("/auth/otp/request", { method: "POST", body, auth: false }),
+  verifyOtp: (body: OtpVerifyRequest) => apiFetch<TokenResponse>("/auth/otp/verify", { method: "POST", body, auth: false }),
+  refresh: (body: RefreshTokenRequest) => apiFetch<TokenResponse>("/auth/refresh", { method: "POST", body, auth: false }),
+  logout: (body: RefreshTokenRequest) => apiFetch<void>("/auth/logout", { method: "POST", body, auth: false }),
+  changePassword: (body: ChangePasswordRequest) => apiFetch<TokenResponse>("/auth/change-password", { method: "POST", body }),
+  forgotPassword: (body: ForgotPasswordRequest) =>
+    apiFetch<PasswordResetResponse>("/auth/forgot-password", { method: "POST", body, auth: false }),
+  requestPasswordResetOtp: (body: ForgotPasswordRequest) =>
+    apiFetch<OtpRequestResponse>("/auth/forgot-password/request", { method: "POST", body, auth: false }),
+  verifyPasswordResetOtp: (body: PasswordResetVerifyRequest) =>
+    apiFetch<PasswordResetResponse>("/auth/forgot-password/verify", { method: "POST", body, auth: false }),
+  resetForgotPassword: (body: PasswordResetRequest) =>
+    apiFetch<PasswordResetResponse>("/auth/forgot-password/reset", { method: "POST", body, auth: false }),
+  resetPassword: (body: PasswordResetRequest) =>
+    apiFetch<PasswordResetResponse>("/auth/reset-password", { method: "POST", body, auth: false }),
+  me: () => apiFetch<User>("/users/me"),
+  authMe: () => apiFetch<User>("/auth/me")
+};
+
+export const accountApi = {
+  get: () => apiFetch<AccountSummaryResponse>("/account"),
+  sessions: () => apiFetch<AccountSessionListResponse>("/account/sessions"),
+  revokeSession: (sessionId: string) => apiFetch<void>(`/account/sessions/${sessionId}`, { method: "DELETE" }),
+  revokeOtherSessions: () => apiFetch<RevokeOtherSessionsResponse>("/account/sessions/revoke-others", { method: "POST" }),
+  securityEvents: (params: { limit?: number; before?: string } = {}) =>
+    apiFetch<SecurityEventListResponse>(withQuery("/account/security-events", params)),
+  notificationPreferences: () => apiFetch<NotificationPreferencesResponse>("/account/notification-preferences"),
+  updateNotificationPreferences: (body: NotificationPreferencesUpdateRequest) =>
+    apiFetch<NotificationPreferencesResponse>("/account/notification-preferences", { method: "PATCH", body }),
+  securityAlertPreferences: () => apiFetch<SecurityAlertPreferences>("/account/security-alert-preferences"),
+  updateSecurityAlertPreferences: (body: SecurityAlertPreferencesUpdate) =>
+    apiFetch<SecurityAlertPreferences>("/account/security-alert-preferences", { method: "PATCH", body }),
+  unitPreferences: () => apiFetch<UnitPreferencesResponse>("/account/unit-preferences"),
+  updateUnitPreferences: (body: UnitPreferencesUpdateRequest) =>
+    apiFetch<UnitPreferencesResponse>("/account/unit-preferences", { method: "PATCH", body }),
+  deletionPreview: () => apiFetch<AccountDeletionPreview>("/account/deletion-preview"),
+  reauthenticate: (body: AccountReauthenticationRequest) =>
+    apiFetch<AccountReauthenticationProof>("/account/reauthenticate", { method: "POST", body }),
+  requestDeletion: (body: AccountDeletionRequestCreate) =>
+    apiFetch<AccountDeletionRequestResponse>("/account/deletion-requests", { method: "POST", body })
+};
+
+export const onboardingApi = {
+  status: () => apiFetch<OnboardingStatusResponse>("/onboarding/status"),
+  updateProfile: (body: OnboardingProfileUpdate) =>
+    apiFetch<OnboardingStatusResponse>("/onboarding/profile", { method: "PATCH", body }),
+  createFamily: (body: OnboardingFamilyCreate) =>
+    apiFetch<OnboardingFamilyResponse>("/onboarding/family", { method: "POST", body }),
+  createDependent: (body: OnboardingDependentCreate) =>
+    apiFetch<OnboardingDependentResponse>("/onboarding/dependents", { method: "POST", body }),
+  createInvite: (body: OnboardingInviteCreate) =>
+    apiFetch<InviteCreateResponse>("/onboarding/invites", { method: "POST", body }),
+  complete: () => apiFetch<OnboardingStatusResponse>("/onboarding/complete", { method: "POST" })
 };
 
 export const familiesApi = {
   create: (body: FamilyCreateRequest) => apiFetch<Family>("/families", { method: "POST", body }),
   list: () => apiFetch<Family[]>("/families"),
   get: (familyId: string) => apiFetch<Family>(`/families/${familyId}`),
-  update: (familyId: string, body: FamilyUpdateRequest) => apiFetch<Family>(`/families/${familyId}`, { method: "PATCH", body })
+  update: (familyId: string, body: FamilyUpdateRequest) => apiFetch<Family>(`/families/${familyId}`, { method: "PATCH", body }),
+  delete: (familyId: string) => apiFetch<void>(`/families/${familyId}`, { method: "DELETE" })
 };
 
 export const membersApi = {
   create: (familyId: string, body: MemberCreateRequest) => apiFetch<FamilyMember>(`/families/${familyId}/members`, { method: "POST", body }),
   list: (familyId: string) => apiFetch<FamilyMember[]>(`/families/${familyId}/members`),
   get: (memberId: string) => apiFetch<FamilyMember>(`/members/${memberId}`),
-  update: (memberId: string, body: MemberUpdateRequest) => apiFetch<FamilyMember>(`/members/${memberId}`, { method: "PATCH", body })
+  update: (memberId: string, body: MemberUpdateRequest) => apiFetch<FamilyMember>(`/members/${memberId}`, { method: "PATCH", body }),
+  delete: (memberId: string) => apiFetch<void>(`/members/${memberId}`, { method: "DELETE" })
 };
 
 export const rolesApi = {
@@ -69,10 +167,10 @@ export const rolesApi = {
 };
 
 export const documentsApi = {
-  create: (familyId: string, body: DocumentCreateRequest) => apiFetch<KlarioDocument>(`/families/${familyId}/documents`, { method: "POST", body }),
   list: (familyId: string) => apiFetch<KlarioDocument[]>(`/families/${familyId}/documents`),
   get: (documentId: string) => apiFetch<KlarioDocument>(`/documents/${documentId}`),
   update: (documentId: string, body: DocumentUpdateRequest) => apiFetch<KlarioDocument>(`/documents/${documentId}`, { method: "PATCH", body }),
+  delete: (documentId: string) => apiFetch<void>(`/documents/${documentId}`, { method: "DELETE" }),
   uploadIntent: (familyId: string, body: UploadIntentRequest) =>
     apiFetch<UploadIntentResponse>(`/families/${familyId}/documents/upload-intent`, { method: "POST", body }),
   uploadComplete: (documentId: string, body: UploadCompleteRequest) =>
@@ -82,20 +180,51 @@ export const documentsApi = {
 
 export const parseApi = {
   createOcrJob: (documentId: string) => apiFetch<ParseJobCreateResponse>(`/documents/${documentId}/parse-jobs`, { method: "POST" }),
-  listOcrJobs: (documentId: string) => apiFetch<ParseJob[]>(`/documents/${documentId}/parse-jobs`),
-  getOcrJob: (parseJobId: string) => apiFetch<ParseJob>(`/parse-jobs/${parseJobId}`),
   createMedicalJob: (documentId: string) =>
-    apiFetch<MedicalParseJobCreateResponse>(`/documents/${documentId}/medical-parse-jobs`, { method: "POST" }),
-  listParserRuns: (documentId: string) => apiFetch<ParserRun[]>(`/documents/${documentId}/parser-runs`),
-  listParsedResults: (documentId: string) => apiFetch<ParsedResult[]>(`/documents/${documentId}/parsed-results`),
-  listDocumentAttentionItems: (documentId: string) => apiFetch<AttentionItem[]>(`/documents/${documentId}/attention-items`)
+    apiFetch<MedicalParseJobCreateResponse>(`/documents/${documentId}/medical-parse-jobs`, { method: "POST" })
+};
+
+export const reportsApi = {
+  list: (
+    familyId: string,
+    params: {
+      member_id?: string;
+      report_type?: string;
+      status?: ReportPublicStatus;
+      search?: string;
+      sort?: ReportSort;
+      date_from?: string;
+      date_to?: string;
+      cursor?: string;
+      limit?: number;
+      include_archived?: boolean;
+      updated_since?: string;
+    } = {}
+  ) => apiFetch<ReportListResponse>(withQuery(`/families/${familyId}/reports`, params)),
+  get: (familyId: string, reportId: string) => apiFetch<ReportSummary>(`/families/${familyId}/reports/${reportId}`),
+  detail: (familyId: string, reportId: string) => apiFetch<ReportDetail>(`/families/${familyId}/reports/${reportId}/detail`),
+  update: (familyId: string, reportId: string, body: ReportUpdateRequest) =>
+    apiFetch<ReportDetail>(`/families/${familyId}/reports/${reportId}`, {
+      method: "PATCH",
+      body,
+      headers: {
+        "Idempotency-Key": crypto.randomUUID(),
+        "X-Klario-Edit-Source": "web"
+      }
+    }),
+  retry: (familyId: string, reportId: string) =>
+    apiFetch<ReportSummary>(`/families/${familyId}/reports/${reportId}/retry`, { method: "POST" }),
+  archive: (familyId: string, reportId: string) =>
+    apiFetch<ReportSummary>(`/families/${familyId}/reports/${reportId}/archive`, { method: "POST" }),
+  restore: (familyId: string, reportId: string) =>
+    apiFetch<ReportSummary>(`/families/${familyId}/reports/${reportId}/restore`, { method: "POST" })
 };
 
 export const dashboardApi = {
   get: (familyId: string, memberId: string) => apiFetch<DashboardResponse>(`/families/${familyId}/members/${memberId}/dashboard`),
-  attention: (familyId: string, memberId: string, status = "open", limit = 20, offset = 0) =>
+  attention: (familyId: string, memberId: string, status = "open", limit = 20, offset = 0, classification = "all") =>
     apiFetch<MemberAttentionListResponse>(
-      withQuery(`/families/${familyId}/members/${memberId}/attention-items`, { status, limit, offset })
+      withQuery(`/families/${familyId}/members/${memberId}/attention-items`, { status, classification, limit, offset })
     )
 };
 
@@ -105,6 +234,19 @@ export const trendsApi = {
     apiFetch<TrendDetailResponse | BloodPressureTrendResponse>(
       withQuery(`/families/${familyId}/members/${memberId}/trends/${canonicalMetricId}`, { range })
     )
+};
+
+export const metricsApi = {
+  catalog: (params: { search?: string; category_id?: string } = {}) =>
+    apiFetch<MetricCatalogItem[]>(withQuery("/metrics", params)),
+  categories: (params: { search?: string; active_only?: boolean } = {}) =>
+    apiFetch<MetricCategoryListResponse>(withQuery("/metric-categories", params)),
+  tracked: (familyId: string, memberId: string) =>
+    apiFetch<TrackedMetricResponse[]>(`/families/${familyId}/members/${memberId}/tracked-metrics`),
+  track: (familyId: string, memberId: string, body: TrackedMetricCreate) =>
+    apiFetch<TrackedMetricResponse>(`/families/${familyId}/members/${memberId}/tracked-metrics`, { method: "POST", body }),
+  untrack: (familyId: string, memberId: string, canonicalMetricId: string) =>
+    apiFetch<void>(`/families/${familyId}/members/${memberId}/tracked-metrics/${canonicalMetricId}`, { method: "DELETE" })
 };
 
 export const attentionApi = {
@@ -118,15 +260,25 @@ export const invitesApi = {
   resend: (inviteId: string) => apiFetch<InviteCreateResponse>(`/family-invites/${inviteId}/resend`, { method: "POST" }),
   revoke: (inviteId: string) => apiFetch<FamilyInvite>(`/family-invites/${inviteId}/revoke`, { method: "POST" }),
   accept: (body: InviteAcceptRequest) => apiFetch<FamilyInvite>("/family-invites/accept", { method: "POST", body }),
-  reject: (body: InviteAcceptRequest) => apiFetch<FamilyInvite>("/family-invites/reject", { method: "POST", body }),
-  mine: () => apiFetch<FamilyInvite[]>("/me/invites")
+  reject: (body: InviteAcceptRequest) => apiFetch<FamilyInvite>("/family-invites/reject", { method: "POST", body })
 };
 
-export const healthApi = {
-  check: async () => {
-    const response = await fetch(`${getApiRootUrl().replace(/\/$/, "")}/health`, { cache: "no-store" });
-    return response.ok;
-  }
+export const profilesApi = {
+  list: (familyId: string, status: "active" | "archived" = "active") =>
+    apiFetch<FamilyProfileDetail[]>(withQuery(`/families/${familyId}/profiles`, { status })),
+  get: (familyId: string, profileId: string) => apiFetch<FamilyProfileDetail>(`/families/${familyId}/profiles/${profileId}`),
+  update: (familyId: string, profileId: string, body: FamilyProfileUpdate) =>
+    apiFetch<FamilyProfileDetail>(`/families/${familyId}/profiles/${profileId}`, { method: "PATCH", body }),
+  createPhotoUploadIntent: (familyId: string, profileId: string, body: ProfilePhotoUploadIntentRequest) =>
+    apiFetch<ProfilePhotoUploadIntentResponse>(`/families/${familyId}/profiles/${profileId}/photo/upload-intent`, { method: "POST", body }),
+  completePhotoUpload: (familyId: string, profileId: string, body: ProfilePhotoUploadCompleteRequest) =>
+    apiFetch<FamilyProfileDetail>(`/families/${familyId}/profiles/${profileId}/photo/upload-complete`, { method: "POST", body }),
+  removePhoto: (familyId: string, profileId: string) =>
+    apiFetch<FamilyProfileDetail>(`/families/${familyId}/profiles/${profileId}/photo`, { method: "DELETE" }),
+  archive: (familyId: string, profileId: string) =>
+    apiFetch<FamilyProfileDetail>(`/families/${familyId}/profiles/${profileId}/archive`, { method: "POST" }),
+  restore: (familyId: string, profileId: string) =>
+    apiFetch<FamilyProfileDetail>(`/families/${familyId}/profiles/${profileId}/restore`, { method: "POST" })
 };
 
 export function canUpload(role: FamilyRoleType | null | undefined) {

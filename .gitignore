@@ -4,6 +4,7 @@ out/
 dist/
 *.tsbuildinfo
 .env*.local
+.env.local.bak-render
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

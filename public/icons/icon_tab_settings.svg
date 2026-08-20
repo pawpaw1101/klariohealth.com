@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Hand-authored to match the sibling icon_tab_* set: single monochrome fill, template-tintable,
+     2048x2048 viewBox, clean readable silhouette at 20-28px. Parametric 8-tooth gear with a
+     center hole (evenodd fill-rule), matching the "Settings" concept alongside the other tabs. -->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="24" height="24" viewBox="0 0 2048 2048">
+<path fill-rule="evenodd" transform="translate(0,0)" style="fill: rgb(0,0,0)" stroke-linecap="round" d="M 884.53 419.89 L 853.04 283.48 L 1194.96 283.48 L 1163.47 419.89 L 1352.55 498.21 L 1426.74 379.48 L 1668.52 621.26 L 1549.79 695.45 L 1628.11 884.53 L 1764.52 853.04 L 1764.52 1194.96 L 1628.11 1163.47 L 1549.79 1352.55 L 1668.52 1426.74 L 1426.74 1668.52 L 1352.55 1549.79 L 1163.47 1628.11 L 1194.96 1764.52 L 853.04 1764.52 L 884.53 1628.11 L 695.45 1549.79 L 621.26 1668.52 L 379.48 1426.74 L 498.21 1352.55 L 419.89 1163.47 L 283.48 1194.96 L 283.48 853.04 L 419.89 884.53 L 498.21 695.45 L 379.48 621.26 L 621.26 379.48 L 695.45 498.21 Z M 724.00 1024.00 A 300.00 300.00 0 1 0 1324.00 1024.00 A 300.00 300.00 0 1 0 724.00 1024.00 Z"></path>
+</svg>

@@ -1,10 +1,5 @@
-import type { Metadata } from "next";
-import { InvitesWorkspace } from "@/components/app-workspaces";
-
-export const metadata: Metadata = {
-  title: "Invites"
-};
+import { redirect } from "next/navigation";
 
 export default function InvitesPage() {
-  return <InvitesWorkspace />;
+  redirect("/app/family");
 }

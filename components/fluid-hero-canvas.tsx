@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export function FluidHeroCanvas() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [contextVersion, setContextVersion] = useState(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -142,7 +143,9 @@ export function FluidHeroCanvas() {
     const uPointer = gl.getUniformLocation(program, "u_pointer");
     const uResolution = gl.getUniformLocation(program, "u_resolution");
     let frame = 0;
-    const start = performance.now();
+    let elapsed = 0;
+    let lastFrame = performance.now();
+    let isVisible = !document.hidden;
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
@@ -153,13 +156,17 @@ export function FluidHeroCanvas() {
     };
 
     const draw = (now: number) => {
+      if (!isVisible) return;
+
+      elapsed += Math.min(now - lastFrame, 64);
+      lastFrame = now;
       pointer.tx += (pointer.x - pointer.tx) * 0.12;
       pointer.ty += (pointer.y - pointer.ty) * 0.12;
       gl.useProgram(program);
       gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
       gl.enableVertexAttribArray(aPosition);
       gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
-      gl.uniform1f(uTime, (now - start) * 0.001);
+      gl.uniform1f(uTime, elapsed * 0.001);
       gl.uniform2f(uPointer, pointer.tx, 1 - pointer.ty);
       gl.uniform2f(uResolution, canvas.width, canvas.height);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -168,22 +175,47 @@ export function FluidHeroCanvas() {
 
     const onPointerMove = (event: PointerEvent) => {
       const rect = canvas.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
       pointer.x = (event.clientX - rect.left) / rect.width;
       pointer.y = (event.clientY - rect.top) / rect.height;
     };
 
+    const onVisibilityChange = () => {
+      isVisible = !document.hidden;
+      if (!isVisible) {
+        cancelAnimationFrame(frame);
+        return;
+      }
+
+      lastFrame = performance.now();
+      resize();
+      draw(lastFrame);
+    };
+
+    const onContextRestored = () => setContextVersion((version) => version + 1);
+    const resizeObserver = new ResizeObserver(resize);
+
     resize();
-    draw(start);
+    draw(lastFrame);
+    resizeObserver.observe(canvas.parentElement ?? canvas);
     window.addEventListener("resize", resize);
     window.addEventListener("pointermove", onPointerMove);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    canvas.addEventListener("webglcontextrestored", onContextRestored);
 
     return () => {
       cancelAnimationFrame(frame);
+      resizeObserver.disconnect();
       window.removeEventListener("resize", resize);
       window.removeEventListener("pointermove", onPointerMove);
-      gl.getExtension("WEBGL_lose_context")?.loseContext();
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      canvas.removeEventListener("webglcontextrestored", onContextRestored);
+      gl.deleteBuffer(buffer);
+      gl.deleteProgram(program);
+      gl.deleteShader(vertex);
+      gl.deleteShader(fragment);
     };
-  }, []);
+  }, [contextVersion]);
 
   return <canvas className="fluid-hero-canvas" ref={canvasRef} aria-hidden="true" />;
 }

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { TrendDetailWorkspace } from "@/components/app-workspaces";
+import { TrendDetailWorkspace } from "@/components/workspaces/trends";
 
 export const metadata: Metadata = {
   title: "Trend Detail"

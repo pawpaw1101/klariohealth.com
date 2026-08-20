@@ -6,13 +6,17 @@ export type NavIconName =
   | "calendar"
   | "dashboard"
   | "documents"
+  | "eye"
+  | "eyeOff"
   | "family"
   | "gear"
   | "home"
   | "info"
-  | "logo"
   | "logout"
   | "menu"
+  | "product"
+  | "route"
+  | "shield"
   | "close"
   | "sparkles"
   | "trends"
@@ -83,6 +87,20 @@ const paths: Record<NavIconName, ReactNode> = {
       <path d="M10 17h4" />
     </>
   ),
+  eye: (
+    <>
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+      <circle cx="12" cy="12" r="3" />
+    </>
+  ),
+  eyeOff: (
+    <>
+      <path d="M3 3l18 18" />
+      <path d="M10.6 10.6A3 3 0 0 0 13.4 13.4" />
+      <path d="M9.9 4.5A10.8 10.8 0 0 1 12 4c6.5 0 10 8 10 8a18.6 18.6 0 0 1-2.1 3.1" />
+      <path d="M6.1 6.1C3.5 7.9 2 12 2 12s3.5 8 10 8a10.7 10.7 0 0 0 5.9-1.9" />
+    </>
+  ),
   family: (
     <>
       <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
@@ -111,13 +129,6 @@ const paths: Record<NavIconName, ReactNode> = {
       <path d="M12 8h.01" />
     </>
   ),
-  logo: (
-    <>
-      <path d="M4 19V5" />
-      <path d="M4 19h16" />
-      <path d="m8 15 3-4 3 3 5-7" />
-    </>
-  ),
   logout: (
     <>
       <path d="M10 17 15 12 10 7" />
@@ -131,6 +142,28 @@ const paths: Record<NavIconName, ReactNode> = {
       <path d="M4 7h16" />
       <path d="M4 12h16" />
       <path d="M4 17h16" />
+    </>
+  ),
+  product: (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="3" />
+      <path d="M7 8h10" />
+      <path d="M7 12h4" />
+      <path d="M7 16h7" />
+      <path d="M16 12l2 2 3-4" />
+    </>
+  ),
+  route: (
+    <>
+      <circle cx="6" cy="6" r="3" />
+      <circle cx="18" cy="18" r="3" />
+      <path d="M9 6h4a3 3 0 0 1 0 6h-2a3 3 0 0 0 0 6h4" />
+    </>
+  ),
+  shield: (
+    <>
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
+      <path d="m9 12 2 2 4-5" />
     </>
   ),
   close: (

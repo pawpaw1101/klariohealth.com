@@ -1,10 +1,12 @@
 import type { APIErrorResponse } from "@/lib/api/types";
 
 const TOKEN_KEY = "klario.access_token";
+const REFRESH_TOKEN_KEY = "klario.refresh_token";
 const ACTIVE_FAMILY_KEY = "klario.active_family_id";
 const ACTIVE_MEMBER_KEY = "klario.active_member_id";
 
 let memoryToken: string | null = null;
+let memoryRefreshToken: string | null = null;
 
 export type ApiRequestOptions = Omit<RequestInit, "body"> & {
   auth?: boolean;
@@ -27,7 +29,7 @@ export class ApiError extends Error {
 }
 
 export function getApiBaseUrl() {
-  return process.env.NEXT_PUBLIC_KLARIO_API_BASE_URL ?? "http://127.0.0.1:8000/api/v1";
+  return process.env.NEXT_PUBLIC_KLARIO_API_BASE_URL ?? "https://klario-backend.onrender.com/api/v1";
 }
 
 export function getApiRootUrl() {
@@ -37,7 +39,7 @@ export function getApiRootUrl() {
     const base = new URL(getApiBaseUrl());
     return `${base.protocol}//${base.host}`;
   } catch {
-    return "http://127.0.0.1:8000";
+    return "https://klario-backend.onrender.com";
   }
 }
 
@@ -55,6 +57,22 @@ export function getAuthToken() {
   return memoryToken;
 }
 
+export function getRefreshToken() {
+  if (memoryRefreshToken) return memoryRefreshToken;
+  if (typeof window === "undefined") return null;
+  memoryRefreshToken = window.sessionStorage.getItem(REFRESH_TOKEN_KEY);
+  return memoryRefreshToken;
+}
+
+export function setAuthTokens(accessToken: string, refreshToken?: string | null) {
+  memoryToken = accessToken;
+  memoryRefreshToken = refreshToken ?? memoryRefreshToken;
+  if (typeof window !== "undefined") {
+    window.sessionStorage.setItem(TOKEN_KEY, accessToken);
+    if (refreshToken) window.sessionStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+  }
+}
+
 export function setAuthToken(token: string) {
   memoryToken = token;
   if (typeof window !== "undefined") {
@@ -64,8 +82,10 @@ export function setAuthToken(token: string) {
 
 export function clearKlarioSession({ clearSelections = true }: { clearSelections?: boolean } = {}) {
   memoryToken = null;
+  memoryRefreshToken = null;
   if (typeof window === "undefined") return;
   window.sessionStorage.removeItem(TOKEN_KEY);
+  window.sessionStorage.removeItem(REFRESH_TOKEN_KEY);
   if (clearSelections) {
     window.localStorage.removeItem(ACTIVE_FAMILY_KEY);
     window.localStorage.removeItem(ACTIVE_MEMBER_KEY);
@@ -135,10 +155,16 @@ export async function apiFetch<T>(path: string, options: ApiRequestOptions = {})
   if (!response.ok) {
     const errorPayload = payload as APIErrorResponse | null;
     const code = errorPayload?.detail?.code ?? "internal_error";
-    if (response.status === 401) {
+    const message = errorPayload?.detail?.message ?? safeApiMessage(code);
+    const requiresSecureSessionClear = response.status === 401
+      || (response.status === 403 && ["unauthenticated", "inactive_user", "session_expired", "access_revoked"].includes(code));
+    if (requiresSecureSessionClear && auth) {
       clearKlarioSession();
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("klario:session-expired"));
+      }
     }
-    throw new ApiError(response.status, code, safeApiMessage(code), errorPayload?.detail?.errors);
+    throw new ApiError(response.status, code, message, errorPayload?.detail?.errors);
   }
 
   return payload as T;
@@ -157,7 +183,7 @@ export function resolveExternalOrRelativeUrl(url: string) {
 
 export function safeApiMessage(code: string) {
   const messages: Record<string, string> = {
-    unauthenticated: "Please sign in again.",
+    unauthenticated: "Your session expired. Please sign in again.",
     inactive_user: "Your account is inactive.",
     permission_denied: "You don't have permission to do this.",
     not_found: "That item is no longer available.",
