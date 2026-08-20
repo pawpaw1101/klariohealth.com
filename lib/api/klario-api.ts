@@ -47,6 +47,7 @@ import type {
   OtpVerifyRequest,
   ParseJobCreateResponse,
   PasswordResetRequest,
+  PasswordResetVerifyRequest,
   PasswordResetResponse,
   RefreshTokenRequest,
   RegisterRequest,
@@ -91,6 +92,12 @@ export const authApi = {
   changePassword: (body: ChangePasswordRequest) => apiFetch<TokenResponse>("/auth/change-password", { method: "POST", body }),
   forgotPassword: (body: ForgotPasswordRequest) =>
     apiFetch<PasswordResetResponse>("/auth/forgot-password", { method: "POST", body, auth: false }),
+  requestForgotPasswordCode: (body: ForgotPasswordRequest) =>
+    apiFetch<OtpRequestResponse>("/auth/forgot-password/request", { method: "POST", body, auth: false }),
+  verifyForgotPasswordCode: (body: PasswordResetVerifyRequest) =>
+    apiFetch<PasswordResetResponse>("/auth/forgot-password/verify", { method: "POST", body, auth: false }),
+  resetForgotPassword: (body: PasswordResetRequest) =>
+    apiFetch<PasswordResetResponse>("/auth/forgot-password/reset", { method: "POST", body, auth: false }),
   resetPassword: (body: PasswordResetRequest) =>
     apiFetch<PasswordResetResponse>("/auth/reset-password", { method: "POST", body, auth: false }),
   me: () => apiFetch<User>("/users/me"),

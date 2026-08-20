@@ -6,7 +6,7 @@ import { SectionHeader } from "@/components/section";
 
 export const metadata: Metadata = {
   title: "Forgot Password",
-  description: "Request a Klario password reset link."
+  description: "Request a Klario password reset verification code."
 };
 
 export default function ForgotPasswordPage() {
@@ -17,12 +17,12 @@ export default function ForgotPasswordPage() {
 
           <h1>Reset your Klario password.</h1>
           <p className="hero-lead">
-            Enter your email and Klario will send a password reset link if the account is eligible.
+            Enter your email and Klario will send a verification code if the account is eligible.
           </p>
           <div className="login-benefits">
             {[
               "Generic response protects account privacy",
-              "Reset links expire automatically",
+              "Verification codes expire automatically",
               "Your health records stay out of email"
             ].map((benefit) => (
               <div className="login-benefit" key={benefit}>

@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { useKlarioApi } from "@/components/klario-api-provider";
 import { authApi } from "@/lib/api/klario-api";
 import { ApiError } from "@/lib/api/client";
+import { PasswordRequirements } from "@/components/password-requirements";
+import { isAcceptablePassword, isValidEmail } from "@/lib/password-policy";
 
 export function RegisterForm() {
   const router = useRouter();
@@ -14,6 +16,10 @@ export function RegisterForm() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmation, setConfirmation] = useState("");
+  const [acceptsTerms, setAcceptsTerms] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
   const [code, setCode] = useState("");
   const [devHint, setDevHint] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -21,9 +27,14 @@ export function RegisterForm() {
 
   const sendCode = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setIsSubmitting(true);
     setError("");
     setDevHint("");
+    if (!fullName.trim()) return setError("Enter your full name.");
+    if (!isValidEmail(email)) return setError("Enter a valid email address.");
+    if (!isAcceptablePassword(password)) return setError("Your password doesn't meet the requirements.");
+    if (password !== confirmation) return setError("Passwords do not match.");
+    if (!acceptsTerms) return setError("Review and accept the Terms & Privacy Policy to continue.");
+    setIsSubmitting(true);
 
     try {
       const response = await authApi.register({ email, password, full_name: fullName });
@@ -32,7 +43,7 @@ export function RegisterForm() {
       }
       setStep("code");
     } catch (requestError) {
-      setError(requestError instanceof ApiError ? requestError.message : "Could not create account.");
+      setError(requestError instanceof ApiError ? requestError.message : "Could not create your account. Try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -68,7 +79,7 @@ export function RegisterForm() {
         full_name: fullName
       });
       window.dispatchEvent(new Event("klario:navigation-start"));
-      window.setTimeout(() => router.push("/app/dashboard"), 420);
+      window.setTimeout(() => router.push("/app/family"), 420);
     } catch (verifyError) {
       setError(verifyError instanceof ApiError ? verifyError.message : "Invalid or expired code.");
       setIsSubmitting(false);
@@ -137,20 +148,26 @@ export function RegisterForm() {
       </div>
       <div>
         <label htmlFor="register_password">Password</label>
-        <input
-          id="register_password"
-          name="password"
-          type="password"
-          autoComplete="new-password"
-          placeholder="Choose a password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          minLength={8}
-          required
-        />
+        <div className="password-field">
+          <input id="register_password" name="password" type={showPassword ? "text" : "password"} autoComplete="new-password" placeholder="Choose a password" value={password} onChange={(event) => setPassword(event.target.value)} maxLength={128} required />
+          <button className="password-toggle" type="button" aria-label={showPassword ? "Hide password" : "Show password"} onClick={() => setShowPassword((value) => !value)}>{showPassword ? "Hide" : "Show"}</button>
+        </div>
       </div>
+      <PasswordRequirements password={password} />
+      <div>
+        <label htmlFor="register_confirm_password">Confirm password</label>
+        <div className="password-field">
+          <input id="register_confirm_password" name="confirm_password" type={showConfirmation ? "text" : "password"} autoComplete="new-password" placeholder="Confirm password" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} maxLength={128} required aria-describedby={confirmation && password !== confirmation ? "register-password-mismatch" : undefined} />
+          <button className="password-toggle" type="button" aria-label={showConfirmation ? "Hide password confirmation" : "Show password confirmation"} onClick={() => setShowConfirmation((value) => !value)}>{showConfirmation ? "Hide" : "Show"}</button>
+        </div>
+        {confirmation && password !== confirmation ? <p className="form-alert" id="register-password-mismatch">Passwords do not match.</p> : null}
+      </div>
+      <label className="auth-terms">
+        <input type="checkbox" checked={acceptsTerms} onChange={(event) => setAcceptsTerms(event.target.checked)} />
+        <span>I agree to the Privacy Policy and Terms &amp; Conditions.</span>
+      </label>
       {error ? <p className="form-alert">{error}</p> : null}
-      <button type="submit" disabled={isSubmitting}>
+      <button type="submit" disabled={isSubmitting || !fullName.trim() || !isValidEmail(email) || !isAcceptablePassword(password) || password !== confirmation || !acceptsTerms}>
         {isSubmitting ? "Creating account" : "Create account"}
       </button>
       <p className="note">

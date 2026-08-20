@@ -284,20 +284,23 @@ export function TrendsWorkspace() {
       .filter((category) => category.metrics.length),
     [categories, flaggedOnly, query]
   );
+  // Depend on the visible category identity, not the derived array instance. React Query may
+  // provide a new array reference during background revalidation even when its contents match.
+  const visibleCategorySignature = filteredCategories.map((category) => category.category).join("|");
   const trackedMetricIds = useMemo(() => new Set((trackedQuery.data ?? []).map((metric) => metric.canonical_metric_id)), [trackedQuery.data]);
   const flaggedCount = flatMetrics.filter(flagged).length;
 
   useEffect(() => {
-    if (!filteredCategories.length) {
+    if (!visibleCategorySignature) {
       didInitializeExpandedCategories.current = false;
       setExpandedCategories((current) => current.size ? new Set() : current);
       return;
     }
     if (!didInitializeExpandedCategories.current) {
-      setExpandedCategories(new Set([filteredCategories[0].category]));
+      setExpandedCategories(new Set([visibleCategorySignature.split("|")[0]]));
       didInitializeExpandedCategories.current = true;
     }
-  }, [filteredCategories]);
+  }, [visibleCategorySignature]);
 
   const refetchMetrics = async () => {
     await Promise.all([trendsQuery.refetch(), trackedQuery.refetch()]);

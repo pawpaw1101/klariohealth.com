@@ -24,6 +24,7 @@ export function SettingsWorkspace() {
   const [activeSection, setActiveSection] = useState<"account" | "family" | "preferences" | "privacy" | "help">("account");
   const [message, setMessage] = useState("");
   const [passwordForm, setPasswordForm] = useState({ current_password: "", new_password: "", confirm_password: "" });
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
   const accountQuery = useQuery({
     queryKey: protectedQueryKey(api.user?.id, "account", "summary"),
@@ -111,6 +112,7 @@ export function SettingsWorkspace() {
     mutationFn: authApi.changePassword,
     onSuccess: () => {
       setPasswordForm({ current_password: "", new_password: "", confirm_password: "" });
+      setIsPasswordModalOpen(false);
       setMessage("Password changed.");
     },
     onError: (error) => setMessage(error instanceof Error ? error.message : "Password could not be changed.")
@@ -211,24 +213,10 @@ export function SettingsWorkspace() {
 
         <Card className={`settings-section-card settings-account-security-card${activeSection === "account" ? "" : " is-hidden"}`}>
           <KlarioSectionHeader title="Account & Security" subtitle="Password and account security." />
-          <form className="form-grid" onSubmit={(event) => {
-            event.preventDefault();
-            if (!canSubmitPassword) {
-              setMessage("New passwords must match and use at least 8 characters.");
-              return;
-            }
-            changePasswordMutation.mutate({
-              current_password: passwordForm.current_password,
-              new_password: passwordForm.new_password
-            });
-          }}>
-            <input type="password" autoComplete="current-password" placeholder="Current password" value={passwordForm.current_password} onChange={(event) => setPasswordForm((current) => ({ ...current, current_password: event.target.value }))} />
-            <input type="password" autoComplete="new-password" placeholder="New password" value={passwordForm.new_password} onChange={(event) => setPasswordForm((current) => ({ ...current, new_password: event.target.value }))} />
-            <input type="password" autoComplete="new-password" placeholder="Confirm new password" value={passwordForm.confirm_password} onChange={(event) => setPasswordForm((current) => ({ ...current, confirm_password: event.target.value }))} />
-            <button className="button button-primary" type="submit" disabled={!canSubmitPassword || changePasswordMutation.isPending}>
-              {changePasswordMutation.isPending ? "Changing" : "Change password"}
-            </button>
-          </form>
+          <div className="settings-security-row">
+            <div><strong>Password</strong><p>Use a new password to keep your account secure.</p></div>
+            <button className="button button-secondary" type="button" onClick={() => setIsPasswordModalOpen(true)}>Change password</button>
+          </div>
         </Card>
 
         <Card className={`settings-section-card${activeSection === "preferences" ? "" : " is-hidden"}`}>
@@ -379,6 +367,27 @@ export function SettingsWorkspace() {
         </Card>
       </section>
       </div>
+      {isPasswordModalOpen ? <div className="klario-modal-overlay" role="presentation">
+        <form className="klario-modal settings-password-modal" role="dialog" aria-modal="true" aria-labelledby="change-password-title" onSubmit={(event) => {
+          event.preventDefault();
+          if (!canSubmitPassword) {
+            setMessage("New passwords must match and use at least 8 characters.");
+            return;
+          }
+          changePasswordMutation.mutate({ current_password: passwordForm.current_password, new_password: passwordForm.new_password });
+        }}>
+          <div className="klario-modal-head">
+            <div><h2 id="change-password-title">Change password</h2><p>Enter your current password, then choose a new one.</p></div>
+            <button className="button button-ghost icon-button" type="button" aria-label="Close change password" onClick={() => setIsPasswordModalOpen(false)}>×</button>
+          </div>
+          <div className="form-grid">
+            <label><span className="control-label">Current password</span><input type="password" autoComplete="current-password" value={passwordForm.current_password} onChange={(event) => setPasswordForm((current) => ({ ...current, current_password: event.target.value }))} /></label>
+            <label><span className="control-label">New password</span><input type="password" autoComplete="new-password" value={passwordForm.new_password} onChange={(event) => setPasswordForm((current) => ({ ...current, new_password: event.target.value }))} /></label>
+            <label><span className="control-label">Confirm new password</span><input type="password" autoComplete="new-password" value={passwordForm.confirm_password} onChange={(event) => setPasswordForm((current) => ({ ...current, confirm_password: event.target.value }))} /></label>
+          </div>
+          <div className="settings-password-modal-actions"><Link className="inline-action" href="/forgot-password" onClick={() => setIsPasswordModalOpen(false)}>Forgot password?</Link><span><button className="button button-ghost" type="button" onClick={() => setIsPasswordModalOpen(false)}>Cancel</button><button className="button button-primary" type="submit" disabled={!canSubmitPassword || changePasswordMutation.isPending}>{changePasswordMutation.isPending ? "Changing" : "Change password"}</button></span></div>
+        </form>
+      </div> : null}
       {message ? <p className="note">{message}</p> : null}
     </div>
   );

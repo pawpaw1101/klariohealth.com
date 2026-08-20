@@ -8,7 +8,7 @@ import { BioIcon } from "@/components/bio-icon";
 import type { KlarioIconName } from "@/lib/icons";
 import { prettyStatus } from "@/components/workspaces/shared";
 
-type BodySystemZone = "brain" | "thyroid" | "lungs" | "cardio" | "liver" | "metabolic" | "kidney" | "blood" | "inflammation";
+export type BodySystemZone = "brain" | "thyroid" | "lungs" | "cardio" | "liver" | "metabolic" | "kidney" | "blood" | "inflammation";
 type BodyZoneState = "noData" | "normal" | "attention" | "critical";
 
 interface BodyMetric {
@@ -27,7 +27,7 @@ interface BodyZoneSnapshot {
   metricCount: number;
 }
 
-const zoneDisplayNames = {
+export const zoneDisplayNames = {
   brain: "Brain & Nerves",
   thyroid: "Thyroid",
   lungs: "Lungs",
@@ -183,7 +183,7 @@ const silhouettePath = [
 // Snapshot
 // ---------------------------------------------------------------------------
 
-function zoneForMetricName(name: string): BodySystemZone | null {
+export function zoneForMetricName(name: string): BodySystemZone | null {
   const normalized = name.toLowerCase();
   return sortedAliases.find((candidate) => normalized.includes(candidate.alias))?.zone ?? null;
 }
@@ -607,11 +607,13 @@ const TWINKLE_COLOR = [255, 233, 179] as const; // 0xffe9b3
 export function BodyVisualization({
   dashboard,
   memberName,
-  isLoading = false
+  isLoading = false,
+  onSelectZone
 }: {
   dashboard: DashboardResponse | null | undefined;
   memberName: string;
   isLoading?: boolean;
+  onSelectZone?: (zone: BodySystemZone) => void;
 }) {
   const zones = useMemo(() => buildBodyMapSnapshot(dashboard), [dashboard]);
 
@@ -945,7 +947,16 @@ export function BodyVisualization({
               const hint = snapshot?.primaryMetric
                 ? `${snapshot.primaryMetric.statusTitle}. Open trend.`
                 : bodyZoneNoDataSummary[zoneLayout.zone];
-              return snapshot?.primaryMetric ? (
+              return onSelectZone ? (
+                <button
+                  aria-label={`${label}. ${hint}`}
+                  className="body-zone-hit"
+                  key={`${zoneLayout.zone}-${index}`}
+                  onClick={() => onSelectZone(zoneLayout.zone)}
+                  style={style}
+                  type="button"
+                />
+              ) : snapshot?.primaryMetric ? (
                 <Link
                   aria-label={`${label}. ${hint}`}
                   className="body-zone-hit"
@@ -996,7 +1007,11 @@ export function BodyVisualization({
                   ["--body-pill-icon" as string]: `${layout.pill.iconSize}px`
                 }}
               >
-                {snapshot?.primaryMetric ? (
+                {onSelectZone ? (
+                  <button aria-label={label} className={`body-zone-pill ${toneClass(pill.tone)}`} onClick={() => onSelectZone(pill.zone)} type="button">
+                    {content}
+                  </button>
+                ) : snapshot?.primaryMetric ? (
                   <Link aria-label={label} className={`body-zone-pill ${toneClass(pill.tone)}`} href={`/app/trends/${snapshot.primaryMetric.id}`}>
                     {content}
                   </Link>
@@ -1039,7 +1054,7 @@ function statusWord(state: BodyZoneState) {
 // Tiles mode — port of iOS `BodyTilesView` / `BodyZoneTile`
 // ---------------------------------------------------------------------------
 
-export function BodyZoneTiles({ dashboard }: { dashboard: DashboardResponse | null | undefined }) {
+export function BodyZoneTiles({ dashboard, onSelectZone }: { dashboard: DashboardResponse | null | undefined; onSelectZone?: (zone: BodySystemZone) => void }) {
   const zones = useMemo(() => buildBodyMapSnapshot(dashboard), [dashboard]);
   const ordered = useMemo(
     () =>
@@ -1067,7 +1082,11 @@ export function BodyZoneTiles({ dashboard }: { dashboard: DashboardResponse | nu
             <span className="body-zone-tile-status">{statusLabel(zone.state)}</span>
           </>
         );
-        return zone.primaryMetric ? (
+        return onSelectZone ? (
+          <button className={`body-zone-tile ${toneClass(tone)}`} key={zone.zone} onClick={() => onSelectZone(zone.zone)} type="button">
+            {content}
+          </button>
+        ) : zone.primaryMetric ? (
           <Link className={`body-zone-tile ${toneClass(tone)}`} href={`/app/trends/${zone.primaryMetric.id}`} key={zone.zone}>
             {content}
           </Link>

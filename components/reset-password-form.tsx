@@ -31,19 +31,16 @@ export function ResetPasswordForm({ token }: { token?: string }) {
       setError(INVALID_RESET_LINK);
       return;
     }
-
     if (newPassword.length < 8) {
       setError("Use at least 8 characters.");
       return;
     }
-
     if (newPassword !== confirmPassword) {
       setError("Passwords do not match.");
       return;
     }
 
     setIsSubmitting(true);
-
     try {
       await authApi.resetPassword({ token: resetToken, new_password: newPassword });
       setNewPassword("");
@@ -64,40 +61,14 @@ export function ResetPasswordForm({ token }: { token?: string }) {
       {error ? <p className="form-alert">{error}</p> : null}
       <div>
         <label htmlFor="new_password">New password</label>
-        <input
-          id="new_password"
-          name="new_password"
-          type="password"
-          autoComplete="new-password"
-          placeholder="New password"
-          value={newPassword}
-          onChange={(event) => setNewPassword(event.target.value)}
-          minLength={8}
-          disabled={!resetToken || isSubmitting}
-          required
-        />
+        <input id="new_password" name="new_password" type="password" autoComplete="new-password" placeholder="New password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} minLength={8} disabled={!resetToken || isSubmitting} required />
       </div>
       <div>
         <label htmlFor="confirm_password">Confirm password</label>
-        <input
-          id="confirm_password"
-          name="confirm_password"
-          type="password"
-          autoComplete="new-password"
-          placeholder="Confirm password"
-          value={confirmPassword}
-          onChange={(event) => setConfirmPassword(event.target.value)}
-          minLength={8}
-          disabled={!resetToken || isSubmitting}
-          required
-        />
+        <input id="confirm_password" name="confirm_password" type="password" autoComplete="new-password" placeholder="Confirm password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} minLength={8} disabled={!resetToken || isSubmitting} required />
       </div>
-      <button type="submit" disabled={!resetToken || isSubmitting}>
-        {isSubmitting ? "Resetting password" : "Reset password"}
-      </button>
-      <p className="note">
-        Need a new link? <Link href="/forgot-password">Request another reset email</Link>.
-      </p>
+      <button type="submit" disabled={!resetToken || isSubmitting}>{isSubmitting ? "Resetting password" : "Reset password"}</button>
+      <p className="note">Need a new link? <Link href="/forgot-password">Request another reset email</Link>.</p>
     </form>
   );
 }

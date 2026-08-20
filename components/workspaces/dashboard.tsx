@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { BodyVisualization, BodyZoneTiles } from "@/components/body-visualization";
+import { BodyVisualization, BodyZoneTiles, type BodySystemZone, zoneDisplayNames, zoneForMetricName } from "@/components/body-visualization";
 import { BioIcon } from "@/components/bio-icon";
 import { useKlarioApi } from "@/components/klario-api-provider";
 import { Card, IconBadge } from "@/components/klario-ui";
@@ -18,6 +18,7 @@ import {
 import type {
   AttentionItemStatus,
   DashboardAttentionItem,
+  TrendCategoryGroup,
   TrendPreview
 } from "@/lib/api/types";
 import type { KlarioIconName } from "@/lib/icons";
@@ -33,9 +34,22 @@ import {
 } from "@/components/workspaces/shared";
 type MetricSheetKind = "normal" | "attention" | "critical" | "score";
 
+const categoryPresentation: Record<BodySystemZone, { title: string; description: string; markerTitle: string }> = {
+  cardio: { title: "Your cardiovascular overview", description: "Track key heart-related markers that support cardiovascular health.", markerTitle: "Cardiovascular markers" },
+  metabolic: { title: "Your metabolic overview", description: "Track key markers related to glucose, metabolism, and energy balance.", markerTitle: "Metabolic markers" },
+  kidney: { title: "Your kidney overview", description: "Track key markers that help monitor kidney function.", markerTitle: "Kidney markers" },
+  blood: { title: "Your blood overview", description: "Track key haematology markers that support blood health.", markerTitle: "Blood markers" },
+  brain: { title: "Your brain & nerves overview", description: "Track key neurological and nerve-related markers.", markerTitle: "Brain & nerve markers" },
+  thyroid: { title: "Your thyroid overview", description: "Track thyroid hormone markers that support thyroid monitoring.", markerTitle: "Thyroid markers" },
+  liver: { title: "Your liver overview", description: "Track key markers related to liver function.", markerTitle: "Liver markers" },
+  inflammation: { title: "Your inflammation overview", description: "Track key markers that help you and your care team monitor inflammation.", markerTitle: "Inflammation markers" },
+  lungs: { title: "Your lungs overview", description: "Track respiratory markers that help monitor lung health.", markerTitle: "Lung markers" }
+};
+
 export function DashboardWorkspace() {
   const api = useKlarioApi();
   const [metricSheet, setMetricSheet] = useState<MetricSheetKind | null>(null);
+  const [selectedZone, setSelectedZone] = useState<BodySystemZone | null>(null);
   const [displayMode, setDisplayMode] = useState<"body" | "tiles">("body");
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [portalHost, setPortalHost] = useState<HTMLElement | null>(null);
@@ -51,6 +65,12 @@ export function DashboardWorkspace() {
     queryKey: protectedQueryKey(api.user?.id, "dashboard", familyId, memberId),
     queryFn: () => dashboardApi.get(familyId!, memberId!),
     enabled: hasLiveContext,
+    ...queryFreshness.workspace
+  });
+  const categoryTrendsQuery = useQuery({
+    queryKey: protectedQueryKey(api.user?.id, "dashboard", "category-overview", familyId, memberId),
+    queryFn: () => trendsApi.list(familyId!, memberId!),
+    enabled: hasLiveContext && Boolean(selectedZone),
     ...queryFreshness.workspace
   });
 
@@ -136,9 +156,9 @@ export function DashboardWorkspace() {
 
         <div className="dashboard-body-content">
           {displayMode === "body" ? (
-            <BodyVisualization dashboard={dashboard} memberName={activeLabel} isLoading={dashboardQuery.isLoading} />
+            <BodyVisualization dashboard={dashboard} memberName={activeLabel} isLoading={dashboardQuery.isLoading} onSelectZone={setSelectedZone} />
           ) : (
-            <BodyZoneTiles dashboard={dashboard} />
+            <BodyZoneTiles dashboard={dashboard} onSelectZone={setSelectedZone} />
           )}
           {inFlightReports.length ? (
             <span className="dashboard-updating-capsule">
@@ -214,7 +234,68 @@ export function DashboardWorkspace() {
           onClose={() => setMetricSheet(null)}
         />
       ) : null}
+      {selectedZone ? (
+        <DashboardCategoryModal
+          memberName={activeLabel}
+          categories={categoryTrendsQuery.data?.categories ?? []}
+          isLoading={categoryTrendsQuery.isLoading}
+          zone={selectedZone}
+          onClose={() => setSelectedZone(null)}
+        />
+      ) : null}
       {isUploadOpen && portalHost ? createPortal(<ReportUploadModal onClose={() => setIsUploadOpen(false)} />, portalHost) : null}
+    </div>
+  );
+}
+
+function DashboardCategoryModal({
+  memberName,
+  categories,
+  isLoading,
+  zone,
+  onClose
+}: {
+  memberName: string;
+  categories: TrendCategoryGroup[];
+  isLoading: boolean;
+  zone: BodySystemZone;
+  onClose: () => void;
+}) {
+  const presentation = categoryPresentation[zone];
+  const metrics = categories.flatMap((category) => category.metrics).filter((metric) => zoneForMetricName(metric.display_name) === zone);
+  const criticalCount = metrics.filter((metric) => metric.latest_flag?.toLowerCase() === "critical").length;
+  const attentionCount = metrics.filter((metric) => metric.has_attention && metric.latest_flag?.toLowerCase() !== "critical").length;
+  const normalCount = metrics.filter((metric) => metric.has_readings !== false && !metric.has_attention).length;
+
+  return (
+    <div className="klario-modal-overlay" role="presentation">
+      <section className="klario-modal dashboard-category-modal" role="dialog" aria-modal="true" aria-labelledby="dashboard-category-title">
+        <div className="klario-modal-head">
+          <div>
+            <h2 id="dashboard-category-title">{zoneDisplayNames[zone]}</h2>
+            <p>All values for {memberName}.</p>
+          </div>
+          <button className="button button-ghost icon-button" type="button" onClick={onClose} aria-label="Close category overview"><BioIcon name="icon_action_reject" size={18} /></button>
+        </div>
+        <div className="dashboard-category-summary">
+          <div><strong>{memberName}</strong><span>{metrics.length} {metrics.length === 1 ? "metric" : "metrics"}</span></div>
+          <div className="dashboard-category-counts">
+            {criticalCount ? <span className="status-critical">{criticalCount} Critical</span> : null}
+            {attentionCount ? <span className="status-attention">{attentionCount} Needs attention</span> : null}
+            {normalCount ? <span className="status-normal">{normalCount} Normal</span> : null}
+          </div>
+        </div>
+        <div className="dashboard-category-copy"><strong>{presentation.title}</strong><p>{presentation.description}</p></div>
+        <div className="dashboard-category-list">
+          <h3>{presentation.markerTitle}</h3>
+          {metrics.length ? metrics.map((metric) => (
+            <Link className="dashboard-category-record" href={`/app/trends/${metric.canonical_metric_id}`} key={metric.canonical_metric_id} onClick={onClose}>
+              <span><strong>{metric.display_name}</strong><small>{metric.reading_count} {metric.reading_count === 1 ? "reading" : "readings"}</small></span>
+              <span className="dashboard-category-value">{valueWithUnit(metric.latest_value, metric.unit)}<small className={metric.has_attention ? "status-attention" : "status-normal"}>{metric.has_attention ? prettyStatus(metric.latest_flag ?? "needs_attention") : "In range"}</small></span>
+            </Link>
+          )) : isLoading ? <EmptyState title="Loading values" body="Fetching all category values." /> : <EmptyState title={`No ${zoneDisplayNames[zone]} values yet`} body="This category will populate when a report includes matching markers." />}
+        </div>
+      </section>
     </div>
   );
 }

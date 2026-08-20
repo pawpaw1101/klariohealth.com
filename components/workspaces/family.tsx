@@ -3,6 +3,7 @@
 import type { CSSProperties, FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { BioIcon } from "@/components/bio-icon";
@@ -17,6 +18,7 @@ import {
 } from "@/lib/api/klario-api";
 import type { BloodGroup, FamilyInvite, FamilyProfileDetail, FamilyProfileUpdate, FamilyRelationship, FamilyRoleType, ProfileGender } from "@/lib/api/types";
 import { protectedQueryKey, queryFreshness } from "@/lib/query-cache";
+import { ApiError } from "@/lib/api/client";
 import { ApiStatusBanner, EmptyState, formatDate, prettyStatus, statusClass } from "@/components/workspaces/shared";
 
 const avatarGradients = [
@@ -379,8 +381,10 @@ export function FamilyWorkspace() {
 
 export function FamilyProfileDetailWorkspace({ memberId }: { memberId: string }) {
   const api = useKlarioApi();
+  const router = useRouter();
   const familyId = api.activeFamily?.id;
   const [message, setMessage] = useState("");
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const profileQuery = useQuery({
     queryKey: protectedQueryKey(api.user?.id, "profiles", "detail", familyId, memberId),
     queryFn: () => profilesApi.get(familyId!, memberId),
@@ -418,10 +422,22 @@ export function FamilyProfileDetailWorkspace({ memberId }: { memberId: string })
   }, [profile]);
 
   const updateMutation = useMutation({
-    mutationFn: (body: FamilyProfileUpdate) => profilesApi.update(familyId!, memberId, body),
+    mutationFn: async (body: FamilyProfileUpdate) => {
+      try {
+        return await profilesApi.update(familyId!, memberId, body);
+      } catch (error) {
+        // A profile can be updated from iOS or another browser while this form is open.
+        // Refresh the concurrency token and retry the user's intended edit once.
+        if (error instanceof ApiError && error.code === "profile_conflict") {
+          const current = await profilesApi.get(familyId!, memberId);
+          return profilesApi.update(familyId!, memberId, { ...body, expected_updated_at: current.updated_at });
+        }
+        throw error;
+      }
+    },
     onSuccess: async () => {
       setMessage("Profile updated.");
-      await api.invalidateWorkspaceData();
+      await api.refresh();
       await profileQuery.refetch();
     },
     onError: (error) => setMessage(error instanceof Error ? error.message : "Profile could not be updated.")
@@ -429,9 +445,9 @@ export function FamilyProfileDetailWorkspace({ memberId }: { memberId: string })
   const archiveMutation = useMutation({
     mutationFn: () => profilesApi.archive(familyId!, memberId),
     onSuccess: async () => {
-      setMessage("Profile archived.");
-      await api.invalidateWorkspaceData();
-      await profileQuery.refetch();
+      setIsDeleteDialogOpen(false);
+      await api.refresh();
+      router.replace("/app/family");
     },
     onError: (error) => setMessage(error instanceof Error ? error.message : "Profile could not be archived.")
   });
@@ -563,13 +579,9 @@ export function FamilyProfileDetailWorkspace({ memberId }: { memberId: string })
                 className="button button-ghost danger-action"
                 type="button"
                 disabled={!profile.capabilities.can_archive_profile || archiveMutation.isPending}
-                onClick={() => {
-                  if (window.confirm(`Archive ${profile.full_name}?`)) {
-                    archiveMutation.mutate();
-                  }
-                }}
+                onClick={() => setIsDeleteDialogOpen(true)}
               >
-                {archiveMutation.isPending ? "Archiving" : "Archive profile"}
+                Delete profile
               </button>
             ) : profile ? (
               <button
@@ -589,6 +601,24 @@ export function FamilyProfileDetailWorkspace({ memberId }: { memberId: string })
       </Card>
 
       {message ? <p className="note">{message}</p> : null}
+      {isDeleteDialogOpen && profile ? (
+        <div className="klario-modal-overlay" role="presentation">
+          <section className="klario-modal family-delete-profile-modal" role="dialog" aria-modal="true" aria-labelledby="delete-profile-title">
+            <div className="klario-modal-head">
+              <div>
+                <h2 id="delete-profile-title">Delete {profile.full_name}&rsquo;s profile?</h2>
+                <p>This removes the profile from the active family. Existing records are preserved and the profile can be restored from Archived Profiles.</p>
+              </div>
+              <button className="button button-ghost icon-button" type="button" aria-label="Close delete profile" disabled={archiveMutation.isPending} onClick={() => setIsDeleteDialogOpen(false)}><BioIcon name="icon_action_reject" size={18} /></button>
+            </div>
+            {archiveMutation.error ? <p className="form-error family-delete-profile-error">{archiveMutation.error instanceof Error ? archiveMutation.error.message : "Profile could not be deleted."}</p> : null}
+            <div className="family-delete-profile-actions">
+              <button className="button button-ghost" type="button" disabled={archiveMutation.isPending} onClick={() => setIsDeleteDialogOpen(false)}>Cancel</button>
+              <button className="button button-danger" type="button" disabled={archiveMutation.isPending} onClick={() => archiveMutation.mutate()}>{archiveMutation.isPending ? "Deleting" : "Delete profile"}</button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -38,6 +38,11 @@ export interface PasswordResetRequest {
   new_password: string;
 }
 
+export interface PasswordResetVerifyRequest {
+  email: string;
+  code: string;
+}
+
 export interface ChangePasswordRequest {
   current_password: string;
   new_password: string;

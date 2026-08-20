@@ -64,7 +64,7 @@ export function LoginForm({ notice }: { notice?: string }) {
     try {
       await completeOtpLogin({ email, code, purpose: "login" });
       window.dispatchEvent(new Event("klario:navigation-start"));
-      window.setTimeout(() => router.push("/app/dashboard"), 420);
+      window.setTimeout(() => router.push("/app/family"), 420);
     } catch (verifyError) {
       setError(verifyError instanceof ApiError ? verifyError.message : "Invalid or expired code.");
       setIsSubmitting(false);
