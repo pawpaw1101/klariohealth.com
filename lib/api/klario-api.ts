@@ -49,7 +49,6 @@ import type {
   PasswordResetRequest,
   PasswordResetVerifyRequest,
   PasswordResetResponse,
-  PasswordResetVerifyRequest,
   RefreshTokenRequest,
   RegisterRequest,
   ReportDetail,

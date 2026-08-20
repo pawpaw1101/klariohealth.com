@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useKlarioApi } from "@/components/klario-api-provider";
 import { PasswordRequirements } from "@/components/password-requirements";
 import { authApi } from "@/lib/api/klario-api";
