@@ -26,12 +26,31 @@ const rangeOptions: TrendRange[] = ["week", "month", "6m", "year", "all"];
 const emptyTrendCategories: TrendCategoryGroup[] = [];
 
 function categoryTone(categoryId: string): BioStatusTone {
-  const normalized = categoryId.toLowerCase();
-  if (normalized.includes("liver") || normalized.includes("thyroid") || normalized.includes("enzyme")) return "orange";
-  if (normalized.includes("blood") || normalized.includes("pressure") || normalized.includes("cardio")) return "red";
-  if (normalized.includes("kidney") || normalized.includes("metabolic") || normalized.includes("glucose")) return "blue";
-  if (normalized.includes("vitamin") || normalized.includes("immune")) return "green";
-  return "brand";
+  // Keep category presentation in step with iOS TrendCategoryPresentation. The category
+  // IDs and all metric membership still come directly from the shared backend catalog.
+  switch (categoryId) {
+    case "complete_blood_count":
+    case "inflammation":
+    case "cardiac":
+      return "red";
+    case "diabetes":
+    case "vitamins":
+    case "serology":
+      return "blue";
+    case "liver":
+    case "enzymes":
+    case "thyroid":
+      return "orange";
+    case "kidney":
+    case "electrolytes":
+    case "immunology":
+      return "green";
+    case "lipids":
+    case "iron_studies":
+      return "yellow";
+    default:
+      return "gray";
+  }
 }
 
 function metricMatches(metric: TrendMetricPreview, query: string) {
@@ -42,11 +61,6 @@ function metricMatches(metric: TrendMetricPreview, query: string) {
 
 function flagged(metric: TrendMetricPreview) {
   return Boolean(metric.has_attention || (metric.latest_flag && metric.latest_flag !== "normal"));
-}
-
-function pointValues(data: Awaited<ReturnType<typeof trendsApi.detail>> | undefined) {
-  if (!data || !("points" in data)) return [];
-  return data.points.map((point) => ("value" in point ? point.value ?? 0 : point.systolic));
 }
 
 function referenceRange(data: Awaited<ReturnType<typeof trendsApi.detail>> | undefined) {
@@ -472,17 +486,13 @@ export function TrendDetailWorkspace({ metricId }: { metricId: string }) {
         <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
 
           {/* LATEST VALUE + STATUS */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            <span style={{ fontSize: "14px", color: "var(--text-secondary)" }}>Latest result</span>
-            <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-              <span style={{ fontSize: "24px", fontWeight: "700", color: latest?.flag ? `var(--status-${toneForStatus(latest.flag)}-text, var(--text-primary))` : "var(--text-primary)" }}>
+          <div className="trend-latest-result">
+            <span>Latest result</span>
+            <div>
+              <strong style={{ color: latest?.flag ? `var(--status-${toneForStatus(latest.flag)}-text, var(--text-primary))` : "var(--text-primary)" }}>
                 {latest ? valueWithUnit(latest.value, latest.unit) : "—"}
-              </span>
-              {latest?.flag && (
-                <StatusPill tone={toneForStatus(latest.flag)}>
-                  {prettyStatus(latest.flag)}
-                </StatusPill>
-              )}
+              </strong>
+              {latest?.flag ? <StatusPill tone={toneForStatus(latest.flag)}>{prettyStatus(latest.flag)}</StatusPill> : null}
             </div>
           </div>
 
@@ -512,39 +522,45 @@ export function TrendDetailWorkspace({ metricId }: { metricId: string }) {
           </div>
 
           {/* SUMMARY CARDS */}
-          <Card style={{ padding: "0" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "16px", padding: "16px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>Latest</span>
-                <span style={{ fontSize: "16px", fontWeight: "600" }}>{latest ? valueWithUnit(latest.value, latest.unit) : "—"}</span>
+          <div className="trend-metric-summary-row">
+            <Card className="trend-detail-summary-card">
+              <div className="trend-detail-summary-grid">
+                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                  <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>Latest</span>
+                  <span style={{ fontSize: "16px", fontWeight: "600" }}>{latest ? valueWithUnit(latest.value, latest.unit) : "—"}</span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                  <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>Readings</span>
+                  <span style={{ fontSize: "16px", fontWeight: "600" }}>{summary?.reading_count ?? 0}</span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                  <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>Average</span>
+                  <span style={{ fontSize: "16px", fontWeight: "600" }}>
+                    {summary && "average" in summary && summary.average !== null ? valueWithUnit(summary.average, data.unit) : "—"}
+                  </span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                  <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>Range</span>
+                  <span style={{ fontSize: "16px", fontWeight: "600" }}>{getObservedRange()}</span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                  <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>Change</span>
+                  <span style={{ fontSize: "16px", fontWeight: "600", color: summary && "change_from_previous" in summary && summary.change_from_previous ? "var(--status-orange-text)" : "var(--text-primary)" }}>
+                    {getChangeValue()}
+                  </span>
+                </div>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>Readings</span>
-                <span style={{ fontSize: "16px", fontWeight: "600" }}>{summary?.reading_count ?? 0}</span>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>Average</span>
-                <span style={{ fontSize: "16px", fontWeight: "600" }}>
-                  {summary && "average" in summary && summary.average !== null ? valueWithUnit(summary.average, data.unit) : "—"}
-                </span>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>Range</span>
-                <span style={{ fontSize: "16px", fontWeight: "600" }}>{getObservedRange()}</span>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>Change</span>
-                <span style={{ fontSize: "16px", fontWeight: "600", color: summary && "change_from_previous" in summary && summary.change_from_previous ? "var(--status-orange-text)" : "var(--text-primary)" }}>
-                  {getChangeValue()}
-                </span>
-              </div>
-            </div>
-            <div className="trend-summary-context">
-              <span><BioIcon name="icon_filter_metric" size={14} /> {"category" in data ? data.category : "Health metric"}</span>
-              <span>{summary?.reading_count === 1 ? "1 reading" : `${summary?.reading_count ?? 0} readings`}</span>
-              {latest?.flag ? <StatusPill tone={toneForStatus(latest.flag)} fill="tinted">{prettyStatus(latest.flag)}</StatusPill> : null}
-            </div>
-          </Card>
+            </Card>
+            <Card className="trend-top-reference-card">
+              <span>Reference range</span>
+              {rangeBand ? (
+                <>
+                  <strong>{rangeBand.min}–{rangeBand.max} {data.unit}</strong>
+                  <ReferenceRangeScale minimum={rangeBand.min} maximum={rangeBand.max} value={latest?.value} unit={data.unit} />
+                </>
+              ) : <small>Unavailable</small>}
+            </Card>
+          </div>
 
           <Card className="trend-detail-content-card">
             <div className="trend-detail-tabs" role="tablist" aria-label="Metric detail content">
@@ -569,8 +585,12 @@ export function TrendDetailWorkspace({ metricId }: { metricId: string }) {
               </div>
             ) : (
               <div className="trend-history-panel" role="tabpanel">
-                {points.length ? [...points].reverse().map((point) => (
-                  <Link className="trend-history-row" href={`/app/reports/${point.document_id}`} key={point.id}>
+                {points.length ? [...points].reverse().map((point, historyIndex) => (
+                  <Link
+                    className="trend-history-row"
+                    href={`/app/reports/${point.document_id}`}
+                    key={`history-${point.id ?? point.parsed_result_id ?? point.systolic_result_id ?? point.document_id ?? point.date}-${historyIndex}`}
+                  >
                     <i className={point.flag && point.flag !== "normal" ? "is-out-of-range" : ""} />
                     <span>{formatDate(point.date)}</span>
                     <strong>{valueWithUnit(point.value, point.unit ?? data.unit)}</strong>
@@ -582,34 +602,6 @@ export function TrendDetailWorkspace({ metricId }: { metricId: string }) {
             )}
           </Card>
 
-          {/* REFERENCE RANGE & SOURCE */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "16px", maxWidth: "600px" }}>
-            <Card style={{ padding: "20px" }}>
-              <h3 style={{ fontSize: "16px", fontWeight: "600", marginBottom: "8px" }}>Reference range</h3>
-              {rangeBand ? (
-                <>
-                  <div style={{ fontSize: "20px", fontWeight: "600", marginBottom: "16px" }}>
-                    {rangeBand.min ?? "—"}–{rangeBand.max ?? "—"} {data.unit}
-                  </div>
-                  <ReferenceRangeScale minimum={rangeBand.min} maximum={rangeBand.max} value={latest?.value} unit={data.unit} />
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                    <StatusPill tone={latest?.flag ? toneForStatus(latest.flag) : "gray"}>
-                      {latest?.flag ? prettyStatus(latest.flag) : "Unknown"}
-                    </StatusPill>
-                    {latest && (
-                      <span style={{ fontSize: "14px", color: "var(--text-secondary)" }}>
-                        Your latest reading: {latest.value} {data.unit}
-                      </span>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <div style={{ fontSize: "14px", color: "var(--text-secondary)" }}>
-                  Reference range unavailable
-                </div>
-              )}
-            </Card>
-          </div>
         </div>
       ) : (
         <Card>

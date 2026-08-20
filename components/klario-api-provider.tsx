@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { BioIcon } from "@/components/bio-icon";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import {
   ApiError,
@@ -16,6 +17,7 @@ import {
 } from "@/lib/api/client";
 import { authApi, familiesApi, membersApi, onboardingApi, rolesApi } from "@/lib/api/klario-api";
 import { protectedQueryKey, protectedQueryPrefix, queryFreshness } from "@/lib/query-cache";
+import { uploadAndParseReport, type UploadAndParseOptions, type UploadPhase } from "@/lib/api/upload";
 import type {
   Family,
   FamilyCreateRequest,
@@ -32,6 +34,16 @@ import type {
 } from "@/lib/api/types";
 
 type ApiStatus = "checking" | "signed-out" | "onboarding" | "live" | "offline";
+
+type BackgroundUploadState = {
+  id: number;
+  phase: UploadPhase | "failed";
+  message: string;
+  tone: "progress" | "success" | "error";
+  documentId?: string;
+};
+
+type BackgroundUploadRequest = Omit<UploadAndParseOptions, "onStatus">;
 
 const SESSION_EXPIRED_MESSAGE = "Your session expired. Please sign in again.";
 
@@ -61,6 +73,10 @@ type KlarioApiContextValue = {
   createFamily: (request: FamilyCreateRequest) => Promise<Family>;
   createMember: (familyId: string, request: MemberCreateRequest) => Promise<FamilyMember>;
   invalidateWorkspaceData: () => Promise<void>;
+  forgetDeletedDocument: (documentId: string) => Promise<void>;
+  uploadState: BackgroundUploadState | null;
+  startReportUpload: (request: BackgroundUploadRequest) => void;
+  dismissUploadStatus: () => void;
 };
 
 const KlarioApiContext = createContext<KlarioApiContextValue | null>(null);
@@ -107,6 +123,8 @@ function KlarioSessionProvider({ children }: { children: React.ReactNode }) {
   const [activeMemberId, setActiveMemberIdState] = useState<string | null>(null);
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [uploadState, setUploadState] = useState<BackgroundUploadState | null>(null);
+  const uploadSequence = useRef(0);
 
   const clearSessionState = useCallback(
     (nextMessage: string) => {
@@ -122,6 +140,7 @@ function KlarioSessionProvider({ children }: { children: React.ReactNode }) {
       setActiveMemberIdState(null);
       setLastSyncAt(null);
       setMessage(nextMessage);
+      setUploadState(null);
     },
     [queryClient]
   );
@@ -174,7 +193,7 @@ function KlarioSessionProvider({ children }: { children: React.ReactNode }) {
   );
 
   const loadWorkspace = useCallback(
-    async (currentUser: User) => {
+    async (currentUser: User, familySelection: "stored" | "original" = "stored") => {
       const onboardingStatus = await queryClient.fetchQuery({
         queryKey: protectedQueryKey(currentUser.id, "onboarding"),
         queryFn: onboardingApi.status,
@@ -203,7 +222,12 @@ function KlarioSessionProvider({ children }: { children: React.ReactNode }) {
         ...queryFreshness.account
       });
       const storedFamilyId = getStoredActiveFamilyId();
-      const nextFamilyId = nextFamilies.some((family) => family.id === storedFamilyId) ? storedFamilyId : nextFamilies[0]?.id ?? null;
+      const originalOwnedFamily = nextFamilies
+        .filter((family) => family.owner_user_id === currentUser.id)
+        .sort((first, second) => first.created_at.localeCompare(second.created_at))[0];
+      const nextFamilyId = familySelection === "original"
+        ? originalOwnedFamily?.id ?? nextFamilies[0]?.id ?? null
+        : nextFamilies.some((family) => family.id === storedFamilyId) ? storedFamilyId : nextFamilies[0]?.id ?? null;
 
       setFamilies(nextFamilies);
       await loadFamilyContext(nextFamilyId, currentUser);
@@ -258,13 +282,15 @@ function KlarioSessionProvider({ children }: { children: React.ReactNode }) {
       const tokenResponse = await authApi.verifyOtp(request);
       // A new identity must start with no observable responses from a prior identity.
       queryClient.clear();
+      setStoredActiveFamilyId(null);
+      setStoredActiveMemberId(null);
       setAuthTokens(tokenResponse.access_token, tokenResponse.refresh_token);
       const currentUser = await queryClient.fetchQuery({
         queryKey: ["klario", "auth", "me"],
         queryFn: authApi.authMe,
         staleTime: 0
       });
-      await loadWorkspace(currentUser);
+      await loadWorkspace(currentUser, "original");
       return currentUser;
     },
     [loadWorkspace, queryClient]
@@ -380,16 +406,76 @@ function KlarioSessionProvider({ children }: { children: React.ReactNode }) {
 
   const invalidateWorkspaceData = useCallback(async () => {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: protectedQueryPrefix(user?.id, "reports") }),
-      queryClient.invalidateQueries({ queryKey: protectedQueryPrefix(user?.id, "dashboard") }),
-      queryClient.invalidateQueries({ queryKey: protectedQueryPrefix(user?.id, "trends") }),
-      queryClient.invalidateQueries({ queryKey: protectedQueryPrefix(user?.id, "metrics") }),
-      queryClient.invalidateQueries({ queryKey: protectedQueryPrefix(user?.id, "attention") }),
-      queryClient.invalidateQueries({ queryKey: protectedQueryPrefix(user?.id, "invites") }),
-      queryClient.invalidateQueries({ queryKey: protectedQueryPrefix(user?.id, "profiles") })
+      queryClient.invalidateQueries({ queryKey: protectedQueryPrefix(user?.id, "reports"), refetchType: "all" }),
+      queryClient.invalidateQueries({ queryKey: protectedQueryPrefix(user?.id, "dashboard"), refetchType: "all" }),
+      queryClient.invalidateQueries({ queryKey: protectedQueryPrefix(user?.id, "trends"), refetchType: "all" }),
+      queryClient.invalidateQueries({ queryKey: protectedQueryPrefix(user?.id, "metrics"), refetchType: "all" }),
+      queryClient.invalidateQueries({ queryKey: protectedQueryPrefix(user?.id, "attention"), refetchType: "all" }),
+      queryClient.invalidateQueries({ queryKey: protectedQueryPrefix(user?.id, "invites"), refetchType: "all" }),
+      queryClient.invalidateQueries({ queryKey: protectedQueryPrefix(user?.id, "profiles"), refetchType: "all" })
     ]);
     setLastSyncAt(new Date().toISOString());
   }, [queryClient, user?.id]);
+
+  const forgetDeletedDocument = useCallback(async (documentId: string) => {
+    // A deleted document must never remain visible from an in-memory detail cache.
+    queryClient.removeQueries({
+      predicate: (query) => {
+        const key = query.queryKey;
+        return key[0] === "klario" && key[1] === "protected" && key[2] === (user?.id ?? "unauthenticated")
+          && (key[3] === "documents" || key[3] === "reports")
+          && key.includes(documentId);
+      }
+    });
+    await invalidateWorkspaceData();
+  }, [invalidateWorkspaceData, queryClient, user?.id]);
+
+  const dismissUploadStatus = useCallback(() => setUploadState(null), []);
+
+  const startReportUpload = useCallback(
+    (request: BackgroundUploadRequest) => {
+      const uploadId = ++uploadSequence.current;
+      setUploadState({
+        id: uploadId,
+        phase: "validating",
+        message: "Preparing your report",
+        tone: "progress"
+      });
+
+      void (async () => {
+        try {
+          const document = await uploadAndParseReport({
+            ...request,
+            onStatus: (update) => {
+              setUploadState((current) => current?.id === uploadId ? {
+                id: uploadId,
+                phase: update.phase,
+                message: update.message,
+                tone: "progress",
+                documentId: update.document?.id
+              } : current);
+            }
+          });
+          await invalidateWorkspaceData();
+          setUploadState((current) => current?.id === uploadId ? {
+            id: uploadId,
+            phase: "complete",
+            message: "Report ready",
+            tone: "success",
+            documentId: document.id
+          } : current);
+        } catch (error) {
+          setUploadState((current) => current?.id === uploadId ? {
+            id: uploadId,
+            phase: "failed",
+            message: error instanceof Error ? error.message : "Your report could not be processed.",
+            tone: "error"
+          } : current);
+        }
+      })();
+    },
+    [invalidateWorkspaceData]
+  );
 
   const activeFamily = useMemo(
     () => families.find((family) => family.id === activeFamilyId) ?? null,
@@ -432,7 +518,11 @@ function KlarioSessionProvider({ children }: { children: React.ReactNode }) {
       refreshOnboarding,
       createFamily,
       createMember,
-      invalidateWorkspaceData
+      invalidateWorkspaceData,
+      forgetDeletedDocument,
+      uploadState,
+      startReportUpload,
+      dismissUploadStatus
     }),
     [
       activeFamily,
@@ -440,7 +530,9 @@ function KlarioSessionProvider({ children }: { children: React.ReactNode }) {
       createFamily,
       createMember,
       currentRole,
+      dismissUploadStatus,
       families,
+      forgetDeletedDocument,
       backendLogout,
       invalidateWorkspaceData,
       lastSyncAt,
@@ -457,9 +549,39 @@ function KlarioSessionProvider({ children }: { children: React.ReactNode }) {
       setActiveFamilyId,
       setActiveMemberId,
       status,
+      startReportUpload,
+      uploadState,
       user
     ]
   );
 
-  return <KlarioApiContext.Provider value={value}>{children}</KlarioApiContext.Provider>;
+  return (
+    <KlarioApiContext.Provider value={value}>
+      {children}
+      <BackgroundUploadBanner state={uploadState} onDismiss={dismissUploadStatus} />
+    </KlarioApiContext.Provider>
+  );
+}
+
+function BackgroundUploadBanner({ state, onDismiss }: { state: BackgroundUploadState | null; onDismiss: () => void }) {
+  useEffect(() => {
+    if (state?.tone !== "success") return;
+    const timer = window.setTimeout(onDismiss, 5000);
+    return () => window.clearTimeout(timer);
+  }, [onDismiss, state?.id, state?.tone]);
+
+  if (!state) return null;
+
+  const isWorking = state.tone === "progress";
+  return (
+    <aside className={`background-upload-banner is-${state.tone}`} aria-live="polite" aria-atomic="true">
+      <BioIcon name={isWorking ? "icon_action_loading" : state.tone === "error" ? "icon_action_reject" : "icon_action_confirm_safe"} size={19} />
+      <div>
+        <strong>{isWorking ? "Adding report" : state.tone === "success" ? "Report added" : "Report needs attention"}</strong>
+        <p>{state.message}{isWorking ? " — you can keep browsing." : ""}</p>
+      </div>
+      {state.documentId && state.tone === "success" ? <a className="button button-ghost" href={`/app/reports/${state.documentId}`}>View report</a> : null}
+      {!isWorking ? <button className="button button-ghost icon-button" type="button" onClick={onDismiss} aria-label="Dismiss upload status"><BioIcon name="icon_action_reject" size={16} /></button> : null}
+    </aside>
+  );
 }

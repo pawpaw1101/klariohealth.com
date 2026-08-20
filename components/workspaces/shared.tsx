@@ -211,12 +211,15 @@ export function InteractiveTrendChart({
   unit: string | null;
 }) {
   const [selectedPoint, setSelectedPoint] = useState<TrendPoint | null>(null);
+  const chartPoints = points.filter(
+    (point): point is TrendPoint & { value: number } => typeof point.value === "number" && Number.isFinite(point.value)
+  );
 
   useEffect(() => {
-    setSelectedPoint(points.at(-1) ?? null);
+    setSelectedPoint(chartPoints.at(-1) ?? null);
   }, [points, points.length]);
 
-  if (points.length === 0) {
+  if (chartPoints.length === 0) {
     return <div className="trend-empty">No trend data yet</div>;
   }
 
@@ -225,12 +228,13 @@ export function InteractiveTrendChart({
   const padding = { top: 14, right: 20, bottom: 34, left: 46 };
   const chartHeight = height - padding.top - padding.bottom;
   const chartWidth = width - padding.left - padding.right;
-  const chartPoints = points.filter((point): point is TrendPoint & { value: number } => point.value !== null);
   const values = chartPoints.map((point) => point.value);
   const validMin = values.length ? Math.min(...values) : 0;
   const validMax = values.length ? Math.max(...values) : 1;
-  const refMin = referenceMin ?? validMin;
-  const refMax = referenceMax ?? validMax;
+  const safeReferenceMin = typeof referenceMin === "number" && Number.isFinite(referenceMin) ? referenceMin : null;
+  const safeReferenceMax = typeof referenceMax === "number" && Number.isFinite(referenceMax) ? referenceMax : null;
+  const refMin = safeReferenceMin ?? validMin;
+  const refMax = safeReferenceMax ?? validMax;
   const domainPadding = Math.max((Math.max(validMax, refMax) - Math.min(validMin, refMin)) * 0.12, 1);
   const plotMin = Math.min(validMin, refMin) - domainPadding;
   const plotMax = Math.max(validMax, refMax) + domainPadding;
@@ -264,23 +268,23 @@ export function InteractiveTrendChart({
             <stop offset="100%" stopColor="#ff9400" stopOpacity="0.02" />
           </linearGradient>
         </defs>
-        {yTicks.map((value) => (
-          <g key={value}>
+        {yTicks.map((value, index) => (
+          <g key={`y-tick-${index}`}>
             <line x1={padding.left} y1={getY(value)} x2={width - padding.right} y2={getY(value)} className="interactive-trend-grid" />
             <text x={padding.left - 9} y={getY(value)} className="interactive-trend-axis" textAnchor="end" dominantBaseline="middle">{Number(value.toFixed(1))}</text>
           </g>
         ))}
-        {referenceMin !== null && referenceMax !== null && (
+        {safeReferenceMin !== null && safeReferenceMax !== null && (
           <rect
             x={padding.left}
-            y={getY(referenceMax)}
+            y={getY(safeReferenceMax)}
             width={chartWidth}
-            height={getY(referenceMin) - getY(referenceMax)}
+            height={getY(safeReferenceMin) - getY(safeReferenceMax)}
             className="interactive-trend-reference-band"
           />
         )}
-        {referenceMin !== null && <line x1={padding.left} y1={getY(referenceMin)} x2={width - padding.right} y2={getY(referenceMin)} className="interactive-trend-reference-edge" />}
-        {referenceMax !== null && <line x1={padding.left} y1={getY(referenceMax)} x2={width - padding.right} y2={getY(referenceMax)} className="interactive-trend-reference-edge" />}
+        {safeReferenceMin !== null && <line x1={padding.left} y1={getY(safeReferenceMin)} x2={width - padding.right} y2={getY(safeReferenceMin)} className="interactive-trend-reference-edge" />}
+        {safeReferenceMax !== null && <line x1={padding.left} y1={getY(safeReferenceMax)} x2={width - padding.right} y2={getY(safeReferenceMax)} className="interactive-trend-reference-edge" />}
         {area ? <path d={area} className="interactive-trend-area" /> : null}
         {path ? <path d={path} className="interactive-trend-line" /> : null}
         {selectedIndex >= 0 ? <line x1={getX(selectedIndex)} y1={padding.top} x2={getX(selectedIndex)} y2={height - padding.bottom} className="interactive-trend-selection-line" /> : null}
@@ -288,7 +292,7 @@ export function InteractiveTrendChart({
           const x = getX(index);
           const y = getY(point.value);
           return (
-            <g key={`${point.value}-${index}`}
+            <g key={`${point.id}-${index}`}
               onPointerDown={() => setSelectedPoint(point)}
               className="interactive-trend-point"
             >
@@ -297,9 +301,9 @@ export function InteractiveTrendChart({
             </g>
           );
         })}
-        {labelPoints.map((point) => {
+        {labelPoints.map((point, labelIndex) => {
           const index = chartPoints.findIndex((candidate) => candidate.id === point.id);
-          return <text key={point.id} x={getX(index)} y={height - 10} className="interactive-trend-axis" textAnchor="middle">{formatDate(point.date).replace(/, \d{4}/, "")}</text>;
+          return <text key={`${point.id}-${labelIndex}`} x={getX(index)} y={height - 10} className="interactive-trend-axis" textAnchor="middle">{formatDate(point.date).replace(/, \d{4}/, "")}</text>;
         })}
       </svg>
       {selectedPoint ? <p className="interactive-trend-selected-value"><strong>{valueWithUnit(selectedPoint.value, unit)}</strong><span>{formatDate(selectedPoint.date)}</span></p> : null}
