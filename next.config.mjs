@@ -1,5 +1,20 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  /**
+   * Local development against the hosted backend.
+   *
+   * The hosted CORS allowlist admits only the deployed web origins, so a browser on localhost
+   * cannot call it directly. Forwarding through this server sidesteps that without touching
+   * the allowlist: the browser makes a same-origin request and Next proxies it server-side,
+   * where CORS does not apply. Unset in normal local work and on deployments, where the API
+   * base is an absolute URL and no rewrite matches.
+   */
+  async rewrites() {
+    const target = process.env.KLARIO_PROXY_API_TO;
+    if (!target) return [];
+    return [{ source: "/api/v1/:path*", destination: `${target.replace(/\/$/, "")}/api/v1/:path*` }];
+  },
+
   async redirects() {
     return [
       { source: "/index.html", destination: "/", permanent: false },
