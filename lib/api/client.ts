@@ -73,6 +73,17 @@ export function setAuthTokens(accessToken: string, refreshToken?: string | null)
   }
 }
 
+/**
+ * Removes a refresh credential left in sessionStorage by a session that predates cookie
+ * transport. Nothing writes one any more; this only cleans up the migration case.
+ */
+export function clearLegacyRefreshToken() {
+  memoryRefreshToken = null;
+  if (typeof window !== "undefined") {
+    window.sessionStorage.removeItem(REFRESH_TOKEN_KEY);
+  }
+}
+
 export function setAuthToken(token: string) {
   memoryToken = token;
   if (typeof window !== "undefined") {
@@ -120,12 +131,114 @@ export function setStoredActiveMemberId(memberId: string | null) {
   }
 }
 
+/**
+ * A refresh attempt that could not reach a verdict — a transport failure or a 5xx. The
+ * credential's validity is unknown, so the session is deliberately left intact rather than
+ * signing the user out on what may be a dropped connection.
+ */
+class RefreshUnavailableError extends Error {}
+
+/**
+ * Opts this client into HttpOnly cookie transport for the refresh credential. A cross-site
+ * page cannot set a custom header without a CORS preflight the API refuses, so requiring it
+ * is what protects the cookie-authenticated endpoints from CSRF.
+ */
+export const REFRESH_TRANSPORT_HEADER = { "X-Klario-Refresh-Transport": "cookie" } as const;
+
+let refreshInFlight: Promise<boolean> | null = null;
+
+/**
+ * Exchanges the stored refresh credential for a new pair. Deliberately uses `fetch` directly
+ * rather than `apiFetch`, so a 401 from this endpoint can never recurse into another refresh.
+ */
+async function performRefresh(): Promise<boolean> {
+  // The credential lives in an HttpOnly cookie the browser attaches itself; there is
+  // deliberately nothing to read here. A legacy credential in sessionStorage is still
+  // accepted once, so a session opened before this change migrates instead of being
+  // signed out.
+  const legacyToken = getRefreshToken();
+
+  let response: Response;
+  try {
+    response = await fetch(resolveApiUrl("/auth/refresh"), {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json", ...REFRESH_TRANSPORT_HEADER },
+      body: JSON.stringify(legacyToken ? { refresh_token: legacyToken, device_type: "web" } : { device_type: "web" })
+    });
+  } catch {
+    throw new RefreshUnavailableError();
+  }
+
+  // 5xx says nothing about the credential; only the server's own 4xx verdict does.
+  if (response.status >= 500) throw new RefreshUnavailableError();
+  if (!response.ok) return false;
+
+  const text = await response.text();
+  const payload = text ? (safeJsonParse(text) as { access_token?: string; refresh_token?: string } | null) : null;
+  if (!payload?.access_token) return false;
+
+  // The rotated replacement is delivered as a cookie, so `refresh_token` is null here and
+  // nothing long-lived is written to storage. Clearing any legacy value completes the
+  // migration for sessions that began before cookie transport existed.
+  setAuthTokens(payload.access_token, null);
+  clearLegacyRefreshToken();
+  return true;
+}
+
+/**
+ * Single-flight: concurrent 401s share one refresh round-trip. Without this, four parallel
+ * requests would send four refreshes, three of which would present an already-rotated token
+ * and trip the backend's replay defence — logging the user out of every device.
+ */
+function refreshSession(): Promise<boolean> {
+  if (!refreshInFlight) {
+    refreshInFlight = performRefresh().finally(() => {
+      refreshInFlight = null;
+    });
+  }
+  return refreshInFlight;
+}
+
+/** Test seam: lets a suite assert that no refresh is left pending between cases. */
+export function __hasRefreshInFlight() {
+  return refreshInFlight !== null;
+}
+
+function endSession() {
+  clearKlarioSession();
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("klario:session-expired"));
+  }
+}
+
+/**
+ * A request may be replayed after a refresh only if its body can be read a second time. A
+ * stream body is consumed by the first attempt, so replaying it would send an empty payload.
+ */
+function isReplayable(body: BodyInit | null | undefined) {
+  return !(body instanceof ReadableStream);
+}
+
 export async function apiFetch<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
+  return executeRequest<T>(path, options, true);
+}
+
+async function executeRequest<T>(path: string, options: ApiRequestOptions, allowRefresh: boolean): Promise<T> {
   const { auth = true, body, token, headers, ...init } = options;
   const requestHeaders = new Headers(headers);
 
   let requestBody = body as BodyInit | null | undefined;
-  if (body && typeof body === "object" && !(body instanceof FormData) && !(body instanceof Blob) && !(body instanceof ArrayBuffer)) {
+  // Anything the platform can send as-is is passed straight through; only plain objects are
+  // serialised. Without the stream/params cases here a stream body was silently turned into
+  // the string "{}" and the real payload was dropped.
+  const isNativeBody = body instanceof FormData
+    || body instanceof Blob
+    || body instanceof ArrayBuffer
+    || ArrayBuffer.isView(body as ArrayBufferView)
+    || body instanceof URLSearchParams
+    || (typeof ReadableStream !== "undefined" && body instanceof ReadableStream);
+  if (body && typeof body === "object" && !isNativeBody) {
     requestBody = JSON.stringify(body);
     if (!requestHeaders.has("Content-Type")) {
       requestHeaders.set("Content-Type", "application/json");
@@ -156,15 +269,38 @@ export async function apiFetch<T>(path: string, options: ApiRequestOptions = {})
     const errorPayload = payload as APIErrorResponse | null;
     const code = errorPayload?.detail?.code ?? "internal_error";
     const message = errorPayload?.detail?.message ?? safeApiMessage(code);
-    const requiresSecureSessionClear = response.status === 401
-      || (response.status === 403 && ["unauthenticated", "inactive_user", "session_expired", "access_revoked"].includes(code));
-    if (requiresSecureSessionClear && auth) {
-      clearKlarioSession();
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new Event("klario:session-expired"));
+    const apiError = new ApiError(response.status, code, message, errorPayload?.detail?.errors);
+
+    // A 401 means auth middleware rejected the request before the handler ran, so the call had
+    // no side effect and replaying it after a refresh cannot duplicate anything — this is what
+    // makes retrying a non-idempotent mutation safe here.
+    if (response.status === 401 && auth) {
+      if (allowRefresh && isReplayable(requestBody)) {
+        let refreshed: boolean;
+        try {
+          refreshed = await refreshSession();
+        } catch (refreshError) {
+          if (refreshError instanceof RefreshUnavailableError) {
+            // Validity unknown: surface the original failure, keep the session.
+            throw apiError;
+          }
+          throw refreshError;
+        }
+        if (refreshed) {
+          // Exactly one retry, with refresh disabled so a second 401 ends the session
+          // instead of looping. Any caller-supplied token is dropped so the retry carries
+          // the newly issued one.
+          return executeRequest<T>(path, { ...options, token: undefined }, false);
+        }
       }
+      endSession();
+      throw apiError;
     }
-    throw new ApiError(response.status, code, message, errorPayload?.detail?.errors);
+
+    if (auth && response.status === 403 && ["unauthenticated", "inactive_user", "session_expired", "access_revoked"].includes(code)) {
+      endSession();
+    }
+    throw apiError;
   }
 
   return payload as T;

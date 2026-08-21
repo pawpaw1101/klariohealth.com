@@ -15,9 +15,9 @@ export default function ForgotPasswordPage() {
       <section className="hero">
         <div className="hero-copy">
 
-          <h1>Reset your Klario password.</h1>
+          <h1>Forgot password?</h1>
           <p className="hero-lead">
-            Enter your email and Klario will send a verification code if the account is eligible.
+            Enter the email associated with your Klario account.
           </p>
           <div className="login-benefits">
             {[

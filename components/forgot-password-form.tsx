@@ -22,6 +22,7 @@ export function ForgotPasswordForm() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [devHint, setDevHint] = useState("");
+  const [isComplete, setIsComplete] = useState(false);
 
   const sendCode = async () => {
     setIsSubmitting(true);
@@ -64,8 +65,8 @@ export function ForgotPasswordForm() {
       return;
     }
 
-    if (newPassword.length < 8) {
-      setError("Use at least 8 characters.");
+    if (!isAcceptablePassword(newPassword)) {
+      setError("Your password doesn't meet the requirements.");
       return;
     }
 
@@ -92,7 +93,7 @@ export function ForgotPasswordForm() {
         new_password: newPassword
       });
 
-      router.replace("/login?reset=success");
+      setIsComplete(true);
     } catch (requestError) {
       setError(
         requestError instanceof ApiError
@@ -104,11 +105,26 @@ export function ForgotPasswordForm() {
     }
   };
 
+  if (isComplete) {
+    return (
+      <div className="form-panel form-grid auth-outcome">
+        <span className="auth-outcome-icon is-success" aria-hidden="true">✓</span>
+        <h2>Password updated</h2>
+        <p className="note">Your password has been changed successfully. For your security, you have been signed out on every device.</p>
+        <button type="button" onClick={() => router.push("/login")}>Sign in</button>
+      </div>
+    );
+  }
+
   if (isCodeRequested) {
     return (
       <form className="form-panel form-grid" onSubmit={resetPassword}>
-        <h2>Enter your code</h2>
-        {message ? <p className="note">{message}</p> : null}
+        <h2>Check your email</h2>
+        <p className="note">
+          If an account exists for <strong>{maskEmail(email)}</strong>, we&apos;ve sent password reset
+          instructions. Enter the 6-digit code below to choose a new password.
+        </p>
+        {message && message !== GENERIC_SUCCESS ? <p className="note">{message}</p> : null}
         {devHint ? <p className="form-alert">{devHint}</p> : null}
         <div>
           <label htmlFor="reset_email">Email</label>
@@ -131,7 +147,7 @@ export function ForgotPasswordForm() {
             type="text"
             inputMode="numeric"
             autoComplete="one-time-code"
-            pattern="\\d{6}"
+            pattern="[0-9]{6}"
             maxLength={6}
             placeholder="6-digit code"
             value={code}
@@ -150,11 +166,12 @@ export function ForgotPasswordForm() {
             placeholder="New password"
             value={newPassword}
             onChange={(event) => setNewPassword(event.target.value)}
-            minLength={8}
+            maxLength={128}
             disabled={isSubmitting}
             required
           />
         </div>
+        <PasswordRequirements password={newPassword} />
         <div>
           <label htmlFor="confirm_password">Confirm password</label>
           <input
@@ -165,14 +182,17 @@ export function ForgotPasswordForm() {
             placeholder="Confirm password"
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}
-            minLength={8}
+            maxLength={128}
             disabled={isSubmitting}
             required
           />
         </div>
         {error ? <p className="form-alert">{error}</p> : null}
-        <button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Resetting password" : "Set new password"}
+        <button
+          type="submit"
+          disabled={isSubmitting || code.trim().length !== 6 || !isAcceptablePassword(newPassword) || newPassword !== confirmPassword}
+        >
+          {isSubmitting ? "Updating password" : "Update password"}
         </button>
         <button type="button" className="button button-secondary" disabled={isSubmitting} onClick={() => void sendCode()}>
           Send a new code
@@ -201,7 +221,7 @@ export function ForgotPasswordForm() {
       </div>
       {error ? <p className="form-alert">{error}</p> : null}
       <button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? "Sending code" : "Send reset code"}
+        {isSubmitting ? "Sending code" : "Send verification code"}
       </button>
       <p className="note">
         Remembered your password? <Link href="/login">Sign in</Link>.

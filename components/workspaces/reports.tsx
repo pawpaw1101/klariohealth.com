@@ -615,6 +615,7 @@ export function TimelineWorkspace() {
 export function ReportDetailWorkspace({ documentId }: { documentId: string }) {
   const api = useKlarioApi();
   const [message, setMessage] = useState("");
+  const [downloadError, setDownloadError] = useState("");
   const [isOpeningOriginal, setIsOpeningOriginal] = useState(false);
   const familyId = api.activeFamily?.id;
   const archiveReportMutation = useMutation({
@@ -647,6 +648,7 @@ export function ReportDetailWorkspace({ documentId }: { documentId: string }) {
 
   const openDownload = async () => {
     setMessage("");
+    setDownloadError("");
     setIsOpeningOriginal(true);
     // Open the tab during the click event so browsers do not treat the authenticated
     // download-url request as an unsolicited popup. The returned URL is short-lived and
@@ -662,7 +664,10 @@ export function ReportDetailWorkspace({ documentId }: { documentId: string }) {
       }
     } catch (error) {
       originalWindow?.close();
-      setMessage(error instanceof Error ? error.message : "Report download is not available.");
+      // Shown next to the button that failed, the way iOS surfaces `originalDocumentError`.
+      // The backend sends a sentence meant for display ("The original report file is no
+      // longer available..."), so it is used as-is rather than replaced with a generic one.
+      setDownloadError(error instanceof Error ? error.message : "Report download is not available.");
     } finally {
       setIsOpeningOriginal(false);
     }
@@ -700,6 +705,9 @@ export function ReportDetailWorkspace({ documentId }: { documentId: string }) {
         }
       />
       <ApiStatusBanner />
+      {downloadError ? (
+        <p className="form-alert" role="alert">{downloadError}</p>
+      ) : null}
 
       {reportQuery.isLoading ? (
         <SkeletonCard />

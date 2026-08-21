@@ -9,3 +9,11 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+
+# macOS finder metadata
+.DS_Store
+**/.DS_Store
+
+# Parity screenshots are regenerated from the simulator and the browser on demand; binaries
+# of app screens do not belong in the repo.
+docs/web-auth-parity/screenshots/

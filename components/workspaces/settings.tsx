@@ -6,6 +6,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useKlarioApi } from "@/components/klario-api-provider";
 import { Card, IconBadge, RootPageHeader, SectionHeader as KlarioSectionHeader, StatusPill } from "@/components/klario-ui";
 import { accountApi, authApi } from "@/lib/api/klario-api";
+import { setAuthTokens } from "@/lib/api/client";
 import { protectedQueryKey, queryFreshness } from "@/lib/query-cache";
 import type { NotificationPreferencesUpdateRequest, UnitGlucose, UnitHeight, UnitTemperature, UnitWeight } from "@/lib/api/types";
 import { ApiStatusBanner, EmptyState, formatDate, prettyStatus, statusClass } from "@/components/workspaces/shared";
@@ -110,10 +111,17 @@ export function SettingsWorkspace() {
   });
   const changePasswordMutation = useMutation({
     mutationFn: authApi.changePassword,
-    onSuccess: () => {
+    // Changing the password revokes every session for the account, including this one, and
+    // the backend hands back a freshly issued pair in the response. Storing it is what keeps
+    // the current tab signed in; discarding it left the old, now-revoked token in place and
+    // signed the user out on their very next request.
+    onSuccess: (tokens) => {
+      if (tokens?.access_token) {
+        setAuthTokens(tokens.access_token, tokens.refresh_token ?? null);
+      }
       setPasswordForm({ current_password: "", new_password: "", confirm_password: "" });
       setIsPasswordModalOpen(false);
-      setMessage("Password changed.");
+      setMessage("Password changed. Other devices have been signed out.");
     },
     onError: (error) => setMessage(error instanceof Error ? error.message : "Password could not be changed.")
   });
