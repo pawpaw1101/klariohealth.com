@@ -17,3 +17,4 @@ pnpm-debug.log*
 # Parity screenshots are regenerated from the simulator and the browser on demand; binaries
 # of app screens do not belong in the repo.
 docs/web-auth-parity/screenshots/
+docs/web-upload-parity/parity-review.md
