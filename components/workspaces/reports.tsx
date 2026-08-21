@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
@@ -10,6 +10,7 @@ import { useKlarioApi } from "@/components/klario-api-provider";
 import { PageTitle, SectionHeader } from "@/components/section";
 import {
   Card,
+  FilterChip,
   IconBadge,
   RootPageHeader,
   SearchField,
@@ -23,7 +24,7 @@ import {
   documentsApi,
   reportsApi
 } from "@/lib/api/klario-api";
-import { validateReportFile } from "@/lib/api/upload";
+import { MAX_UPLOAD_BYTES, validateReportFile } from "@/lib/api/upload";
 import { protectedQueryKey, queryFreshness } from "@/lib/query-cache";
 import type {
   DocumentType,
@@ -112,7 +113,6 @@ export function DocumentsWorkspace() {
     }
   });
   const memberOptions = api.members.length ? [{ id: "All", display_name: "All profiles" }, ...api.members] : [{ id: "All", display_name: "All profiles" }];
-  const hasActiveFilters = query.trim() !== "" || memberFilter !== "All" || typeFilter !== "All";
   const clearFilters = () => {
     setQuery("");
     setMemberFilter("All");
@@ -146,10 +146,7 @@ export function DocumentsWorkspace() {
             {documentTypes.map((type) => <option key={type} value={type}>{prettyStatus(type)}</option>)}
           </select>
         </label>
-        <button className="button button-ghost reports-clear-filter" type="button" disabled={!hasActiveFilters} onClick={clearFilters}>
-          <BioIcon name="icon_filter_clear" size={16} />
-          Clear
-        </button>
+        <FilterChip className="reports-clear-filter" icon="icon_filter_clear" active={false} tone="gray" onClick={clearFilters}>Clear</FilterChip>
       </div>
 
       <section className="record-list reports-list" id="reports-list">
@@ -236,13 +233,16 @@ function ReportAddOptionsModal({ onClose, onChoose }: { onClose: () => void; onC
           </button>
         </div>
         <div className="report-add-options-list">
-          <button className="report-add-option" type="button" onClick={() => onChoose("photos")}>
-            <IconBadge icon="icon_doc_scan_import" tone="blue" />
+          {/* Tone per iOS `ReportAddOption.tone`: photos orange, files gray. The icon is the
+              row's own - Photos previously borrowed the scan glyph, which collided with the
+              scan note directly below it. */}
+          <button className="report-add-option tone-orange" type="button" onClick={() => onChoose("photos")}>
+            <IconBadge icon="icon_doc_latest_import" tone="orange" size={44} />
             <span><strong>Choose from Photos</strong><small>Pick report images from this device.</small></span>
             <BioIcon name="icon_action_continue" size={16} />
           </button>
-          <button className="report-add-option" type="button" onClick={() => onChoose("files")}>
-            <IconBadge icon="icon_doc_choose_file" tone="gray" />
+          <button className="report-add-option tone-gray" type="button" onClick={() => onChoose("files")}>
+            <IconBadge icon="icon_doc_choose_file" tone="gray" size={44} />
             <span><strong>Import PDF or File</strong><small>Choose a PDF or report image from your files.</small></span>
             <BioIcon name="icon_action_continue" size={16} />
           </button>
@@ -446,15 +446,33 @@ function ReportEditModal({
   );
 }
 
+/**
+ * The Web counterpart of iOS's `BatchImportSheet` (ReportImportPresentation.swift): the second
+ * step after a source is chosen, where the report is assigned to a member and named before it
+ * is sent. Field order and terminology follow that sheet - Member, then Name and Type - so the
+ * two products describe the same operation the same way.
+ *
+ * Date and "Optional notes" from the iOS sheet are deliberately absent: `UploadIntentRequest`
+ * carries neither, so offering them here would invent a Web-only model. See
+ * docs/web-upload-parity/parity-review.md.
+ */
 export function UploadWorkspace({ source = "files", onStarted }: { source?: "files" | "photos"; onStarted?: () => void }) {
   const api = useKlarioApi();
   const [selectedMemberId, setSelectedMemberId] = useState("");
   const [documentType, setDocumentType] = useState<DocumentType>("lab_report");
   const [title, setTitle] = useState("");
-  const [fileName, setFileName] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [fileError, setFileError] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
+  const [isDragActive, setIsDragActive] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const uploadAllowed = canUpload(api.currentRole);
+
+  const accept = source === "photos"
+    ? "image/jpeg,image/png,image/heic,image/heif"
+    : "application/pdf,image/jpeg,image/png,image/heic,image/heif";
+  const acceptSummary = source === "photos" ? "JPG · PNG · HEIC" : "PDF · JPG · PNG · HEIC";
 
   useEffect(() => {
     if (api.activeMember?.id) {
@@ -462,18 +480,21 @@ export function UploadWorkspace({ source = "files", onStarted }: { source?: "fil
     }
   }, [api.activeMember?.id]);
 
-  const onFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0] ?? null;
-    setSelectedFile(file);
-    setFileName(file?.name ?? "");
+  const acceptFile = (file: File | null) => {
     setStatusMessage("");
-
-    if (file) {
-      try {
-        validateReportFile(file);
-      } catch (validationError) {
-        setStatusMessage(validationError instanceof Error ? validationError.message : "This file is not supported.");
-      }
+    if (!file) {
+      setSelectedFile(null);
+      setFileError("");
+      return;
+    }
+    try {
+      validateReportFile(file);
+      setSelectedFile(file);
+      setFileError("");
+    } catch (validationError) {
+      // Client validation is for feedback only - the backend stays authoritative.
+      setSelectedFile(null);
+      setFileError(validationError instanceof Error ? validationError.message : "This file is not supported.");
     }
   };
 
@@ -482,96 +503,150 @@ export function UploadWorkspace({ source = "files", onStarted }: { source?: "fil
     api.setActiveMemberId(memberId);
   };
 
+  const canSubmit = Boolean(selectedFile) && uploadAllowed && Boolean(selectedMemberId) && !isSubmitting;
+
   const startParsing = () => {
+    if (isSubmitting) return;
     if (!selectedFile) {
       setStatusMessage("Choose a supported report file first.");
       return;
     }
-
     if (!api.activeFamily?.id || !selectedMemberId) {
       setStatusMessage("Sign in and select a family member before uploading.");
       return;
     }
-
     if (!uploadAllowed) {
       setStatusMessage("You don't have permission to upload reports.");
       return;
     }
 
+    // Latched before the handoff so a second click cannot create a duplicate report.
+    setIsSubmitting(true);
     api.startReportUpload({
       familyId: api.activeFamily.id,
       memberId: selectedMemberId,
       file: selectedFile,
-      title,
+      title: title.trim() || selectedFile.name.replace(/\.[^.]+$/, ""),
       documentType
     });
     setSelectedFile(null);
-    setFileName("");
-    setStatusMessage(onStarted ? "" : "Your report is being processed in the background. You can keep browsing." );
+    setStatusMessage(onStarted ? "" : "Your report is being processed in the background. You can keep browsing.");
     onStarted?.();
   };
 
   return (
-    <div className="flat-workspace upload-workspace">
-      <div className="flat-workspace-head">
-        <div>
-          <h1>{source === "photos" ? "Choose report images" : "Import report"}</h1>
-          <p>Assign your report to a profile, then let Klario analyze it.</p>
-        </div>
-      </div>
-      <ApiStatusBanner />
+    <div className="upload-sheet">
+      {!uploadAllowed ? <p className="form-alert">Viewer access cannot upload reports.</p> : null}
 
-      <section className="upload-layout">
-        <aside className="flat-panel upload-panel">
-          {!uploadAllowed ? <p className="form-alert">Viewer access cannot upload reports.</p> : null}
-          <div className="upload-form-grid">
-            <div className="upload-fields">
-              <h2>Report details</h2>
-              <label className="select-field">
-                <span className="control-label">Profile</span>
-                {api.members.length ? (
-                  <select value={selectedMemberId} onChange={(event) => onMemberChange(event.target.value)}>
-                    {api.members.map((member) => <option key={member.id} value={member.id}>{member.display_name}</option>)}
-                  </select>
-                ) : (
-                  <p className="note">Add a family member before uploading.</p>
-                )}
-              </label>
-              <label>
-                <span className="control-label">Report title</span>
-                <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder={fileName || "CBC, ferritin, prescription..."} />
-              </label>
-              <label className="select-field">
-                <span className="control-label">Document type</span>
-                <select value={documentType} onChange={(event) => setDocumentType(event.target.value as DocumentType)}>
-                  {documentTypes.map((type) => <option key={type} value={type}>{prettyStatus(type)}</option>)}
-                </select>
-              </label>
-            </div>
-            <div className="upload-file-column">
-              <div>
-                <h2>Report file</h2>
-                <p>{source === "photos" ? "Choose an image up to 25 MB." : "PDF or image up to 25 MB."}</p>
-              </div>
-              <label className="drop-zone">
-                <input
-                  type="file"
-                  accept={source === "photos" ? "image/jpeg,image/png,image/heic,image/heif" : "application/pdf,image/jpeg,image/png,image/heic,image/heif"}
-                  onChange={onFileChange}
-                />
-                <span>{fileName || (source === "photos" ? "Choose JPEG, PNG, HEIC, or HEIF" : "Choose PDF, JPEG, PNG, HEIC, or HEIF")}</span>
-              </label>
-              <button className="button button-primary" type="button" disabled={api.uploadState?.tone === "progress" || !selectedFile || !uploadAllowed || !selectedMemberId} onClick={startParsing}>
-                <BioIcon name={api.uploadState?.tone === "progress" ? "icon_action_loading" : "icon_action_confirm_safe"} size={17} />
-                {api.uploadState?.tone === "progress" ? "Processing report" : "Analyze report"}
-              </button>
-              {statusMessage ? <p className={statusMessage.includes("permission") || statusMessage.includes("supported") ? "form-alert" : "note"}>{statusMessage}</p> : null}
-            </div>
+      <label className="select-field upload-sheet-field">
+        <span className="control-label">For</span>
+        {api.members.length ? (
+          <select value={selectedMemberId} onChange={(event) => onMemberChange(event.target.value)}>
+            {api.members.map((member) => <option key={member.id} value={member.id}>{member.display_name}</option>)}
+          </select>
+        ) : (
+          <p className="note">Add a family member first to save this report.</p>
+        )}
+      </label>
+
+      {selectedFile ? (
+        <div className="upload-file-card">
+          <IconBadge icon={documentTypeIconMap[documentType]} tone="brand" size={40} />
+          <div className="upload-file-card-main">
+            <strong title={selectedFile.name}>{selectedFile.name}</strong>
+            <span>{describeReportFile(selectedFile)}</span>
           </div>
-        </aside>
-      </section>
+          <button
+            className="button button-ghost icon-button upload-file-remove"
+            type="button"
+            aria-label={`Remove ${selectedFile.name}`}
+            onClick={() => acceptFile(null)}
+          >
+            <BioIcon name="icon_action_reject" size={16} />
+          </button>
+        </div>
+      ) : (
+        <div
+          className={`upload-dropzone${isDragActive ? " is-drag-active" : ""}${fileError ? " is-invalid" : ""}`}
+          role="button"
+          tabIndex={0}
+          aria-label="Choose a report file"
+          onClick={() => inputRef.current?.click()}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              inputRef.current?.click();
+            }
+          }}
+          onDragOver={(event) => {
+            event.preventDefault();
+            setIsDragActive(true);
+          }}
+          onDragLeave={() => setIsDragActive(false)}
+          onDrop={(event) => {
+            event.preventDefault();
+            setIsDragActive(false);
+            acceptFile(event.dataTransfer.files?.[0] ?? null);
+          }}
+        >
+          <BioIcon name="icon_doc_choose_file" size={26} />
+          <strong>Drop a report here</strong>
+          <span>or choose from your computer</span>
+          <small>{acceptSummary} · up to {MAX_UPLOAD_MB} MB</small>
+        </div>
+      )}
+
+      <input
+        ref={inputRef}
+        className="sr-only"
+        type="file"
+        accept={accept}
+        aria-label="Report file"
+        onChange={(event: ChangeEvent<HTMLInputElement>) => {
+          acceptFile(event.target.files?.[0] ?? null);
+          event.target.value = "";
+        }}
+      />
+
+      {fileError ? <p className="form-alert" role="alert">{fileError}</p> : null}
+
+      <div className="upload-sheet-details">
+        <label className="upload-sheet-field">
+          <span className="control-label">Name</span>
+          <input
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            placeholder={selectedFile ? selectedFile.name.replace(/\.[^.]+$/, "") : "CBC, ferritin, prescription..."}
+          />
+        </label>
+        <label className="select-field upload-sheet-field">
+          <span className="control-label">Type</span>
+          <select value={documentType} onChange={(event) => setDocumentType(event.target.value as DocumentType)}>
+            {documentTypes.map((type) => <option key={type} value={type}>{prettyStatus(type)}</option>)}
+          </select>
+        </label>
+      </div>
+
+      {statusMessage ? <p className="note" role="status">{statusMessage}</p> : null}
+
+      <div className="modal-actions upload-sheet-actions">
+        <button className="button button-ghost" type="button" onClick={() => onStarted?.()}>Cancel</button>
+        <button className="button button-primary" type="button" disabled={!canSubmit} onClick={startParsing}>
+          {isSubmitting ? "Saving" : "Save & parse"}
+        </button>
+      </div>
     </div>
   );
+}
+
+export const MAX_UPLOAD_MB = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
+
+/** "PDF · 1.8 MB" - the same shape iOS shows beneath a staged report's name. */
+function describeReportFile(file: File) {
+  const kind = file.type === "application/pdf" ? "PDF" : (file.type.split("/")[1] ?? "file").toUpperCase();
+  const mb = file.size / (1024 * 1024);
+  const size = mb >= 0.1 ? `${mb.toFixed(1)} MB` : `${Math.max(1, Math.round(file.size / 1024))} KB`;
+  return `${kind} · ${size}`;
 }
 
 export function TimelineWorkspace() {
