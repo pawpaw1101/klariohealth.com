@@ -8754,3 +8754,232 @@ body:has(.family-workspace) {
     width: 100%;
   }
 }
+
+/* --------------------------------------------------------------------------
+   Cross-browser control and layout normalization
+
+   These rules intentionally use standards-based sizing rather than browser
+   detection. Safari otherwise keeps more native control metrics than Chromium,
+   which changes baselines, heights and intrinsic widths in shared UI surfaces.
+   -------------------------------------------------------------------------- */
+
+html,
+body {
+  min-height: 100vh;
+  min-height: 100svh;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+@supports (min-height: 100dvh) {
+  html,
+  body {
+    min-height: 100dvh;
+  }
+}
+
+body {
+  font-synthesis: none;
+}
+
+button,
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+textarea {
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  line-height: 1.4;
+}
+
+button,
+.button {
+  -webkit-appearance: none;
+  appearance: none;
+  flex-shrink: 0;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+select {
+  min-height: 46px;
+  height: 46px;
+  padding-block: 0;
+}
+
+textarea {
+  min-height: 120px;
+  padding-block: 12px;
+}
+
+/* Keep native date semantics, but give Safari and Chromium the same outer box. */
+input[type="date"] {
+  min-width: 0;
+  color: var(--text-primary);
+  background-color: var(--color-white);
+}
+
+input[type="date"]::-webkit-date-and-time-value {
+  min-height: 1.4em;
+  text-align: inherit;
+}
+
+/* Shared labelled selects use an explicit chevron so the native Safari arrow
+   cannot change padding or text alignment. Controls not using this shared
+   field retain their useful native selection behavior. */
+.select-field {
+  position: relative;
+  min-width: 0;
+}
+
+.select-field > select {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 42px;
+}
+
+.select-field::after {
+  position: absolute;
+  right: 16px;
+  bottom: 20px;
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  color: var(--text-muted);
+  content: "";
+  pointer-events: none;
+  transform: rotate(45deg);
+}
+
+.select-field:has(> select:disabled)::after {
+  opacity: 0.48;
+}
+
+/* Intrinsic minimums are especially visible in Safari flex/grid layouts. */
+.record-with-action > *,
+.settings-security-row > *,
+.settings-service-row > *,
+.settings-summary-row > *,
+.family-profile-card > *,
+.trend-category-toggle > *,
+.trend-metric-row > *,
+.trend-catalog-row > *,
+.trend-chart-heading > *,
+.upload-file-card > *,
+.klario-modal-head > * {
+  min-width: 0;
+}
+
+.settings-grid,
+.trend-detail-grid,
+.upload-sheet-details,
+.onboarding-form,
+.family-add-profile-grid {
+  min-height: 0;
+  align-items: stretch;
+}
+
+.klario-modal-overlay {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.klario-modal {
+  min-height: 0;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.dashboard-drawer-overlay {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.interactive-trend-chart,
+.sparkline,
+.bio-icon,
+.nav-icon {
+  display: block;
+  flex: 0 0 auto;
+}
+
+.interactive-trend-chart text,
+.sparkline text {
+  font-family: var(--font-body);
+}
+
+@media (max-width: 768px) {
+  /* iOS Safari zooms focused controls below 16px. This is scoped to editable
+     controls; compact labels and pills keep their intended hierarchy. */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  .klario-modal-overlay {
+    align-items: start;
+    padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+  }
+
+  .klario-modal,
+  .report-upload-modal,
+  .family-action-modal,
+  .family-invites-modal {
+    width: 100%;
+    max-height: calc(100dvh - max(32px, env(safe-area-inset-top) + env(safe-area-inset-bottom)));
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Dashboard body scene
+
+   The body, callout rails and connector canvas are measured together in
+   BodyVisualization.  It must therefore have a stable aspect ratio rather
+   than a viewport-height-derived height.  The previous desktop breakpoints
+   enlarged this scene at 900px/1200px, making an otherwise identical Safari
+   and Chrome session render two different compositions.
+   -------------------------------------------------------------------------- */
+.dashboard-body-content {
+  min-width: 0;
+}
+
+.body-stage {
+  width: min(100%, 680px);
+  height: auto;
+  min-height: 0;
+  max-width: 680px;
+  aspect-ratio: 2 / 3;
+  margin-inline: auto;
+  overflow: hidden;
+}
+
+.dashboard-display-toggle {
+  width: 144px;
+  height: 32px;
+}
+
+.dashboard-display-option {
+  -webkit-appearance: none;
+  appearance: none;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.body-zone-pill {
+  -webkit-appearance: none;
+  appearance: none;
+  box-sizing: border-box;
+  font-family: var(--font-body);
+  line-height: 1;
+}
+
+.body-zone-pill-title {
+  line-height: 1.2;
+}

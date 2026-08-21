@@ -45,14 +45,15 @@ const relationshipOptions: FamilyRelationship[] = [
 ];
 const bloodGroupOptions: Array<BloodGroup | ""> = [
   "",
-  "a_positive",
-  "a_negative",
-  "b_positive",
-  "b_negative",
-  "ab_positive",
-  "ab_negative",
-  "o_positive",
-  "o_negative"
+  "A+",
+  "A-",
+  "B+",
+  "B-",
+  "AB+",
+  "AB-",
+  "O+",
+  "O-",
+  "unknown"
 ];
 
 function avatarStyle(seed: string): CSSProperties {
@@ -586,9 +587,8 @@ export function FamilyProfileDetailWorkspace({ memberId }: { memberId: string })
       }
     },
     onSuccess: async () => {
-      setMessage("Profile updated.");
       await api.refresh();
-      await profileQuery.refetch();
+      router.replace("/app/family");
     },
     onError: (error) => setMessage(error instanceof Error ? error.message : "Profile could not be updated.")
   });

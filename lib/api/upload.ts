@@ -20,7 +20,9 @@ export type UploadPhase =
 export type UploadStatusUpdate = {
   phase: UploadPhase;
   message: string;
-  document?: KlarioDocument | null;
+  // An upload intent intentionally returns only a document summary, whereas later polling
+  // returns the full resource. Status consumers only need the identifier.
+  document?: Pick<KlarioDocument, "id"> | null;
 };
 
 export type UploadAndParseOptions = {
@@ -76,7 +78,10 @@ export async function uploadAndParseReport({
     checksum_sha256: checksum
   });
 
-  onStatus?.({ phase: "uploading", message: "Uploading report" });
+  // The intent has created the document record. Expose it before the binary upload starts so
+  // Reports/Dashboard can refetch and show the pending row immediately, rather than waiting
+  // for the full OCR + medical parse pipeline to finish.
+  onStatus?.({ phase: "uploading", message: "Uploading report", document: intent.document });
   const uploadHeaders = new Headers(intent.upload.required_headers);
   if (!uploadHeaders.has("Content-Type")) {
     uploadHeaders.set("Content-Type", file.type);

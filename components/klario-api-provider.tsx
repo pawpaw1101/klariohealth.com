@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { BioIcon } from "@/components/bio-icon";
-import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ApiError,
   clearKlarioSession,
@@ -15,7 +15,7 @@ import {
   setStoredActiveFamilyId,
   setStoredActiveMemberId
 } from "@/lib/api/client";
-import { authApi, familiesApi, membersApi, onboardingApi, rolesApi } from "@/lib/api/klario-api";
+import { authApi, familiesApi, membersApi, onboardingApi, reportsApi, rolesApi } from "@/lib/api/klario-api";
 import { protectedQueryKey, protectedQueryPrefix, queryFreshness } from "@/lib/query-cache";
 import { uploadAndParseReport, type UploadAndParseOptions, type UploadPhase } from "@/lib/api/upload";
 import type {
@@ -30,6 +30,7 @@ import type {
   OtpRequestResponse,
   OtpVerifyRequest,
   RegisterRequest,
+  ReportPublicStatus,
   User
 } from "@/lib/api/types";
 
@@ -46,6 +47,16 @@ type BackgroundUploadState = {
 type BackgroundUploadRequest = Omit<UploadAndParseOptions, "onStatus">;
 
 const SESSION_EXPIRED_MESSAGE = "Your session expired. Please sign in again.";
+
+// These are server-side processing states. `needs_review` and `ready` have completed parsing,
+// even when their follow-up product workflow is still open.
+const ACTIVE_REPORT_PROCESSING_STATUSES = new Set<ReportPublicStatus>(["uploading", "queued", "processing"]);
+
+function processingMessage(status: ReportPublicStatus) {
+  if (status === "uploading") return "Uploading report";
+  if (status === "queued") return "Waiting to process report";
+  return "Building health record";
+}
 
 type KlarioApiContextValue = {
   status: ApiStatus;
@@ -125,6 +136,7 @@ function KlarioSessionProvider({ children }: { children: React.ReactNode }) {
   const [message, setMessage] = useState<string | null>(null);
   const [uploadState, setUploadState] = useState<BackgroundUploadState | null>(null);
   const uploadSequence = useRef(0);
+  const announcedUploadDocuments = useRef(new Set<string>());
 
   const clearSessionState = useCallback(
     (nextMessage: string) => {
@@ -436,6 +448,30 @@ function KlarioSessionProvider({ children }: { children: React.ReactNode }) {
 
   const dismissUploadStatus = useCallback(() => setUploadState(null), []);
 
+  // Local upload state is intentionally ephemeral, but the report processing state is not.
+  // Rebuild the banner from the authoritative reports endpoint after a reload, another tab's
+  // upload, or a browser restart; otherwise it disappeared despite work continuing server-side.
+  const processingReportsQuery = useQuery({
+    queryKey: protectedQueryKey(user?.id, "reports", "processing-banner", activeFamilyId),
+    queryFn: () => reportsApi.list(activeFamilyId!, { include_archived: false, limit: 25 }),
+    enabled: status === "live" && Boolean(user?.id && activeFamilyId),
+    ...queryFreshness.processing,
+    refetchInterval: (query) => query.state.data?.items.some((report) => ACTIVE_REPORT_PROCESSING_STATUSES.has(report.status))
+      ? 5_000
+      : false
+  });
+
+  const persistedUploadState = useMemo<BackgroundUploadState | null>(() => {
+    const report = processingReportsQuery.data?.items.find((item) => ACTIVE_REPORT_PROCESSING_STATUSES.has(item.status));
+    return report ? {
+      id: -1,
+      phase: "waiting_for_medical_parse",
+      message: processingMessage(report.status),
+      tone: "progress",
+      documentId: report.id
+    } : null;
+  }, [processingReportsQuery.data]);
+
   const startReportUpload = useCallback(
     (request: BackgroundUploadRequest) => {
       const uploadId = ++uploadSequence.current;
@@ -456,8 +492,16 @@ function KlarioSessionProvider({ children }: { children: React.ReactNode }) {
                 phase: update.phase,
                 message: update.message,
                 tone: "progress",
-                documentId: update.document?.id
+                documentId: update.document?.id ?? current.documentId
               } : current);
+
+              // `upload-intent` has already created a pending document on the server. Invalidate
+              // once at that point so an open Reports page shows the new row immediately; later
+              // processing updates use the regular completion invalidation below.
+              if (update.document?.id && !announcedUploadDocuments.current.has(update.document.id)) {
+                announcedUploadDocuments.current.add(update.document.id);
+                void invalidateWorkspaceData();
+              }
             }
           });
           await invalidateWorkspaceData();
@@ -562,7 +606,7 @@ function KlarioSessionProvider({ children }: { children: React.ReactNode }) {
   return (
     <KlarioApiContext.Provider value={value}>
       {children}
-      <BackgroundUploadBanner state={uploadState} onDismiss={dismissUploadStatus} />
+      <BackgroundUploadBanner state={uploadState ?? persistedUploadState} onDismiss={dismissUploadStatus} />
     </KlarioApiContext.Provider>
   );
 }
