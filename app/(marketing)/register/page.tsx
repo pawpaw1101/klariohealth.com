@@ -15,9 +15,9 @@ export default function RegisterPage() {
       <section className="hero">
         <div className="hero-copy">
 
-          <h1>Start your private health workspace.</h1>
+          <h1>Create your Klario account</h1>
           <p className="hero-lead">
-            Choose a password, then verify your email with a one-time code to activate your account.
+            Let&apos;s get you started on your health journey.
           </p>
           <div className="login-benefits">
             {["Password plus email verification", "Family and member selection after login", "Upload flow ready for OCR and medical parsing"].map((benefit) => (

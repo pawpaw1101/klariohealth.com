@@ -1663,9 +1663,10 @@ select:focus {
   top: 50%;
   right: 8px;
   display: inline-flex;
-  width: 36px;
-  height: 36px;
-  min-height: 36px;
+  /* 44pt is the minimum comfortable touch target; the glyph stays the same size. */
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
   align-items: center;
   justify-content: center;
   border: 0;
@@ -2055,23 +2056,60 @@ textarea {
   font: var(--type-body-m);
 }
 
-.password-requirements {
+/* Mirrors iOS PasswordFeedbackView: one 3px segment per requirement plus one sentence.
+   No card, no checklist - the bar carries the progress and the sentence carries the reason. */
+.password-feedback {
   display: grid;
-  gap: 7px;
-  padding: 12px 14px;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  background: rgba(240, 253, 250, 0.42);
-  color: var(--text-secondary);
-  font: var(--type-body-m);
+  gap: 8px;
 }
 
-.password-requirements strong { color: var(--text-primary); font: var(--type-label); }
-.password-requirements ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 12px; margin: 0; padding: 0; list-style: none; }
-.password-requirements li { display: flex; gap: 6px; align-items: center; }
-.password-requirements li span { color: var(--text-muted); font-weight: 700; }
-.password-requirements li.is-met span { color: var(--color-teal-700); }
-.password-requirements p { margin: 0; font: var(--type-caption); }
+.password-feedback-bars {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.password-feedback-bars span {
+  height: 3px;
+  border-radius: 999px;
+  background: var(--border-default);
+}
+
+.password-feedback-bars span.is-filled {
+  background: var(--color-coral);
+}
+
+.password-feedback.is-valid .password-feedback-bars span.is-filled {
+  background: var(--color-teal-600);
+}
+
+.password-feedback-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  color: var(--color-coral);
+  font: var(--type-caption);
+}
+
+.password-feedback-message[data-state="valid"] {
+  color: var(--color-teal-700);
+}
+
+.password-feedback-message span {
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.sr-only {
+  position: absolute;
+  overflow: hidden;
+  width: 1px;
+  height: 1px;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
 .auth-terms { display: flex; gap: 10px; align-items: flex-start; color: var(--text-secondary); font: var(--type-body-m); }
 .auth-terms input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--color-teal-700); }
 
@@ -8190,4 +8228,193 @@ body:has(.family-workspace) {
 .parsed-result-record:hover,
 .report-diagnostic-card:hover {
   transform: none !important;
+}
+
+/* ==========================================================================
+   Auth pages - info column on the left, form card on the right
+   The card lives on the form, not on the section, so the marketing copy sits
+   on the page background exactly as it does on the rest of the site.
+   ========================================================================== */
+
+.auth-page {
+  gap: 24px;
+  padding-bottom: 72px;
+}
+
+/* The shared hero paints a tinted slab behind itself; on an auth page the card is the
+   focal surface and the slab just muddies the background. */
+.auth-page > .hero::before,
+.auth-page > .hero::after {
+  display: none;
+  content: none;
+}
+
+.auth-page > .hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: stretch;
+  align-content: start;
+  gap: 28px;
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  /* No surface here: the section is a layout container, the card is the form. */
+  border: 0;
+  border-radius: 0;
+  background: none;
+  padding: clamp(20px, 3vw, 32px) 0;
+  min-height: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.auth-page > .hero .hero-copy {
+  display: grid;
+  align-content: center;
+  gap: 14px;
+  text-align: left;
+}
+
+.auth-page > .hero h1 {
+  max-width: 16ch;
+  margin: 0;
+  font: var(--type-display-l);
+}
+
+.auth-page > .hero .hero-lead {
+  max-width: 46ch;
+  margin: 0;
+  color: var(--text-secondary);
+  font: var(--type-body-l);
+}
+
+.auth-page .login-benefits {
+  display: grid;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.auth-page .login-benefit {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.auth-page .login-benefit p {
+  margin: 0;
+  color: var(--text-secondary);
+  font: var(--type-body-m);
+}
+
+/* The card. Matched on the element rather than a class, because these forms carry
+   `form-grid`, `form-panel`, or both. Capped so it never stretches across the viewport. */
+.auth-page > .hero > form,
+.auth-page > .hero > .auth-outcome {
+  display: grid;
+  gap: 16px;
+  width: 100%;
+  max-width: 460px;
+  align-self: start;
+  border: 1px solid var(--border-subtle);
+  border-radius: 24px;
+  background: var(--bg-surface);
+  padding: clamp(22px, 3vw, 32px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Footer lines inside the card are sentences, not panels. */
+.auth-page .note {
+  max-width: none;
+  margin-top: 0;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--text-secondary);
+  font: var(--type-body-m);
+  text-align: center;
+}
+
+/* Two columns once there is room for the copy to breathe beside a 460px card. */
+@media (min-width: 900px) {
+  .auth-page > .hero {
+    grid-template-columns: minmax(0, 1fr) minmax(400px, 460px);
+    align-items: center;
+    gap: clamp(40px, 6vw, 88px);
+    padding: clamp(28px, 5vh, 64px) 0;
+  }
+
+  .auth-page > .hero > form,
+  .auth-page > .hero > .auth-outcome {
+    justify-self: end;
+  }
+}
+
+/* --- Auth: outcome panels (success / expired), inline field errors --- */
+
+.auth-outcome {
+  justify-items: center;
+  text-align: center;
+}
+
+.auth-outcome h2 {
+  margin: 0;
+  color: var(--text-primary);
+  font: var(--type-display-m);
+}
+
+.auth-outcome .note {
+  margin: 0;
+  max-width: 34ch;
+}
+
+.auth-outcome .button,
+.auth-outcome button {
+  width: 100%;
+}
+
+.auth-outcome-icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: 999px;
+  font: 700 22px/1 var(--font-body);
+}
+
+.auth-outcome-icon.is-success {
+  background: color-mix(in srgb, var(--color-teal-600) 14%, transparent);
+  color: var(--color-teal-700);
+}
+
+.auth-outcome-icon.is-warning {
+  background: color-mix(in srgb, var(--color-coral) 14%, transparent);
+  color: #c2410c;
+}
+
+.field-error {
+  margin: 6px 0 0;
+  color: #c2410c;
+  font: var(--type-caption);
+}
+
+/* The whole row is the control, so the label is as clickable as the box itself. */
+.auth-terms {
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.auth-terms input {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  margin: 0;
+  cursor: pointer;
+}
+
+.auth-terms a {
+  position: relative;
+  z-index: 1;
 }
