@@ -429,6 +429,7 @@ function initReveal(reducedMotion: boolean) {
     ".liquid-hero-copy > *",
     ".liquid-hero-panel",
     ".premium-section-copy",
+    ".workflow-step",
     ".premium-step",
     ".premium-feature",
     ".premium-section .reveal",
@@ -465,36 +466,10 @@ function initReveal(reducedMotion: boolean) {
 }
 
 function initInteractions(disabled: boolean) {
-  if (disabled) return () => undefined;
-
-  const cleanup: Array<() => void> = [];
   document.querySelectorAll<HTMLElement>(".button-primary, .button-secondary").forEach((button) => {
     button.classList.remove("magnetic");
     button.style.transform = "";
   });
 
-  document.querySelectorAll<HTMLElement>(".card, .screenshot-card, .metric, .form-panel, .hero-image, .record, .liquid-hero-panel, .premium-step, .premium-feature, .cascade-feature, .cascade-step").forEach((card) => {
-    card.classList.add("tilt-card");
-    const onMove = (event: MouseEvent) => {
-      const rect = card.getBoundingClientRect();
-      const x = (event.clientX - rect.left) / rect.width - 0.5;
-      const y = (event.clientY - rect.top) / rect.height - 0.5;
-      card.style.setProperty("--tilt-x", `${-y * 5}deg`);
-      card.style.setProperty("--tilt-y", `${x * 5}deg`);
-      card.style.setProperty("--tilt-lift", "1");
-    };
-    const onLeave = () => {
-      card.style.setProperty("--tilt-x", "0deg");
-      card.style.setProperty("--tilt-y", "0deg");
-      card.style.setProperty("--tilt-lift", "0");
-    };
-    card.addEventListener("mousemove", onMove);
-    card.addEventListener("mouseleave", onLeave);
-    cleanup.push(() => {
-      card.removeEventListener("mousemove", onMove);
-      card.removeEventListener("mouseleave", onLeave);
-    });
-  });
-
-  return () => cleanup.forEach((fn) => fn());
+  return () => undefined;
 }

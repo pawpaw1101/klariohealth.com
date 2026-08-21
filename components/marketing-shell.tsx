@@ -6,11 +6,12 @@ import { usePathname } from "next/navigation";
 import { Brand } from "@/components/brand";
 import { NavIcon, type NavIconName } from "@/components/nav-icon";
 
-type MarketingNavKey = "home" | "product" | "about";
+type MarketingNavKey = "home" | "product" | "use-cases" | "about";
 
 const navItems: Array<{ key: MarketingNavKey; label: string; href: string; icon: NavIconName }> = [
   { key: "home", label: "Home", href: "/", icon: "home" },
   { key: "product", label: "Product", href: "/features", icon: "product" },
+  { key: "use-cases", label: "Use cases", href: "/use-cases", icon: "route" },
   { key: "about", label: "About", href: "/about", icon: "info" }
 ];
 
@@ -129,7 +130,7 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
               <p className="footer-heading">Product</p>
               <ul className="footer-links">
                 <li><Link href="/features">Features</Link></li>
-                <li><Link href="/features#use-cases">Use cases</Link></li>
+                <li><Link href="/use-cases">Use cases</Link></li>
                 <li><Link href="/about">About</Link></li>
                 <li><Link href="/login">Try now / Download</Link></li>
               </ul>
