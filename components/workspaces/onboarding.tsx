@@ -11,14 +11,15 @@ import { ApiStatusBanner, EmptyState, prettyStatus } from "@/components/workspac
 const genderOptions: ProfileGender[] = ["female", "male", "other", "prefer_not_to_say"];
 const bloodGroupOptions: Array<BloodGroup | ""> = [
   "",
-  "a_positive",
-  "a_negative",
-  "b_positive",
-  "b_negative",
-  "ab_positive",
-  "ab_negative",
-  "o_positive",
-  "o_negative"
+  "A+",
+  "A-",
+  "B+",
+  "B-",
+  "AB+",
+  "AB-",
+  "O+",
+  "O-",
+  "unknown"
 ];
 const relationshipOptions: Exclude<FamilyRelationship, "self">[] = [
   "spouse",

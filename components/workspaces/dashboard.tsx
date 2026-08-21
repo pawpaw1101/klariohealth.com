@@ -65,7 +65,15 @@ export function DashboardWorkspace() {
     queryKey: protectedQueryKey(api.user?.id, "dashboard", familyId, memberId),
     queryFn: () => dashboardApi.get(familyId!, memberId!),
     enabled: hasLiveContext,
-    ...queryFreshness.workspace
+    // Dashboard state changes while a report is parsing. A 60-second workspace cache allowed
+    // two browsers to render different category tones and bottom states for the same account.
+    ...queryFreshness.processing,
+    refetchInterval: (query) => {
+      const reports = query.state.data?.latest_reports ?? [];
+      return reports.some((report) => !["parsed", "parsed_empty", "needs_attention", "failed"].includes(report.status))
+        ? 5_000
+        : false;
+    }
   });
   const categoryTrendsQuery = useQuery({
     queryKey: protectedQueryKey(api.user?.id, "dashboard", "category-overview", familyId, memberId),

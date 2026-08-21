@@ -1047,7 +1047,10 @@ export interface ReminderListResponse {
 
 export type ProfileGender = "female" | "male" | "other" | "prefer_not_to_say";
 export type ProfileStatus = "active" | "archived";
-export type BloodGroup = "a_positive" | "a_negative" | "b_positive" | "b_negative" | "ab_positive" | "ab_negative" | "o_positive" | "o_negative";
+// API values are the clinical notation defined by the backend's BloodGroup enum.
+// Keep these as transport values; underscore aliases (for example `o_positive`) are
+// display/internal names from an earlier Web implementation and are rejected by Pydantic.
+export type BloodGroup = "A+" | "A-" | "B+" | "B-" | "AB+" | "AB-" | "O+" | "O-" | "unknown";
 
 export interface ProfileCapabilities {
   can_view_profile: boolean;

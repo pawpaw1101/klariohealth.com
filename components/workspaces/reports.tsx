@@ -4,7 +4,7 @@ import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "re
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BioIcon } from "@/components/bio-icon";
 import { useKlarioApi } from "@/components/klario-api-provider";
 import { PageTitle, SectionHeader } from "@/components/section";
@@ -25,11 +25,12 @@ import {
   reportsApi
 } from "@/lib/api/klario-api";
 import { MAX_UPLOAD_BYTES, validateReportFile } from "@/lib/api/upload";
-import { protectedQueryKey, queryFreshness } from "@/lib/query-cache";
+import { protectedQueryKey, protectedQueryPrefix, queryFreshness } from "@/lib/query-cache";
 import type {
   DocumentType,
   ReportPublicStatus,
   ReportResultDetail,
+  ReportListResponse,
   ReportSummary
 } from "@/lib/api/types";
 import {
@@ -70,6 +71,7 @@ export function DocumentsWorkspace() {
   const [editingDocument, setEditingDocument] = useState<ReportSummary | null>(null);
   const [documentPendingDeletion, setDocumentPendingDeletion] = useState<ReportSummary | null>(null);
   const [portalHost, setPortalHost] = useState<HTMLElement | null>(null);
+  const queryClient = useQueryClient();
   const familyId = api.activeFamily?.id;
 
   useEffect(() => {
@@ -91,12 +93,34 @@ export function DocumentsWorkspace() {
   });
 
   const liveReports = liveReportsQuery.data?.items ?? null;
+
+  // Reports are intentionally removed from every active list optimistically.  Waiting for a
+  // background refetch left an archived/deleted file visible in Safari and Chromium until the
+  // next network round trip (and sometimes until a focus refresh after a failed revalidation).
+  const removeReportFromCachedLists = async (reportId: string) => {
+    const queryKey = protectedQueryPrefix(api.user?.id, "reports");
+    await queryClient.cancelQueries({ queryKey });
+    const previous = queryClient.getQueriesData<ReportListResponse>({ queryKey });
+    queryClient.setQueriesData<ReportListResponse>({ queryKey }, (current) => current
+      ? { ...current, items: current.items.filter((report) => report.id !== reportId) }
+      : current);
+    return { previous };
+  };
+
+  const restoreCachedReportLists = (context?: { previous: [readonly unknown[], ReportListResponse | undefined][] }) => {
+    context?.previous.forEach(([queryKey, data]) => queryClient.setQueryData(queryKey, data));
+  };
+
   const archiveReportMutation = useMutation({
     mutationFn: (reportId: string) => reportsApi.archive(familyId!, reportId),
-    onSuccess: () => api.invalidateWorkspaceData()
+    onMutate: removeReportFromCachedLists,
+    onError: (_error, _reportId, context) => restoreCachedReportLists(context),
+    onSettled: () => api.invalidateWorkspaceData()
   });
   const deleteDocumentMutation = useMutation({
     mutationFn: (documentId: string) => documentsApi.delete(documentId),
+    onMutate: removeReportFromCachedLists,
+    onError: (_error, _documentId, context) => restoreCachedReportLists(context),
     onSuccess: async (_data, documentId) => {
       setDocumentPendingDeletion(null);
       await api.forgetDeletedDocument(documentId);
@@ -337,7 +361,7 @@ function ReportDocumentCard({
           type="button"
           aria-label={permanentlyDeleting ? `Deleting ${report.display_name}` : `Delete ${report.display_name}`}
           title="Delete report"
-          disabled={!report.can_archive || permanentlyDeleting}
+          disabled={!report.can_delete || permanentlyDeleting}
           onClick={(event) => {
             event.stopPropagation();
             onPermanentDelete(report);

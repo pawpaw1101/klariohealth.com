@@ -437,10 +437,12 @@ const FOOTER_RESERVE = 34;
 /// the figure takes the rest of the width instead.
 const MAX_RAIL_WIDTH = 176;
 
-/// iOS's `BodyPillMetrics`, kept exactly at phone sizes. Wider stages scale the whole pill up
-/// together so it stays proportional to a much larger figure.
+/// The body scene has one compact visual language at every viewport. Scaling pill geometry
+/// from the available browser width made the Chrome desktop map noticeably larger than Safari
+/// even when both displayed the same application state.
 function pillMetricsFor(stageWidth: number): PillMetrics {
-  const scale = stageWidth >= 900 ? 1.18 : 1;
+  void stageWidth;
+  const scale = 1;
   const iconSize = Math.round(18 * scale);
   const gap = Math.round(5 * scale);
   const paddingX = Math.round(6 * scale);
@@ -462,9 +464,10 @@ function buildStageLayout(stageWidth: number, stageHeight: number): StageLayout 
   // labels: compact widths keep the labels usable, wide ones let the body grow.
   const labelRailFloor = stageWidth < 340 ? 64 : stageWidth < 380 ? 72 : 80;
   const availableFigureHeight = Math.max(1, stageHeight - FOOTER_RESERVE);
-  // Phones stay on iOS's 0.58 share. Wider stages are height-bound rather than width-bound, so
-  // letting the figure claim more of the row is what actually makes it fill the space.
-  const widthShare = stageWidth >= 900 ? 0.72 : 0.58;
+  // The figure and its callout rails share one coordinate system. In particular, this must not
+  // change at an arbitrary browser-width breakpoint: that was the source of the Safari/Chrome
+  // composition split when the browsers entered different desktop layouts.
+  const widthShare = 0.58;
   const width = Math.min(
     stageWidth * widthShare,
     Math.max(150, stageWidth - labelRailFloor * 2),
@@ -732,7 +735,7 @@ export function BodyVisualization({
       cancelled = true;
       document.fonts?.removeEventListener("loadingdone", measure);
     };
-  }, [pills, layout]);
+  }, [pills, layout, pillFontSizes]);
 
   // ---- Figure canvas (halo + blooms + ambient drift + status dots) ----
   const drawFigure = useCallback(
