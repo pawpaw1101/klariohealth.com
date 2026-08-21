@@ -18,11 +18,14 @@ const benefits = [
 export default async function LoginPage({
   searchParams
 }: {
-  searchParams: Promise<{ reset?: string | string[]; session?: string | string[] }>;
+  searchParams: Promise<{ reset?: string | string[]; session?: string | string[]; next?: string | string[] }>;
 }) {
   const params = await searchParams;
   const reset = Array.isArray(params.reset) ? params.reset[0] : params.reset;
   const session = Array.isArray(params.session) ? params.session[0] : params.session;
+  // AppAuthGuard appends ?next=<pathname> when it bounces a signed-out visitor, so a deep
+  // link survives the round trip through sign-in instead of dumping everyone on one page.
+  const next = Array.isArray(params.next) ? params.next[0] : params.next;
   const notice =
     reset === "success"
       ? "Password has been reset successfully. Sign in with your new password."
@@ -48,7 +51,7 @@ export default async function LoginPage({
             ))}
           </div>
         </div>
-        <LoginForm notice={notice} />
+        <LoginForm notice={notice} next={next} />
       </section>
     </main>
   );

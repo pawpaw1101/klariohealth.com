@@ -79,7 +79,7 @@ export function RegisterForm() {
         full_name: fullName
       });
       window.dispatchEvent(new Event("klario:navigation-start"));
-      window.setTimeout(() => router.push("/app/family"), 420);
+      window.setTimeout(() => router.push("/app/dashboard"), 420);
     } catch (verifyError) {
       setError(verifyError instanceof ApiError ? verifyError.message : "Invalid or expired code.");
       setIsSubmitting(false);

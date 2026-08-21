@@ -8,7 +8,18 @@ import { NavIcon } from "@/components/nav-icon";
 import { authApi } from "@/lib/api/klario-api";
 import { ApiError } from "@/lib/api/client";
 
-export function LoginForm({ notice }: { notice?: string }) {
+/**
+ * Only same-origin paths inside the signed-in app are accepted, so a crafted `next` cannot
+ * bounce someone to another host after they authenticate.
+ */
+function safeDestination(next?: string) {
+  if (!next || !next.startsWith("/app/")) return "/app/dashboard";
+  // "//host" is protocol-relative and leaves the origin; ".." climbs back out of /app/.
+  if (next.startsWith("//") || next.includes("..")) return "/app/dashboard";
+  return next;
+}
+
+export function LoginForm({ notice, next }: { notice?: string; next?: string }) {
   const router = useRouter();
   const { completeOtpLogin } = useKlarioApi();
   const [step, setStep] = useState<"credentials" | "code">("credentials");
@@ -64,7 +75,7 @@ export function LoginForm({ notice }: { notice?: string }) {
     try {
       await completeOtpLogin({ email, code, purpose: "login" });
       window.dispatchEvent(new Event("klario:navigation-start"));
-      window.setTimeout(() => router.push("/app/family"), 420);
+      window.setTimeout(() => router.push(safeDestination(next)), 420);
     } catch (verifyError) {
       setError(verifyError instanceof ApiError ? verifyError.message : "Invalid or expired code.");
       setIsSubmitting(false);
