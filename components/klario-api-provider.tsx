@@ -357,10 +357,15 @@ function KlarioSessionProvider({ children }: { children: React.ReactNode }) {
 
   const refreshOnboarding = useCallback(async () => {
     if (!user) return null;
+    // staleTime must be 0 here. This runs immediately after a step is saved, and the whole
+    // point is to learn what the server now says - `fetchQuery` honours staleTime and would
+    // hand back the pre-save cache for the next five minutes, leaving `profile_completed`
+    // false and the finish button disabled with the work already persisted.
     const onboardingStatus = await queryClient.fetchQuery({
       queryKey: protectedQueryKey(user.id, "onboarding"),
       queryFn: onboardingApi.status,
-      ...queryFreshness.account
+      ...queryFreshness.account,
+      staleTime: 0
     });
     setOnboarding(onboardingStatus);
     if (onboardingStatus.onboarding_completed) {
@@ -406,7 +411,12 @@ function KlarioSessionProvider({ children }: { children: React.ReactNode }) {
       queryClient.invalidateQueries({ queryKey: protectedQueryPrefix(user?.id, "metrics"), refetchType: "all" }),
       queryClient.invalidateQueries({ queryKey: protectedQueryPrefix(user?.id, "attention"), refetchType: "all" }),
       queryClient.invalidateQueries({ queryKey: protectedQueryPrefix(user?.id, "invites"), refetchType: "all" }),
-      queryClient.invalidateQueries({ queryKey: protectedQueryPrefix(user?.id, "profiles"), refetchType: "all" })
+      queryClient.invalidateQueries({ queryKey: protectedQueryPrefix(user?.id, "profiles"), refetchType: "all" }),
+      // Settings reads the signed-in person's own details under "account", and the self
+      // profile under "members". Onboarding writes both, so leaving them out meant a name
+      // saved during setup did not appear in Settings until their staleTime elapsed.
+      queryClient.invalidateQueries({ queryKey: protectedQueryPrefix(user?.id, "account"), refetchType: "all" }),
+      queryClient.invalidateQueries({ queryKey: protectedQueryPrefix(user?.id, "members"), refetchType: "all" })
     ]);
     setLastSyncAt(new Date().toISOString());
   }, [queryClient, user?.id]);

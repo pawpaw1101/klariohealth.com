@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useMemo, useState, useRef} from "react";
 import { useRouter } from "next/navigation";
 import { useKlarioApi } from "@/components/klario-api-provider";
 import { Card, RootPageHeader, SectionHeader as KlarioSectionHeader, StatusPill } from "@/components/klario-ui";
@@ -69,6 +69,10 @@ export function OnboardingWorkspace() {
     contact_email: ""
   });
   const [isSaving, setIsSaving] = useState(false);
+  // `isSaving` gates the buttons, but setState is asynchronous: a second click landing before
+  // the re-render still passes the disabled check. A ref flips synchronously, so the request
+  // can only be in flight once. Observed as two POSTs to /onboarding/complete from one run.
+  const inFlight = useRef(false);
 
   const steps = useMemo(() => [
     { label: "Email", done: Boolean(onboarding?.email_verified) },
@@ -78,12 +82,14 @@ export function OnboardingWorkspace() {
   ], [onboarding]);
 
   const saveProfile = async (event: FormEvent<HTMLFormElement>) => {
+    if (inFlight.current) return;
+    inFlight.current = true;
     event.preventDefault();
     setIsSaving(true);
     setMessage("");
     try {
       await onboardingApi.updateProfile({
-        full_name: profile.full_name,
+        full_name: profile.full_name.trim(),
         date_of_birth: profile.date_of_birth,
         gender: profile.gender,
         phone_number: optionalText(profile.phone_number),
@@ -91,31 +97,41 @@ export function OnboardingWorkspace() {
         height_cm: optionalNumber(profile.height_cm),
         weight_kg: optionalNumber(profile.weight_kg)
       });
-      await api.refreshOnboarding();
-      setMessage("Profile saved.");
+      const status = await api.refreshOnboarding();
+      // Settings -> Account and the self family member both display what was just written.
+      await api.invalidateWorkspaceData();
+      if (!status?.profile_completed) {
+        setMessage("Profile saved, but setup is not complete yet. Check the fields above.");
+      }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Profile could not be saved.");
     } finally {
+      inFlight.current = false;
       setIsSaving(false);
     }
   };
 
   const createFamily = async (event: FormEvent<HTMLFormElement>) => {
+    if (inFlight.current) return;
+    inFlight.current = true;
     event.preventDefault();
     setIsSaving(true);
     setMessage("");
     try {
-      await onboardingApi.createFamily({ name: familyName });
+      await onboardingApi.createFamily({ name: familyName.trim() });
       await api.refreshOnboarding();
-      setMessage("Family workspace created.");
+      await api.invalidateWorkspaceData();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Family could not be created.");
     } finally {
+      inFlight.current = false;
       setIsSaving(false);
     }
   };
 
   const addDependent = async (event: FormEvent<HTMLFormElement>) => {
+    if (inFlight.current) return;
+    inFlight.current = true;
     event.preventDefault();
     setIsSaving(true);
     setMessage("");
@@ -133,11 +149,14 @@ export function OnboardingWorkspace() {
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Profile could not be added.");
     } finally {
+      inFlight.current = false;
       setIsSaving(false);
     }
   };
 
   const complete = async () => {
+    if (inFlight.current) return;
+    inFlight.current = true;
     setIsSaving(true);
     setMessage("");
     try {
@@ -148,9 +167,18 @@ export function OnboardingWorkspace() {
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Onboarding could not be completed.");
     } finally {
+      inFlight.current = false;
       setIsSaving(false);
     }
   };
+
+  // The backend owns progress, so a refresh or a return visit resumes at the real step
+  // rather than wherever local state happened to be.
+  const activeStep: "profile" | "family" | "done" = !onboarding?.profile_completed
+    ? "profile"
+    : !onboarding?.family_setup_completed
+      ? "family"
+      : "done";
 
   if (!onboarding) {
     return (
@@ -163,96 +191,147 @@ export function OnboardingWorkspace() {
   }
 
   return (
-    <div className="settings-workspace">
-      <RootPageHeader title="Set up Klario" subtitle="Complete the web workspace setup for this account." />
-      <ApiStatusBanner />
-      <div className="tag-row">
-        {steps.map((step) => <StatusPill key={step.label} tone={step.done ? "green" : "gray"}>{step.label}</StatusPill>)}
-      </div>
+    <div className="onboarding-shell">
+      <div className="onboarding-card">
+        <header className="onboarding-head">
+          <h1>{activeStep === "profile" ? "Set up your profile" : activeStep === "family" ? "Create your family workspace" : "You're all set"}</h1>
+          <p>
+            {activeStep === "profile"
+              ? "A few details to get Klario ready. You can change these later."
+              : activeStep === "family"
+                ? "Reports and trends are grouped by family. You can add other people now or later."
+                : "Your workspace is ready to open."}
+          </p>
+        </header>
 
-      <section className="settings-grid">
-        <Card className="settings-section-card settings-wide-card">
-          <KlarioSectionHeader title="Your profile" subtitle="Used as your personal family profile." />
-          <form className="family-detail-form" onSubmit={saveProfile}>
-            <label className="family-detail-field is-wide">
+        <ol className="onboarding-steps" aria-label="Setup progress">
+          {steps.filter((step) => step.label !== "Email").map((step) => (
+            <li
+              key={step.label}
+              className={`onboarding-step${step.done ? " is-done" : ""}${step.label.toLowerCase() === activeStep ? " is-active" : ""}`}
+              aria-current={step.label.toLowerCase() === activeStep ? "step" : undefined}
+            >
+              <span className="onboarding-step-dot" aria-hidden="true" />
+              {step.label}
+            </li>
+          ))}
+        </ol>
+
+        <ApiStatusBanner />
+
+        {activeStep === "profile" ? (
+          <form className="onboarding-form" onSubmit={saveProfile} noValidate>
+            <label className="onboarding-field is-wide">
               <span className="control-label">Full name</span>
-              <input value={profile.full_name} onChange={(event) => setProfile((current) => ({ ...current, full_name: event.target.value }))} required />
+              <input
+                value={profile.full_name}
+                autoComplete="name"
+                onChange={(event) => setProfile((current) => ({ ...current, full_name: event.target.value }))}
+                required
+              />
             </label>
-            <label className="family-detail-field">
+            <label className="onboarding-field">
               <span className="control-label">Date of birth</span>
-              <input type="date" value={profile.date_of_birth} onChange={(event) => setProfile((current) => ({ ...current, date_of_birth: event.target.value }))} required />
+              {/* A future birth date is never valid; the browser enforces it before submit. */}
+              <input
+                type="date"
+                value={profile.date_of_birth}
+                max={new Date().toISOString().slice(0, 10)}
+                autoComplete="bday"
+                onChange={(event) => setProfile((current) => ({ ...current, date_of_birth: event.target.value }))}
+                required
+              />
             </label>
-            <label className="family-detail-field">
+            <label className="onboarding-field">
               <span className="control-label">Gender</span>
               <select value={profile.gender} onChange={(event) => setProfile((current) => ({ ...current, gender: event.target.value as ProfileGender }))}>
                 {genderOptions.map((option) => <option key={option} value={option}>{prettyStatus(option)}</option>)}
               </select>
             </label>
-            <label className="family-detail-field">
-              <span className="control-label">Phone</span>
-              <input value={profile.phone_number} onChange={(event) => setProfile((current) => ({ ...current, phone_number: event.target.value }))} />
+            <label className="onboarding-field">
+              <span className="control-label">Phone <span className="onboarding-optional">optional</span></span>
+              <input value={profile.phone_number} autoComplete="tel" onChange={(event) => setProfile((current) => ({ ...current, phone_number: event.target.value }))} />
             </label>
-            <label className="family-detail-field">
-              <span className="control-label">Blood group</span>
+            <label className="onboarding-field">
+              <span className="control-label">Blood group <span className="onboarding-optional">optional</span></span>
               <select value={profile.blood_group} onChange={(event) => setProfile((current) => ({ ...current, blood_group: event.target.value as BloodGroup | "" }))}>
                 {bloodGroupOptions.map((option) => <option key={option || "none"} value={option}>{option ? prettyStatus(option) : "Not set"}</option>)}
               </select>
             </label>
-            <label className="family-detail-field">
-              <span className="control-label">Height cm</span>
+            <label className="onboarding-field">
+              <span className="control-label">Height cm <span className="onboarding-optional">optional</span></span>
               <input inputMode="decimal" value={profile.height_cm} onChange={(event) => setProfile((current) => ({ ...current, height_cm: event.target.value }))} />
             </label>
-            <label className="family-detail-field">
-              <span className="control-label">Weight kg</span>
+            <label className="onboarding-field">
+              <span className="control-label">Weight kg <span className="onboarding-optional">optional</span></span>
               <input inputMode="decimal" value={profile.weight_kg} onChange={(event) => setProfile((current) => ({ ...current, weight_kg: event.target.value }))} />
             </label>
-            <div className="family-detail-form-actions">
-              <button className="button button-primary" type="submit" disabled={isSaving}>{onboarding.profile_completed ? "Update profile" : "Save profile"}</button>
+            {message ? <p className="form-alert onboarding-message" role="alert">{message}</p> : null}
+            <div className="onboarding-actions">
+              <button className="button button-primary" type="submit" disabled={isSaving}>
+                {isSaving ? "Saving…" : "Continue"}
+              </button>
             </div>
           </form>
-        </Card>
+        ) : null}
 
-        <Card className="settings-section-card">
-          <KlarioSectionHeader title="Family workspace" subtitle="Reports and trends are scoped to a family." />
-          <form className="form-grid" onSubmit={createFamily}>
-            <label>
-              <span className="control-label">Family name</span>
-              <input value={familyName} onChange={(event) => setFamilyName(event.target.value)} required />
-            </label>
-            <button className="button button-primary" type="submit" disabled={!onboarding.profile_completed || onboarding.family_setup_completed || isSaving}>
-              {onboarding.family_setup_completed ? "Family created" : "Create family"}
-            </button>
-          </form>
-        </Card>
+        {activeStep === "family" ? (
+          <>
+            <form className="onboarding-form" onSubmit={createFamily} noValidate>
+              <label className="onboarding-field is-wide">
+                <span className="control-label">Family name</span>
+                <input value={familyName} onChange={(event) => setFamilyName(event.target.value)} required />
+              </label>
+              {message ? <p className="form-alert onboarding-message" role="alert">{message}</p> : null}
+              <div className="onboarding-actions">
+                <button className="button button-primary" type="submit" disabled={isSaving || !familyName.trim()}>
+                  {isSaving ? "Creating…" : "Continue"}
+                </button>
+              </div>
+            </form>
+            <p className="onboarding-hint">You can add other people to this family at any time from the Family page.</p>
+          </>
+        ) : null}
 
-        <Card className="settings-section-card">
-          <KlarioSectionHeader title="Add another profile" subtitle="Optional; you can also do this later." />
-          <form className="form-grid" onSubmit={addDependent}>
-            <input value={dependent.full_name} onChange={(event) => setDependent((current) => ({ ...current, full_name: event.target.value }))} placeholder="Full name" />
-            <select value={dependent.relationship} onChange={(event) => setDependent((current) => ({ ...current, relationship: event.target.value as Exclude<FamilyRelationship, "self"> }))}>
-              {relationshipOptions.map((option) => <option key={option} value={option}>{prettyStatus(option)}</option>)}
-            </select>
-            {dependent.relationship === "other" ? (
-              <input value={dependent.relationship_other_label} onChange={(event) => setDependent((current) => ({ ...current, relationship_other_label: event.target.value }))} placeholder="Relationship" />
-            ) : null}
-            <input type="date" value={dependent.date_of_birth} onChange={(event) => setDependent((current) => ({ ...current, date_of_birth: event.target.value }))} />
-            <select value={dependent.gender} onChange={(event) => setDependent((current) => ({ ...current, gender: event.target.value as ProfileGender | "" }))}>
-              <option value="">Gender not set</option>
-              {genderOptions.map((option) => <option key={option} value={option}>{prettyStatus(option)}</option>)}
-            </select>
-            <input type="email" value={dependent.contact_email} onChange={(event) => setDependent((current) => ({ ...current, contact_email: event.target.value }))} placeholder="Contact email" />
-            <button className="button button-secondary" type="submit" disabled={!onboarding.family_setup_completed || !dependent.full_name.trim() || isSaving}>Add profile</button>
-          </form>
-        </Card>
-
-        <Card className="settings-section-card">
-          <KlarioSectionHeader title="Finish" subtitle="Open the live dashboard once setup is complete." />
-          <button className="button button-primary" type="button" disabled={!onboarding.profile_completed || !onboarding.family_setup_completed || isSaving} onClick={() => void complete()}>
-            Continue to dashboard
-          </button>
-          {message ? <p className="note">{message}</p> : null}
-        </Card>
-      </section>
+        {activeStep === "done" ? (
+          <>
+            <form className="onboarding-form" onSubmit={addDependent} noValidate>
+              <p className="onboarding-hint onboarding-hint-lead">Add another person now, or skip and go straight to your dashboard.</p>
+              <label className="onboarding-field is-wide">
+                <span className="control-label">Full name <span className="onboarding-optional">optional</span></span>
+                <input value={dependent.full_name} onChange={(event) => setDependent((current) => ({ ...current, full_name: event.target.value }))} />
+              </label>
+              <label className="onboarding-field">
+                <span className="control-label">Relationship</span>
+                <select value={dependent.relationship} onChange={(event) => setDependent((current) => ({ ...current, relationship: event.target.value as Exclude<FamilyRelationship, "self"> }))}>
+                  {relationshipOptions.map((option) => <option key={option} value={option}>{prettyStatus(option)}</option>)}
+                </select>
+              </label>
+              {dependent.relationship === "other" ? (
+                <label className="onboarding-field">
+                  <span className="control-label">Relationship label</span>
+                  <input value={dependent.relationship_other_label} onChange={(event) => setDependent((current) => ({ ...current, relationship_other_label: event.target.value }))} />
+                </label>
+              ) : null}
+              <label className="onboarding-field">
+                <span className="control-label">Date of birth <span className="onboarding-optional">optional</span></span>
+                <input type="date" max={new Date().toISOString().slice(0, 10)} value={dependent.date_of_birth} onChange={(event) => setDependent((current) => ({ ...current, date_of_birth: event.target.value }))} />
+              </label>
+              <div className="onboarding-actions is-secondary">
+                <button className="button button-ghost" type="submit" disabled={!dependent.full_name.trim() || isSaving}>
+                  {isSaving ? "Adding…" : "Add person"}
+                </button>
+              </div>
+            </form>
+            {message ? <p className="form-alert onboarding-message" role="alert">{message}</p> : null}
+            <div className="onboarding-actions">
+              <button className="button button-primary" type="button" disabled={isSaving} onClick={() => void complete()}>
+                {isSaving ? "Opening…" : "Go to dashboard"}
+              </button>
+            </div>
+          </>
+        ) : null}
+      </div>
     </div>
   );
 }
