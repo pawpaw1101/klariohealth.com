@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api/client";
+import { apiFetch, REFRESH_TRANSPORT_HEADER } from "@/lib/api/client";
 import type {
   AccountDeletionPreview,
   AccountDeletionRequestCreate,
@@ -89,10 +89,10 @@ export const authApi = {
   login: (body: LoginRequest) =>
     apiFetch<OtpRequestResponse>("/auth/login", { method: "POST", body, auth: false }),
   requestOtp: (body: OtpRequest) => apiFetch<OtpRequestResponse>("/auth/otp/request", { method: "POST", body, auth: false }),
-  verifyOtp: (body: OtpVerifyRequest) => apiFetch<TokenResponse>("/auth/otp/verify", { method: "POST", body, auth: false }),
+  verifyOtp: (body: OtpVerifyRequest) => apiFetch<TokenResponse>("/auth/otp/verify", { method: "POST", body, auth: false, credentials: "include", headers: REFRESH_TRANSPORT_HEADER }),
   refresh: (body: RefreshTokenRequest) => apiFetch<TokenResponse>("/auth/refresh", { method: "POST", body, auth: false }),
-  logout: (body: RefreshTokenRequest) => apiFetch<void>("/auth/logout", { method: "POST", body, auth: false }),
-  changePassword: (body: ChangePasswordRequest) => apiFetch<TokenResponse>("/auth/change-password", { method: "POST", body }),
+  logout: (body?: RefreshTokenRequest) => apiFetch<void>("/auth/logout", { method: "POST", body: body ?? {}, auth: false, credentials: "include", headers: REFRESH_TRANSPORT_HEADER }),
+  changePassword: (body: ChangePasswordRequest) => apiFetch<TokenResponse>("/auth/change-password", { method: "POST", body, credentials: "include", headers: REFRESH_TRANSPORT_HEADER }),
   forgotPassword: (body: ForgotPasswordRequest) =>
     apiFetch<PasswordResetResponse>("/auth/forgot-password", { method: "POST", body, auth: false }),
   requestPasswordResetOtp: (body: ForgotPasswordRequest) =>

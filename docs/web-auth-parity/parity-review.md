@@ -1,37 +1,91 @@
-# Web authentication parity review
+# Create Account / Forgot Password / Reset Password — iOS ↔ Web parity review
 
-Audited from `AuthenticationViews.swift`, `KlarioPasswordPolicy.swift`, `KlarioSession.swift`, and the shared backend auth routes on 20 August 2026.
+Reviewed 2026-08-21.
 
-## iOS source of truth
+Sources of truth:
+- iOS `Projects/App/BioLensApp/Sources/AuthenticationViews.swift`, `Projects/Core/CoreBioLensAPI/Sources/KlarioPasswordPolicy.swift`
+- Web `components/register-form.tsx`, `forgot-password-form.tsx`, `reset-password-form.tsx`, `lib/password-policy.ts`
 
-- **Create account:** Full name → Email address → Password → live password feedback → Confirm password → required Terms & Privacy acceptance → email OTP verification. Verification establishes the authenticated session and continues into onboarding/workspace.
-- **Password policy:** 12–128 characters, uppercase, lowercase, number, and any non-letter/non-number/non-whitespace symbol. Confirmation only reports a mismatch after input begins. Password visibility is available for both password fields.
-- **Forgot password:** Email → generic confirmation and a six-digit code → verification → new password/confirmation → success. The native app has resend cooldown support. Its code flow is an iOS client adaptation of the shared backend’s OTP recovery endpoints.
-- **Web reset link:** The backend also supports web reset links at `/reset-password?token=…`; token is single-use and reset revokes sessions. That is platform-specific routing, not a different password policy.
+## Method
 
-| Flow | Behavior | iOS | Web before | Web after | Remaining gap |
-|---|---|---|---|---|---|
-| Sign up | Full name/email/password | Required | Missing confirmation/policy parity | Same field order plus confirmation | MATCHED |
-| Sign up | Password policy | 12–128 + five rules | 8 characters only | Shared web mirror of iOS/backend rules | MATCHED |
-| Sign up | Live feedback / visibility | Feedback + eye controls | None | Checklist, live summary, show/hide | MATCHED |
-| Sign up | Terms acceptance | Required | Missing | Required unchecked agreement control | PARTIAL: web Terms/Privacy destinations are not implemented as public pages yet |
-| Sign up | OTP verification | Required then authenticated/onboarding | Required | Retained | MATCHED |
-| Forgot password | Generic response and code verification | Does not enumerate accounts | Sent a reset link only | Sends, verifies, and resends the same six-digit email code as iOS | MATCHED |
-| Forgot password | Resend | OTP resend cooldown | No resend on link request | Not added: link flow has no documented resend contract | PLATFORM-SPECIFIC BY DESIGN |
-| Reset link | Token handling | iOS code/reset-token flow | Token was removed even after network error | Token stays in component memory and URL is scrubbed only after success/invalidity | MATCHED for web-link contract |
-| Reset password | Policy / confirmation / visibility | Required | 8-char policy, no visibility/feedback | Same shared policy, confirmation, checklist, show/hide | MATCHED |
-| Reset success | Clear sign-in destination | Success then sign in | Immediate redirect | Explicit Password updated success state and Sign in action | MATCHED |
-| Invalid token | Recovery path | Clear error/recovery | Raw disabled form | Clear invalid/expired message and fresh-link action | MATCHED |
-| Auth cache safety | Clear protected state on reset/logout | Session lifecycle is cleared | Logout clears query cache | Retained and strengthened in the query-cache rollout | MATCHED |
+Both platforms were captured from running software, not read from source.
 
-## Files audited
+- **iOS** — real app on iPhone 17 Pro (iOS 26.3) simulator, Light Mode, driven by the
+  `BioLensUITests` XCUITest target against a **local** backend
+  (`BIOLENS_API_BASE_URL=http://127.0.0.1:8010`, stub email provider, synthetic accounts). No
+  production Resend, Supabase or customer data was touched.
+- **Web** — real production build served locally against the same backend, captured over CDP at
+  1440×900 @2x, and again at 420×900 for the responsive check.
 
-- iOS: `Projects/App/BioLensApp/Sources/AuthenticationViews.swift`
-- iOS: `Projects/Core/CoreBioLensAPI/Sources/KlarioPasswordPolicy.swift`
-- iOS: `Projects/Core/CoreBioLensAPI/Sources/KlarioSession.swift`
-- Backend: `app/api/v1/auth_routes.py`, `app/core/password_policy.py`
-- Web: `components/register-form.tsx`, `forgot-password-form.tsx`, `reset-password-form.tsx`, `lib/api/client.ts`
+Screenshots are written to `docs/web-auth-parity/screenshots/{ios,web}/` when the capture is
+run. They are git-ignored on purpose: they are regenerable build output, and binaries of
+application screens do not belong in the repository.
 
-## Validation limitation
+### Why five iOS states and not ten
 
-The current project has no web test harness and the Simulator was not authenticated for screenshot capture. Source and production builds validate the implementation; real email/OTP/reset-link delivery requires a controlled test account and mail environment.
+States 06–10 all sit past a form submission inside the Forgot Password sheet
+(`email → code → newPassword → success`). Driving them needs repeated text entry into SwiftUI
+secure fields, and XCUITest could not reliably do it here: fields that are visibly focused
+report `isHittable == false`, and synthesised taps on them raise
+*"Neither element nor any descendant has keyboard focus"*. Each retry costs a full
+build-and-run cycle. The remaining states are marked BLOCKED rather than guessed at.
+
+**Unblock path:** add stable `accessibilityIdentifier`s to the Forgot Password sheet's email,
+code, password and confirm fields, then address them by identifier instead of by
+placeholder/label. That is a small, production-safe change — identifiers do not alter
+behaviour — but it is a change to app source that this task's brief asked to avoid unless
+required, so it is left as a decision rather than made unilaterally.
+
+## State table
+
+| State | Contract parity | Visual parity | Notes |
+|---|---|---|---|
+| 01 Sign In | MATCHED | **MATCHED** | Same composition after the desktop-card fix: brand header, centred card, email → password → primary action. |
+| 02 Create Account initial | MATCHED | **MATCHED** | Field order identical; heading and sub-copy now identical. |
+| 03 Password partial | MATCHED | **MATCHED** | Was a mismatch — fixed. See "Fixes made". |
+| 04 Create Account valid | MATCHED | **PARTIAL** | Password-valid state matches ("This password meets every requirement.", teal bars). The terms checkbox could not be toggled on iOS — see below — so the *button-enabled* frame is unconfirmed on iOS. |
+| 05 Forgot Password | MATCHED | **MATCHED** | Heading, helper copy and button label now identical after the fix. |
+| 06 Forgot Password submitted | MATCHED | **BLOCKED** | iOS capture blocked (above). |
+| 07 Create New Password | MATCHED | **BLOCKED** | iOS capture blocked. |
+| 08 Password mismatch | MATCHED | **PARTIAL** | iOS mismatch styling was captured incidentally on Create Account ("Passwords do not match", coral field border + coral caption) and web matches that treatment; the Reset-screen instance is unconfirmed. |
+| 09 Invalid / expired link | MATCHED | **BLOCKED** | iOS capture blocked. |
+| 10 Reset success | MATCHED | **BLOCKED** | iOS capture blocked. |
+
+## Visual mismatches found, and fixed
+
+Each was proven by comparing the two screenshots, not inferred.
+
+| # | Mismatch | iOS | Web (before) | Fix |
+|---|---|---|---|---|
+| 1 | Password feedback presentation | 5 segmented 3px bars + one sentence | Bordered card titled "Password requirements" + a 5-item ✓/○ checklist + sentence | Web rewritten to the bar-and-sentence form (`components/password-requirements.tsx`) |
+| 2 | "Still needed" wording | Long form: *"at least 12 characters and a special symbol (@, #, !, $)"* | Short chip labels: *"12+ characters and special character"* | Added `shortfall` phrases and iOS's `joined()` rule to `lib/password-policy.ts` |
+| 3 | Summary sentence | "…with **a mix of** uppercase…" | "…with uppercase…" | Adopted iOS's string verbatim as `PASSWORD_SUMMARY` |
+| 4 | Terms label | "I agree to the Terms of Service and Privacy Policy" | "I agree to the Privacy Policy and Terms & Conditions." | Web now uses iOS's wording and order |
+| 5 | Forgot Password heading | "Forgot password?" | "Reset your Klario password." | Aligned |
+| 6 | Forgot Password helper | "Enter the email associated with your Klario account." | "Enter your email and Klario will send a verification code if the account is eligible." | Aligned |
+| 7 | Forgot Password button | "Send verification code" | "Send reset code" | Aligned |
+| 8 | Desktop composition | One centred card | Two-column marketing split with the form in a side rail | Auth pages are now a centred 460px card (Task 7); marketing bullets hidden on these routes |
+| 9 | Auth card surface | Solid card | Section gradient sized for a two-column layout, painting only part of the card | Explicit surface, border, radius and shadow |
+
+## Known remaining differences
+
+| Aspect | iOS | Web | Status |
+|---|---|---|---|
+| Field affordance | Icon inside each input (person / envelope / lock), placeholder only | Label above input, no icon | PARTIAL — deliberate: visible labels are the accessible pattern for pointer/screen-reader use |
+| Nested container | Single card | Form and footer note each carry their own surface inside the card | PARTIAL — cosmetic card-in-card, not yet flattened |
+| Flow container | Segmented Sign In / Create Account | Separate `/login` and `/register` routes | PLATFORM-SPECIFIC BY DESIGN — the web needs linkable URLs |
+| Password visibility | Eye glyph | `Show` text button | PLATFORM-SPECIFIC BY DESIGN |
+
+## Defect found in iOS while capturing
+
+The Create Account **terms checkbox does not respond to synthesised taps**. In
+`TermsAgreementView` the button's label is a bare `Image` with `.frame(width: 44, height: 44)`
+and `.buttonStyle(.plain)`, but no `.contentShape(Rectangle())`. Without it SwiftUI hit-tests
+the drawn glyph rather than the 44pt frame — and the accessibility frame confirms this, reporting
+**18.7 × 18.7pt**, well under the 44pt minimum target.
+
+Three independent tap mechanisms (element tap, element-relative coordinate, absolute screen
+coordinate, each landing dead-centre on the reported frame) all failed to toggle it. This is
+reported, not fixed: it is production app behaviour and outside this task's remit. Worth a
+human check on a physical device, since it would also make the control hard to hit for users
+with reduced motor precision.

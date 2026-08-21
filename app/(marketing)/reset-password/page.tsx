@@ -18,13 +18,13 @@ export default async function ResetPasswordPage({
   const token = Array.isArray(params.token) ? params.token[0] : params.token;
 
   return (
-    <main className="content cascade-page">
+    <main className="content auth-page">
       <section className="hero">
         <div className="hero-copy">
 
-          <h1>Choose a new password.</h1>
+          <h1>Create a new password</h1>
           <p className="hero-lead">
-            Use the reset link from your email. Expired or already-used links are rejected safely.
+            Choose a password you haven&apos;t used before.
           </p>
           <div className="login-benefits">
             {[

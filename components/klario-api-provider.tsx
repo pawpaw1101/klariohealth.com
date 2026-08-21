@@ -305,13 +305,12 @@ function KlarioSessionProvider({ children }: { children: React.ReactNode }) {
   }, [clearSessionState]);
 
   const backendLogout = useCallback(async () => {
-    const refreshToken = getRefreshToken();
-    if (refreshToken) {
-      try {
-        await authApi.logout({ refresh_token: refreshToken, device_type: "web" });
-      } catch {
-        // Local sign-out should still succeed if the server token already expired.
-      }
+    try {
+      // The credential travels in the HttpOnly cookie; there is nothing to pass. This still
+      // revokes the session server-side, so a captured credential is dead either way.
+      await authApi.logout();
+    } catch {
+      // Local sign-out should still succeed if the server credential already expired.
     }
     clearSessionState("Signed out.");
   }, [clearSessionState]);
@@ -331,15 +330,10 @@ function KlarioSessionProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const refresh = useCallback(async () => {
-    let token = getAuthToken();
-    const refreshToken = getRefreshToken();
-    if (!token && refreshToken) {
-      const tokenResponse = await authApi.refresh({ refresh_token: refreshToken, device_type: "web" });
-      setAuthTokens(tokenResponse.access_token, tokenResponse.refresh_token);
-      token = tokenResponse.access_token;
-    }
-
+    const token = getAuthToken();
     if (!token) {
+      // With no access token there is nothing to revalidate; apiFetch performs the
+      // cookie-backed refresh on its own when a request comes back 401.
       logout();
       return;
     }
