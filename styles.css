@@ -605,6 +605,11 @@ img {
 .klario-search-field {
   display: flex;
   min-height: 44px;
+  /* This renders as a <label>, so it inherited the global `label { margin-bottom: 8px }`
+     meant for form field captions. In a toolbar row that margin inflated the grid row to
+     52px and floated the field 4px above the controls beside it. `.select-field` already
+     zeroes the same inherited margin; this is the search control's missing counterpart. */
+  margin-bottom: 0;
   align-items: center;
   gap: 10px;
   padding: 0 13px;
@@ -1933,12 +1938,7 @@ textarea {
 
 .reports-toolbar .klario-filter-chip,
 .reports-clear-filter {
-  min-height: 44px;
   white-space: nowrap;
-}
-
-.reports-clear-filter:disabled {
-  opacity: 0.45;
 }
 
 .reports-list {
@@ -2008,37 +2008,58 @@ textarea {
   color: #b91c1c;
 }
 
+/* Same width as the sheet that follows it, so stepping from source choice to report details
+   does not resize the dialog under the pointer. */
 .report-add-options-modal {
-  width: min(100% - 32px, 560px);
+  width: min(100% - 32px, 620px);
 }
 
 .report-add-options-list {
   display: grid;
-  gap: 10px;
+  gap: 8px;
+  padding: 0 24px 24px;
 }
 
+/* Ported from iOS `ReportAddOptionTintedSurface`: each option is a tone-tinted card - fill at
+   10%, border at 18% - so the two choices read as distinct, colour-coded targets. The previous
+   white fill on a white sheet left the card edges invisible, which is why the list looked like
+   flat rows rather than options. */
 .report-add-option {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 14px;
   width: 100%;
-  padding: 14px;
-  border: 1px solid var(--border-subtle);
+  min-height: 44px;
+  border: 1px solid color-mix(in srgb, var(--tone-color) 18%, transparent);
   border-radius: var(--radius-md);
-  background: var(--color-white);
+  background: color-mix(in srgb, var(--tone-color) 10%, transparent);
+  padding: 12px 14px;
   color: var(--text-primary);
   text-align: left;
   cursor: pointer;
-  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+  transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
 }
 
 .report-add-option:hover,
 .report-add-option:focus-visible {
-  border-color: rgba(20, 184, 166, 0.45);
+  border-color: color-mix(in srgb, var(--tone-color) 34%, transparent);
+  background: color-mix(in srgb, var(--tone-color) 16%, transparent);
   box-shadow: 0 5px 16px rgba(15, 44, 52, 0.08);
   outline: none;
-  transform: translateY(-1px);
+}
+
+.report-add-option > svg:last-child,
+.report-add-option > .bio-icon:last-child {
+  color: var(--text-muted);
+}
+
+.report-add-platform-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 0 0;
+  color: var(--text-muted);
 }
 
 .report-add-option span {
@@ -2383,9 +2404,143 @@ textarea {
   grid-template-columns: 1fr;
 }
 
+/* A focused upload sheet, not a dashboard panel: the desktop width the brief calls for, with
+   the body scrolling internally rather than the whole modal growing. */
 .report-upload-modal {
-  width: min(960px, calc(100vw - 48px));
+  width: min(620px, calc(100vw - 32px));
   max-height: calc(100svh - 48px);
+}
+
+.upload-sheet {
+  display: grid;
+  gap: 14px;
+  padding: 0 24px 24px;
+}
+
+.upload-sheet-field {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.upload-sheet-details {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+.upload-dropzone {
+  display: grid;
+  min-height: 176px;
+  place-content: center;
+  justify-items: center;
+  gap: 4px;
+  border: 1px dashed rgba(15, 23, 42, 0.18);
+  border-radius: 16px;
+  background: var(--bg-muted);
+  padding: 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color var(--transition), background var(--transition);
+}
+
+.upload-dropzone:hover,
+.upload-dropzone:focus-visible {
+  border-color: rgba(20, 184, 166, 0.45);
+  background: var(--color-teal-50);
+  outline: none;
+}
+
+.upload-dropzone.is-drag-active {
+  border-color: var(--color-teal-600);
+  border-style: solid;
+  background: var(--color-teal-50);
+}
+
+.upload-dropzone.is-invalid {
+  border-color: rgba(249, 115, 22, 0.5);
+}
+
+.upload-dropzone strong {
+  color: var(--text-primary);
+  font: var(--type-body-m);
+  font-weight: 700;
+}
+
+.upload-dropzone span {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.upload-dropzone small {
+  margin-top: 6px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+}
+
+.upload-file-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  background: var(--bg-surface);
+  padding: 14px 14px 14px 16px;
+}
+
+.upload-file-card-main {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+/* The name identifies the report, so it wraps to a second line before it truncates rather
+   than losing the end of the filename immediately. */
+.upload-file-card-main strong {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--text-primary);
+  font: var(--type-body-m);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.upload-file-card-main span {
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+}
+
+.upload-file-remove {
+  flex: 0 0 auto;
+}
+
+/* There is no generic `.modal-actions` rule in the sheet - only a delete-modal one - so this
+   has to establish the flex row itself rather than only setting justification. */
+.upload-sheet-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 2px;
+  padding: 0;
+}
+
+@media (max-width: 560px) {
+  .upload-sheet {
+    padding: 0 16px 16px;
+  }
+
+  .upload-sheet-details {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .upload-dropzone {
+    min-height: 150px;
+  }
 }
 
 .report-edit-modal {
@@ -5585,7 +5740,10 @@ body:has(.family-workspace) {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 12px;
-  align-items: start;
+  /* `start` sized each card to its own content, so two cards sharing a row ended at different
+     heights whenever their text differed in length. Stretch lets the row settle on one height
+     and the cards fill it; nothing is clipped because the height is still content-derived. */
+  align-items: stretch;
 }
 
 .settings-section-card.is-hidden { display: none; }
@@ -8159,9 +8317,34 @@ body:has(.family-workspace) {
   min-height: 40px;
 }
 
+/* One height for every control in the row. Each carried its own (search 42, select wrapper 49,
+   Clear chip 41), so the row read as three different sizes and the chip sat noticeably above
+   the select beside it. The gap goes back to 12px: at 10px the chip's icon crowded the type
+   select's chevron and the two read as one run-together control. */
+.reports-workspace > .reports-toolbar {
+  gap: 12px;
+}
+
+/* One height for every control in the row. Each carried its own (search 42, select wrapper 49,
+   Clear chip 41), so the row read as three different sizes. min-height, not height: a hard
+   height clips as soon as the content needs more room. */
+.reports-toolbar .klario-search-field,
+.reports-toolbar .reports-select-filter,
+.reports-toolbar .reports-select-filter select,
 .reports-toolbar .reports-clear-filter {
-  min-height: 40px;
-  padding-inline: 10px;
+  min-height: 44px;
+}
+
+.reports-toolbar .reports-select-filter select {
+  /* `.select-field select` asks for a 220px minimum, but the grid caps this column at 190px,
+     so each select overflowed its own label by 30px - the second one running under the Clear
+     chip and putting its chevron on top of it. The column is the authority on width here. */
+  width: 100%;
+  min-width: 0;
+  /* The global rule pads 13px top and bottom. Inside a 44px control that leaves 16px for a
+     22.5px line box (15px/1.5), which sliced the descenders off "All profiles" and
+     "All types". The control's own height sizes it; the browser centres the text within. */
+  padding-block: 0;
 }
 
 @media (max-width: 900px) {
