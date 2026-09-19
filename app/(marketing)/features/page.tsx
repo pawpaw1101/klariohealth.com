@@ -249,18 +249,18 @@ export default function FeaturesPage() {
           }}
         >
           <div className="showcase-copy" style={{ width: "100%" }}>
-            <h2 style={{ fontSize: "clamp(2rem, 3.5vw, 2.75rem)", fontWeight: 800, color: "#ffffff", marginBottom: "8px" }}>
+            <h2 style={{ fontSize: "clamp(1.6rem, 6vw, 2.75rem)", fontWeight: 800, color: "#ffffff", marginBottom: "8px" }}>
               Built with security in mind.
             </h2>
-            <p className="showcase-lead" style={{ color: "#ccfbf1", marginBottom: "24px", maxWidth: "720px", fontSize: "1.1rem" }}>
+            <p className="showcase-lead" style={{ color: "#ccfbf1", marginBottom: "24px", maxWidth: "720px", fontSize: "clamp(0.95rem, 2.6vw, 1.1rem)" }}>
               Health records require more than simple file storage. Klario's architecture is engineered around device-bound privacy and data provenance.
             </p>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "18px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "18px" }}>
               <div
                 className="showcase-point"
                 style={{
-                  padding: "20px 22px",
+                  padding: "clamp(14px, 4vw, 20px) clamp(14px, 4vw, 22px)",
                   borderRadius: "18px",
                   background: "rgba(255, 255, 255, 0.1)",
                   border: "1px solid rgba(255, 255, 255, 0.2)",
@@ -300,7 +300,7 @@ export default function FeaturesPage() {
               <div
                 className="showcase-point"
                 style={{
-                  padding: "20px 22px",
+                  padding: "clamp(14px, 4vw, 20px) clamp(14px, 4vw, 22px)",
                   borderRadius: "18px",
                   background: "rgba(255, 255, 255, 0.1)",
                   border: "1px solid rgba(255, 255, 255, 0.2)",
@@ -340,7 +340,7 @@ export default function FeaturesPage() {
               <div
                 className="showcase-point"
                 style={{
-                  padding: "20px 22px",
+                  padding: "clamp(14px, 4vw, 20px) clamp(14px, 4vw, 22px)",
                   borderRadius: "18px",
                   background: "rgba(255, 255, 255, 0.1)",
                   border: "1px solid rgba(255, 255, 255, 0.2)",
@@ -380,7 +380,7 @@ export default function FeaturesPage() {
               <div
                 className="showcase-point"
                 style={{
-                  padding: "20px 22px",
+                  padding: "clamp(14px, 4vw, 20px) clamp(14px, 4vw, 22px)",
                   borderRadius: "18px",
                   background: "rgba(255, 255, 255, 0.1)",
                   border: "1px solid rgba(255, 255, 255, 0.2)",

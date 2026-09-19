@@ -269,16 +269,16 @@ export default function AboutPage() {
             <p style={{ fontSize: "1.05rem", color: "#ffffff", marginTop: "10px" }}>
               Every additional report can add another point to a metric's history. Over months and years, that creates a record that is increasingly difficult to reproduce with simple file storage.
             </p>
-            <div style={{ marginTop: "24px", padding: "22px 26px", borderRadius: "20px", background: "rgba(204, 251, 241, 0.12)", border: "1px solid rgba(45, 212, 191, 0.3)", display: "flex", flexWrap: "wrap", justifyContent: "space-around", gap: "16px", textAlign: "center" }}>
-              <div>
+            <div className="timeline-stats-row" style={{ marginTop: "24px", padding: "22px 26px", borderRadius: "20px", background: "rgba(204, 251, 241, 0.12)", border: "1px solid rgba(45, 212, 191, 0.3)", display: "flex", flexWrap: "wrap", justifyContent: "space-around", gap: "16px", textAlign: "center" }}>
+              <div className="timeline-stat-item">
                 <strong style={{ fontSize: "1.2rem", color: "#2dd4bf", display: "block" }}>Structured data</strong>
                 <span style={{ fontSize: "0.85rem", color: "#e6fffa" }}>Canonical metrics & standardized units</span>
               </div>
-              <div style={{ borderLeft: "1px solid rgba(255, 255, 255, 0.2)", paddingLeft: "20px" }}>
+              <div className="timeline-stat-item">
                 <strong style={{ fontSize: "1.2rem", color: "#2dd4bf", display: "block" }}>Verifiable history</strong>
                 <span style={{ fontSize: "0.85rem", color: "#e6fffa" }}>Direct original source lab provenance</span>
               </div>
-              <div style={{ borderLeft: "1px solid rgba(255, 255, 255, 0.2)", paddingLeft: "20px" }}>
+              <div className="timeline-stat-item">
                 <strong style={{ fontSize: "1.2rem", color: "#2dd4bf", display: "block" }}>Compounds over time</strong>
                 <span style={{ fontSize: "0.85rem", color: "#e6fffa" }}>Multi-year, multi-provider timeline</span>
               </div>
