@@ -122,12 +122,12 @@ export default function FeaturesPage() {
               boxShadow: "0 4px 12px rgba(15, 23, 42, 0.03)"
             }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
               <span style={{ fontSize: "0.9rem", color: "#0f766e", fontWeight: 700 }}>HbA1c (Blood Sugar)</span>
-              <span style={{ fontSize: "0.78rem", color: "#0f766e", fontWeight: 700, background: "rgba(20, 184, 166, 0.15)", padding: "3px 9px", borderRadius: "6px" }}>+0.2% ↗</span>
+              <span style={{ fontSize: "0.78rem", color: "#0f766e", fontWeight: 700, background: "rgba(20, 184, 166, 0.15)", padding: "3px 9px", borderRadius: "6px", whiteSpace: "nowrap", flexShrink: 0 }}>+0.2% ↗</span>
             </div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
-              <span style={{ fontSize: "1.65rem", fontWeight: 800, color: "#0f172a" }}>5.8%</span>
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "10px" }}>
+              <span style={{ fontSize: "1.65rem", fontWeight: 800, color: "#0f172a", whiteSpace: "nowrap" }}>5.8%</span>
               <span style={{ fontSize: "0.85rem", color: "#64748b" }}>vs 5.6% (6 mos ago)</span>
             </div>
             <div style={{ fontSize: "0.78rem", color: "#0f766e" }}>
@@ -148,12 +148,12 @@ export default function FeaturesPage() {
               boxShadow: "0 4px 12px rgba(15, 23, 42, 0.03)"
             }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
               <span style={{ fontSize: "0.9rem", color: "#0f766e", fontWeight: 700 }}>LDL Cholesterol</span>
-              <span style={{ fontSize: "0.78rem", color: "#16a34a", fontWeight: 700, background: "rgba(22, 163, 74, 0.12)", padding: "3px 9px", borderRadius: "6px" }}>-15 mg/dL ↘</span>
+              <span style={{ fontSize: "0.78rem", color: "#16a34a", fontWeight: 700, background: "rgba(22, 163, 74, 0.12)", padding: "3px 9px", borderRadius: "6px", whiteSpace: "nowrap", flexShrink: 0 }}>-15 mg/dL ↘</span>
             </div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
-              <span style={{ fontSize: "1.65rem", fontWeight: 800, color: "#0f172a" }}>95 mg/dL</span>
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "10px" }}>
+              <span style={{ fontSize: "1.65rem", fontWeight: 800, color: "#0f172a", whiteSpace: "nowrap" }}>95 mg/dL</span>
               <span style={{ fontSize: "0.85rem", color: "#64748b" }}>vs 110 mg/dL (Prev)</span>
             </div>
             <div style={{ fontSize: "0.78rem", color: "#0f766e" }}>

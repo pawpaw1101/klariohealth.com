@@ -32,7 +32,7 @@ import {
   statusClass,
   valueWithUnit
 } from "@/components/workspaces/shared";
-type MetricSheetKind = "normal" | "attention" | "critical" | "score";
+type MetricSheetKind = "normal" | "attention" | "critical";
 
 const categoryPresentation: Record<BodySystemZone, { title: string; description: string; markerTitle: string }> = {
   cardio: { title: "Your cardiovascular overview", description: "Track key heart-related markers that support cardiovascular health.", markerTitle: "Cardiovascular markers" },
@@ -91,12 +91,11 @@ export function DashboardWorkspace() {
     value: string;
     label: string;
     caption: string;
-    tone: "green" | "orange" | "gray";
+    tone: "green" | "orange";
     icon: KlarioIconName;
   }> = [
     { kind: "normal", value: summary ? String(summary.normal_count) : "-", label: "Normal", caption: "Inside reference range", tone: "green", icon: "icon_zone_cardio" },
-    { kind: "attention", value: summary ? String(summary.attention_count) : "-", label: "Need attention", caption: "Outside range or unreviewed", tone: "orange", icon: "icon_flag_attention" },
-    { kind: "score", value: summary ? String(summary.score) : "-", label: "Score", caption: "Percent of metrics in range", tone: "gray", icon: "icon_flag_score" }
+    { kind: "attention", value: summary ? String(summary.attention_count) : "-", label: "Need attention", caption: "Outside range or unreviewed", tone: "orange", icon: "icon_flag_attention" }
   ];
 
   const inFlightReports = (dashboard?.latest_reports ?? []).filter((report) => !["parsed", "parsed_empty", "needs_attention", "failed"].includes(report.status));
@@ -235,7 +234,6 @@ export function DashboardWorkspace() {
           userId={api.user?.id}
           familyId={familyId}
           memberId={memberId}
-          healthScore={summary?.score ?? 0}
           normalMetrics={normalMetrics}
           attentionMetrics={attentionMetrics}
           criticalMetrics={criticalMetrics}
@@ -313,7 +311,6 @@ function DashboardMetricModal({
   userId,
   familyId,
   memberId,
-  healthScore,
   normalMetrics,
   attentionMetrics,
   criticalMetrics,
@@ -323,14 +320,13 @@ function DashboardMetricModal({
   userId?: string;
   familyId?: string;
   memberId?: string;
-  healthScore: number;
   normalMetrics: TrendPreview[];
   attentionMetrics: DashboardAttentionItem[];
   criticalMetrics: DashboardAttentionItem[];
   onClose: () => void;
 }) {
-  const title = kind === "score" ? "Health Score" : `${prettyStatus(kind)} metrics`;
-  const usesTrendList = kind === "normal" || kind === "score";
+  const title = `${prettyStatus(kind)} metrics`;
+  const usesTrendList = kind === "normal";
   const trendsQuery = useQuery({
     queryKey: protectedQueryKey(userId, "dashboard", "metric-modal", "trends", familyId, memberId),
     queryFn: () => trendsApi.list(familyId!, memberId!),
@@ -346,7 +342,7 @@ function DashboardMetricModal({
   const normalItems = trendsQuery.data
     ? trendsQuery.data.categories
         .flatMap((category) => category.metrics)
-        .filter((metric) => (kind === "score" ? metric.has_readings !== false : metric.has_readings !== false && !metric.has_attention))
+        .filter((metric) => metric.has_readings !== false && !metric.has_attention)
     : normalMetrics;
   const attentionFallback = kind === "critical" ? criticalMetrics : attentionMetrics;
   const attentionItems = attentionQuery.data?.items ?? attentionFallback;
@@ -364,12 +360,6 @@ function DashboardMetricModal({
             <BioIcon name="icon_action_reject" size={18} />
           </button>
         </div>
-        {kind === "score" ? (
-          <div className="dashboard-score-header">
-            <strong>{healthScore}</strong>
-            <span>Percent of metrics in normal range</span>
-          </div>
-        ) : null}
         <div className="dashboard-modal-list">
           {usesTrendList ? (
             normalItems.length ? normalItems.map((metric) => (
