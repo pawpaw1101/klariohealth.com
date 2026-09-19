@@ -228,27 +228,33 @@ export function DashboardWorkspace() {
       </div>
 
       <footer className="dashboard-disclaimer">Based on imported reports and available reference ranges. Not a diagnosis.</footer>
-      {metricSheet ? (
-        <DashboardMetricModal
-          kind={metricSheet}
-          userId={api.user?.id}
-          familyId={familyId}
-          memberId={memberId}
-          normalMetrics={normalMetrics}
-          attentionMetrics={attentionMetrics}
-          criticalMetrics={criticalMetrics}
-          onClose={() => setMetricSheet(null)}
-        />
-      ) : null}
-      {selectedZone ? (
-        <DashboardCategoryModal
-          memberName={activeLabel}
-          categories={categoryTrendsQuery.data?.categories ?? []}
-          isLoading={categoryTrendsQuery.isLoading}
-          zone={selectedZone}
-          onClose={() => setSelectedZone(null)}
-        />
-      ) : null}
+      {metricSheet && portalHost
+        ? createPortal(
+            <DashboardMetricModal
+              kind={metricSheet}
+              userId={api.user?.id}
+              familyId={familyId}
+              memberId={memberId}
+              normalMetrics={normalMetrics}
+              attentionMetrics={attentionMetrics}
+              criticalMetrics={criticalMetrics}
+              onClose={() => setMetricSheet(null)}
+            />,
+            portalHost
+          )
+        : null}
+      {selectedZone && portalHost
+        ? createPortal(
+            <DashboardCategoryModal
+              memberName={activeLabel}
+              categories={categoryTrendsQuery.data?.categories ?? []}
+              isLoading={categoryTrendsQuery.isLoading}
+              zone={selectedZone}
+              onClose={() => setSelectedZone(null)}
+            />,
+            portalHost
+          )
+        : null}
       {isUploadOpen && portalHost ? createPortal(<ReportUploadModal onClose={() => setIsUploadOpen(false)} />, portalHost) : null}
     </div>
   );

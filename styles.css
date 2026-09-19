@@ -7329,7 +7329,6 @@ body:has(.family-workspace) {
   height: 100%;
   border: 0;
   background: transparent;
-  color: transparent;
   opacity: 0;
   cursor: pointer;
 }
@@ -7339,12 +7338,12 @@ body:has(.family-workspace) {
   outline-offset: 2px;
 }
 
-/* --- Body section: VStack(alignment: .leading, spacing: 6) --- */
+/* --- Body section: VStack(alignment: .leading, spacing: 0), 2px gap after the toggle --- */
 
 .dashboard-body-section {
   display: grid;
   align-content: start;
-  gap: 6px;
+  gap: 12px;
 }
 
 /* Segmented Body / Tiles control, .frame(width: 144) centred */
@@ -7573,6 +7572,7 @@ body:has(.family-workspace) {
 
 .body-zone-tile {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   align-content: start;
   gap: 6px;
   border: 1px solid color-mix(in srgb, var(--tone-color) 25%, transparent);
@@ -8817,9 +8817,13 @@ input[type="date"]::-webkit-date-and-time-value {
     font-size: 16px;
   }
 
+  /* Bottom sheet on mobile: anchored to the bottom edge instead of centred,
+     so it can never land underneath the fixed header the way a top-anchored
+     dialog did. Desktop keeps the centred .klario-modal-overlay dialog
+     behaviour above, untouched. */
   .klario-modal-overlay {
-    align-items: start;
-    padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+    align-items: flex-end;
+    padding: 0;
   }
 
   .klario-modal,
@@ -8827,7 +8831,9 @@ input[type="date"]::-webkit-date-and-time-value {
   .family-action-modal,
   .family-invites-modal {
     width: 100%;
-    max-height: calc(100dvh - max(32px, env(safe-area-inset-top) + env(safe-area-inset-bottom)));
+    max-height: calc(92dvh - env(safe-area-inset-top));
+    border-radius: 20px 20px 0 0;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
   }
 }
 
