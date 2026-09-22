@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -53,6 +53,8 @@ export function DashboardWorkspace() {
   const [displayMode, setDisplayMode] = useState<"body" | "tiles">("body");
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [portalHost, setPortalHost] = useState<HTMLElement | null>(null);
+  const [isMemberMenuOpen, setIsMemberMenuOpen] = useState(false);
+  const memberMenuRef = useRef<HTMLDivElement>(null);
   const familyId = api.activeFamily?.id;
   const memberId = api.activeMember?.id;
   const hasLiveContext = api.status === "live" && Boolean(api.user?.id && familyId && memberId);
@@ -60,6 +62,27 @@ export function DashboardWorkspace() {
   useEffect(() => {
     setPortalHost(document.body);
   }, []);
+
+  useEffect(() => {
+    if (!isMemberMenuOpen) return;
+
+    const closeOnOutsideOrEscape = (event: MouseEvent | KeyboardEvent) => {
+      if (event instanceof KeyboardEvent) {
+        if (event.key === "Escape") setIsMemberMenuOpen(false);
+        return;
+      }
+      if (memberMenuRef.current && !memberMenuRef.current.contains(event.target as Node)) {
+        setIsMemberMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", closeOnOutsideOrEscape);
+    document.addEventListener("keydown", closeOnOutsideOrEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutsideOrEscape);
+      document.removeEventListener("keydown", closeOnOutsideOrEscape);
+    };
+  }, [isMemberMenuOpen]);
 
   const dashboardQuery = useQuery({
     queryKey: protectedQueryKey(api.user?.id, "dashboard", familyId, memberId),
@@ -112,14 +135,38 @@ export function DashboardWorkspace() {
       <header className="dashboard-brand-row">
         <h1 className="dashboard-title">Dashboard</h1>
         {api.members.length ? (
-          <label className="dashboard-member-switcher">
-            <span className="dashboard-member-avatar" aria-hidden="true">{activeLabel.slice(0, 1).toUpperCase()}</span>
-            <span className="dashboard-member-name">{activeLabel}</span>
-            <span className="dashboard-member-chevron" aria-hidden="true" />
-            <select value={api.activeMember?.id ?? ""} onChange={(event) => api.setActiveMemberId(event.target.value)} aria-label="Switch family member">
-              {api.members.map((member) => <option key={member.id} value={member.id}>{member.display_name}</option>)}
-            </select>
-          </label>
+          <div className="dashboard-member-switcher" ref={memberMenuRef}>
+            <button
+              type="button"
+              className="dashboard-member-trigger"
+              aria-haspopup="listbox"
+              aria-expanded={isMemberMenuOpen}
+              onClick={() => setIsMemberMenuOpen((open) => !open)}
+            >
+              <span className="dashboard-member-avatar" aria-hidden="true">{activeLabel.slice(0, 1).toUpperCase()}</span>
+              <span className="dashboard-member-name">{activeLabel}</span>
+              <span className="dashboard-member-chevron" aria-hidden="true" />
+            </button>
+            {isMemberMenuOpen ? (
+              <div className="dashboard-member-menu" role="listbox" aria-label="Switch family member">
+                {api.members.map((member) => (
+                  <button
+                    key={member.id}
+                    type="button"
+                    role="option"
+                    aria-selected={member.id === api.activeMember?.id}
+                    className={`dashboard-member-option${member.id === api.activeMember?.id ? " is-active" : ""}`}
+                    onClick={() => {
+                      api.setActiveMemberId(member.id);
+                      setIsMemberMenuOpen(false);
+                    }}
+                  >
+                    {member.display_name}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
         ) : null}
       </header>
 
