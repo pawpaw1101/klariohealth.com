@@ -122,12 +122,12 @@ export default function FeaturesPage() {
               boxShadow: "0 4px 12px rgba(15, 23, 42, 0.03)"
             }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
               <span style={{ fontSize: "0.9rem", color: "#0f766e", fontWeight: 700 }}>HbA1c (Blood Sugar)</span>
-              <span style={{ fontSize: "0.78rem", color: "#0f766e", fontWeight: 700, background: "rgba(20, 184, 166, 0.15)", padding: "3px 9px", borderRadius: "6px" }}>+0.2% ↗</span>
+              <span style={{ fontSize: "0.78rem", color: "#0f766e", fontWeight: 700, background: "rgba(20, 184, 166, 0.15)", padding: "3px 9px", borderRadius: "6px", whiteSpace: "nowrap", flexShrink: 0 }}>+0.2% ↗</span>
             </div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
-              <span style={{ fontSize: "1.65rem", fontWeight: 800, color: "#0f172a" }}>5.8%</span>
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "10px" }}>
+              <span style={{ fontSize: "1.65rem", fontWeight: 800, color: "#0f172a", whiteSpace: "nowrap" }}>5.8%</span>
               <span style={{ fontSize: "0.85rem", color: "#64748b" }}>vs 5.6% (6 mos ago)</span>
             </div>
             <div style={{ fontSize: "0.78rem", color: "#0f766e" }}>
@@ -148,12 +148,12 @@ export default function FeaturesPage() {
               boxShadow: "0 4px 12px rgba(15, 23, 42, 0.03)"
             }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
               <span style={{ fontSize: "0.9rem", color: "#0f766e", fontWeight: 700 }}>LDL Cholesterol</span>
-              <span style={{ fontSize: "0.78rem", color: "#16a34a", fontWeight: 700, background: "rgba(22, 163, 74, 0.12)", padding: "3px 9px", borderRadius: "6px" }}>-15 mg/dL ↘</span>
+              <span style={{ fontSize: "0.78rem", color: "#16a34a", fontWeight: 700, background: "rgba(22, 163, 74, 0.12)", padding: "3px 9px", borderRadius: "6px", whiteSpace: "nowrap", flexShrink: 0 }}>-15 mg/dL ↘</span>
             </div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
-              <span style={{ fontSize: "1.65rem", fontWeight: 800, color: "#0f172a" }}>95 mg/dL</span>
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "10px" }}>
+              <span style={{ fontSize: "1.65rem", fontWeight: 800, color: "#0f172a", whiteSpace: "nowrap" }}>95 mg/dL</span>
               <span style={{ fontSize: "0.85rem", color: "#64748b" }}>vs 110 mg/dL (Prev)</span>
             </div>
             <div style={{ fontSize: "0.78rem", color: "#0f766e" }}>
@@ -249,18 +249,18 @@ export default function FeaturesPage() {
           }}
         >
           <div className="showcase-copy" style={{ width: "100%" }}>
-            <h2 style={{ fontSize: "clamp(2rem, 3.5vw, 2.75rem)", fontWeight: 800, color: "#ffffff", marginBottom: "8px" }}>
+            <h2 style={{ fontSize: "clamp(1.6rem, 6vw, 2.75rem)", fontWeight: 800, color: "#ffffff", marginBottom: "8px" }}>
               Built with security in mind.
             </h2>
-            <p className="showcase-lead" style={{ color: "#ccfbf1", marginBottom: "24px", maxWidth: "720px", fontSize: "1.1rem" }}>
+            <p className="showcase-lead" style={{ color: "#ccfbf1", marginBottom: "24px", maxWidth: "720px", fontSize: "clamp(0.95rem, 2.6vw, 1.1rem)" }}>
               Health records require more than simple file storage. Klario's architecture is engineered around device-bound privacy and data provenance.
             </p>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "18px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "18px" }}>
               <div
                 className="showcase-point"
                 style={{
-                  padding: "20px 22px",
+                  padding: "clamp(14px, 4vw, 20px) clamp(14px, 4vw, 22px)",
                   borderRadius: "18px",
                   background: "rgba(255, 255, 255, 0.1)",
                   border: "1px solid rgba(255, 255, 255, 0.2)",
@@ -300,7 +300,7 @@ export default function FeaturesPage() {
               <div
                 className="showcase-point"
                 style={{
-                  padding: "20px 22px",
+                  padding: "clamp(14px, 4vw, 20px) clamp(14px, 4vw, 22px)",
                   borderRadius: "18px",
                   background: "rgba(255, 255, 255, 0.1)",
                   border: "1px solid rgba(255, 255, 255, 0.2)",
@@ -340,7 +340,7 @@ export default function FeaturesPage() {
               <div
                 className="showcase-point"
                 style={{
-                  padding: "20px 22px",
+                  padding: "clamp(14px, 4vw, 20px) clamp(14px, 4vw, 22px)",
                   borderRadius: "18px",
                   background: "rgba(255, 255, 255, 0.1)",
                   border: "1px solid rgba(255, 255, 255, 0.2)",
@@ -380,7 +380,7 @@ export default function FeaturesPage() {
               <div
                 className="showcase-point"
                 style={{
-                  padding: "20px 22px",
+                  padding: "clamp(14px, 4vw, 20px) clamp(14px, 4vw, 22px)",
                   borderRadius: "18px",
                   background: "rgba(255, 255, 255, 0.1)",
                   border: "1px solid rgba(255, 255, 255, 0.2)",

@@ -69,7 +69,6 @@ export function DocumentsWorkspace() {
   const [isAddOptionsOpen, setIsAddOptionsOpen] = useState(false);
   const [uploadSource, setUploadSource] = useState<"files" | "photos" | null>(null);
   const [editingDocument, setEditingDocument] = useState<ReportSummary | null>(null);
-  const [documentPendingDeletion, setDocumentPendingDeletion] = useState<ReportSummary | null>(null);
   const [portalHost, setPortalHost] = useState<HTMLElement | null>(null);
   const queryClient = useQueryClient();
   const familyId = api.activeFamily?.id;
@@ -116,15 +115,6 @@ export function DocumentsWorkspace() {
     onMutate: removeReportFromCachedLists,
     onError: (_error, _reportId, context) => restoreCachedReportLists(context),
     onSettled: () => api.invalidateWorkspaceData()
-  });
-  const deleteDocumentMutation = useMutation({
-    mutationFn: (documentId: string) => documentsApi.delete(documentId),
-    onMutate: removeReportFromCachedLists,
-    onError: (_error, _documentId, context) => restoreCachedReportLists(context),
-    onSuccess: async (_data, documentId) => {
-      setDocumentPendingDeletion(null);
-      await api.forgetDeletedDocument(documentId);
-    }
   });
   const editReportMutation = useMutation({
     mutationFn: async ({ reportId, title, documentType }: { reportId: string; title: string; documentType: DocumentType }) => {
@@ -191,8 +181,6 @@ export function DocumentsWorkspace() {
                   const confirmed = window.confirm("Klario will archive this report and remove it from active dashboard and trends views.");
                   if (confirmed) archiveReportMutation.mutate(reportId);
                 }}
-                permanentlyDeleting={deleteDocumentMutation.variables === report.id && deleteDocumentMutation.isPending}
-                onPermanentDelete={setDocumentPendingDeletion}
                 editing={editReportMutation.variables?.reportId === report.id && editReportMutation.isPending}
                 onEdit={setEditingDocument}
               />
@@ -226,16 +214,6 @@ export function DocumentsWorkspace() {
           error={editReportMutation.error}
           onClose={() => setEditingDocument(null)}
           onSave={(title, documentType) => editReportMutation.mutate({ reportId: editingDocument.id, title, documentType })}
-        />,
-        portalHost
-      ) : null}
-      {documentPendingDeletion && portalHost ? createPortal(
-        <DeleteReportModal
-          report={documentPendingDeletion}
-          isDeleting={deleteDocumentMutation.isPending}
-          error={deleteDocumentMutation.error}
-          onClose={() => setDocumentPendingDeletion(null)}
-          onDelete={() => deleteDocumentMutation.mutate(documentPendingDeletion.id)}
         />,
         portalHost
       ) : null}
@@ -300,16 +278,12 @@ function ReportDocumentCard({
   report,
   deleting,
   onDelete,
-  permanentlyDeleting,
-  onPermanentDelete,
   editing,
   onEdit
 }: {
   report: ReportSummary;
   deleting: boolean;
   onDelete: (reportId: string) => void;
-  permanentlyDeleting: boolean;
-  onPermanentDelete: (report: ReportSummary) => void;
   editing: boolean;
   onEdit: (report: ReportSummary) => void;
 }) {
@@ -356,57 +330,8 @@ function ReportDocumentCard({
         }}>
           {deleting ? "Archiving" : "Archive"}
         </button>
-        <button
-          className="button button-ghost danger-action icon-button report-delete-button"
-          type="button"
-          aria-label={permanentlyDeleting ? `Deleting ${report.display_name}` : `Delete ${report.display_name}`}
-          title="Delete report"
-          disabled={!report.can_delete || permanentlyDeleting}
-          onClick={(event) => {
-            event.stopPropagation();
-            onPermanentDelete(report);
-          }}
-        >
-          <BioIcon name={permanentlyDeleting ? "icon_action_loading" : "icon_action_delete"} size={18} />
-          <span className="sr-only">{permanentlyDeleting ? "Deleting" : "Delete"}</span>
-        </button>
       </div>
     </Card>
-  );
-}
-
-function DeleteReportModal({
-  report,
-  isDeleting,
-  error,
-  onClose,
-  onDelete
-}: {
-  report: ReportSummary;
-  isDeleting: boolean;
-  error: Error | null;
-  onClose: () => void;
-  onDelete: () => void;
-}) {
-  return (
-    <div className="klario-modal-overlay" role="presentation">
-      <div className="klario-modal report-delete-modal" role="dialog" aria-modal="true" aria-labelledby="report-delete-title">
-        <div className="klario-modal-head">
-          <div>
-            <h2 id="report-delete-title">Delete report?</h2>
-            <p><strong>{report.display_name}</strong> will be removed from your active records and placed in Recently Deleted. It can be restored during the retention period.</p>
-          </div>
-          <button className="button button-ghost icon-button" type="button" aria-label="Close delete report" disabled={isDeleting} onClick={onClose}>
-            <BioIcon name="icon_action_reject" size={18} />
-          </button>
-        </div>
-        {error ? <p className="form-error report-delete-error">{error.message}</p> : null}
-        <div className="modal-actions">
-          <button className="button button-ghost" type="button" disabled={isDeleting} onClick={onClose}>Cancel</button>
-          <button className="button button-danger" type="button" disabled={isDeleting} onClick={onDelete}>{isDeleting ? "Deleting" : "Delete report"}</button>
-        </div>
-      </div>
-    </div>
   );
 }
 

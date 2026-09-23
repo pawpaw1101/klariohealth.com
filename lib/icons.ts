@@ -52,8 +52,7 @@ export type KlarioIconName =
   | "icon_zone_thyroid"
   | "icon_zone_liver"
   | "icon_zone_inflammation"
-  | "icon_flag_attention"
-  | "icon_flag_score";
+  | "icon_flag_attention";
 
 export type ReviewStatus = "pending" | "confirmed" | "edited" | "rejected";
 

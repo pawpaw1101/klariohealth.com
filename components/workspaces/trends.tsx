@@ -337,16 +337,18 @@ export function TrendsWorkspace() {
 
       <Card className="trends-toolbar">
         <SearchField value={query} onChange={setQuery} placeholder="Search trends" label="Search trends" />
-        <label className="select-field trends-member-filter">
-          <span className="sr-only">Member</span>
-          <select value={memberId} onChange={(event) => setMemberId(event.target.value)}>
-            {api.members.length ? api.members.map((member) => <option key={member.id} value={member.id}>{member.display_name}</option>) : <option value="">No profile selected</option>}
-          </select>
-        </label>
-        <FilterChip icon="icon_review_required" active={flaggedOnly} tone="orange" onClick={() => setFlaggedOnly((value) => !value)}>
-          Flagged {flaggedCount ? `(${flaggedCount})` : ""}
-        </FilterChip>
-        <FilterChip icon="icon_filter_clear" active={false} tone="gray" onClick={clearFilters}>Clear</FilterChip>
+        <div className="trends-toolbar-filters">
+          <label className="select-field trends-member-filter">
+            <span className="sr-only">Member</span>
+            <select value={memberId} onChange={(event) => setMemberId(event.target.value)}>
+              {api.members.length ? api.members.map((member) => <option key={member.id} value={member.id}>{member.display_name}</option>) : <option value="">No profile selected</option>}
+            </select>
+          </label>
+          <FilterChip icon="icon_review_required" active={flaggedOnly} tone="orange" onClick={() => setFlaggedOnly((value) => !value)}>
+            Flagged {flaggedCount ? `(${flaggedCount})` : ""}
+          </FilterChip>
+          <FilterChip icon="icon_filter_clear" active={false} tone="gray" onClick={clearFilters}>Clear</FilterChip>
+        </div>
       </Card>
 
       <section className="trends-accordion">

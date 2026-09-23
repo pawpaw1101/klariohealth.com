@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -32,7 +32,7 @@ import {
   statusClass,
   valueWithUnit
 } from "@/components/workspaces/shared";
-type MetricSheetKind = "normal" | "attention" | "critical" | "score";
+type MetricSheetKind = "normal" | "attention" | "critical";
 
 const categoryPresentation: Record<BodySystemZone, { title: string; description: string; markerTitle: string }> = {
   cardio: { title: "Your cardiovascular overview", description: "Track key heart-related markers that support cardiovascular health.", markerTitle: "Cardiovascular markers" },
@@ -53,6 +53,8 @@ export function DashboardWorkspace() {
   const [displayMode, setDisplayMode] = useState<"body" | "tiles">("body");
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [portalHost, setPortalHost] = useState<HTMLElement | null>(null);
+  const [isMemberMenuOpen, setIsMemberMenuOpen] = useState(false);
+  const memberMenuRef = useRef<HTMLDivElement>(null);
   const familyId = api.activeFamily?.id;
   const memberId = api.activeMember?.id;
   const hasLiveContext = api.status === "live" && Boolean(api.user?.id && familyId && memberId);
@@ -60,6 +62,27 @@ export function DashboardWorkspace() {
   useEffect(() => {
     setPortalHost(document.body);
   }, []);
+
+  useEffect(() => {
+    if (!isMemberMenuOpen) return;
+
+    const closeOnOutsideOrEscape = (event: MouseEvent | KeyboardEvent) => {
+      if (event instanceof KeyboardEvent) {
+        if (event.key === "Escape") setIsMemberMenuOpen(false);
+        return;
+      }
+      if (memberMenuRef.current && !memberMenuRef.current.contains(event.target as Node)) {
+        setIsMemberMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", closeOnOutsideOrEscape);
+    document.addEventListener("keydown", closeOnOutsideOrEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutsideOrEscape);
+      document.removeEventListener("keydown", closeOnOutsideOrEscape);
+    };
+  }, [isMemberMenuOpen]);
 
   const dashboardQuery = useQuery({
     queryKey: protectedQueryKey(api.user?.id, "dashboard", familyId, memberId),
@@ -91,12 +114,11 @@ export function DashboardWorkspace() {
     value: string;
     label: string;
     caption: string;
-    tone: "green" | "orange" | "gray";
+    tone: "green" | "orange";
     icon: KlarioIconName;
   }> = [
     { kind: "normal", value: summary ? String(summary.normal_count) : "-", label: "Normal", caption: "Inside reference range", tone: "green", icon: "icon_zone_cardio" },
-    { kind: "attention", value: summary ? String(summary.attention_count) : "-", label: "Need attention", caption: "Outside range or unreviewed", tone: "orange", icon: "icon_flag_attention" },
-    { kind: "score", value: summary ? String(summary.score) : "-", label: "Score", caption: "Percent of metrics in range", tone: "gray", icon: "icon_flag_score" }
+    { kind: "attention", value: summary ? String(summary.attention_count) : "-", label: "Need attention", caption: "Outside range or unreviewed", tone: "orange", icon: "icon_flag_attention" }
   ];
 
   const inFlightReports = (dashboard?.latest_reports ?? []).filter((report) => !["parsed", "parsed_empty", "needs_attention", "failed"].includes(report.status));
@@ -113,14 +135,38 @@ export function DashboardWorkspace() {
       <header className="dashboard-brand-row">
         <h1 className="dashboard-title">Dashboard</h1>
         {api.members.length ? (
-          <label className="dashboard-member-switcher">
-            <span className="dashboard-member-avatar" aria-hidden="true">{activeLabel.slice(0, 1).toUpperCase()}</span>
-            <span className="dashboard-member-name">{activeLabel}</span>
-            <span className="dashboard-member-chevron" aria-hidden="true" />
-            <select value={api.activeMember?.id ?? ""} onChange={(event) => api.setActiveMemberId(event.target.value)} aria-label="Switch family member">
-              {api.members.map((member) => <option key={member.id} value={member.id}>{member.display_name}</option>)}
-            </select>
-          </label>
+          <div className="dashboard-member-switcher" ref={memberMenuRef}>
+            <button
+              type="button"
+              className="dashboard-member-trigger"
+              aria-haspopup="listbox"
+              aria-expanded={isMemberMenuOpen}
+              onClick={() => setIsMemberMenuOpen((open) => !open)}
+            >
+              <span className="dashboard-member-avatar" aria-hidden="true">{activeLabel.slice(0, 1).toUpperCase()}</span>
+              <span className="dashboard-member-name">{activeLabel}</span>
+              <span className="dashboard-member-chevron" aria-hidden="true" />
+            </button>
+            {isMemberMenuOpen ? (
+              <div className="dashboard-member-menu" role="listbox" aria-label="Switch family member">
+                {api.members.map((member) => (
+                  <button
+                    key={member.id}
+                    type="button"
+                    role="option"
+                    aria-selected={member.id === api.activeMember?.id}
+                    className={`dashboard-member-option${member.id === api.activeMember?.id ? " is-active" : ""}`}
+                    onClick={() => {
+                      api.setActiveMemberId(member.id);
+                      setIsMemberMenuOpen(false);
+                    }}
+                  >
+                    {member.display_name}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
         ) : null}
       </header>
 
@@ -229,28 +275,33 @@ export function DashboardWorkspace() {
       </div>
 
       <footer className="dashboard-disclaimer">Based on imported reports and available reference ranges. Not a diagnosis.</footer>
-      {metricSheet ? (
-        <DashboardMetricModal
-          kind={metricSheet}
-          userId={api.user?.id}
-          familyId={familyId}
-          memberId={memberId}
-          healthScore={summary?.score ?? 0}
-          normalMetrics={normalMetrics}
-          attentionMetrics={attentionMetrics}
-          criticalMetrics={criticalMetrics}
-          onClose={() => setMetricSheet(null)}
-        />
-      ) : null}
-      {selectedZone ? (
-        <DashboardCategoryModal
-          memberName={activeLabel}
-          categories={categoryTrendsQuery.data?.categories ?? []}
-          isLoading={categoryTrendsQuery.isLoading}
-          zone={selectedZone}
-          onClose={() => setSelectedZone(null)}
-        />
-      ) : null}
+      {metricSheet && portalHost
+        ? createPortal(
+            <DashboardMetricModal
+              kind={metricSheet}
+              userId={api.user?.id}
+              familyId={familyId}
+              memberId={memberId}
+              normalMetrics={normalMetrics}
+              attentionMetrics={attentionMetrics}
+              criticalMetrics={criticalMetrics}
+              onClose={() => setMetricSheet(null)}
+            />,
+            portalHost
+          )
+        : null}
+      {selectedZone && portalHost
+        ? createPortal(
+            <DashboardCategoryModal
+              memberName={activeLabel}
+              categories={categoryTrendsQuery.data?.categories ?? []}
+              isLoading={categoryTrendsQuery.isLoading}
+              zone={selectedZone}
+              onClose={() => setSelectedZone(null)}
+            />,
+            portalHost
+          )
+        : null}
       {isUploadOpen && portalHost ? createPortal(<ReportUploadModal onClose={() => setIsUploadOpen(false)} />, portalHost) : null}
     </div>
   );
@@ -313,7 +364,6 @@ function DashboardMetricModal({
   userId,
   familyId,
   memberId,
-  healthScore,
   normalMetrics,
   attentionMetrics,
   criticalMetrics,
@@ -323,14 +373,13 @@ function DashboardMetricModal({
   userId?: string;
   familyId?: string;
   memberId?: string;
-  healthScore: number;
   normalMetrics: TrendPreview[];
   attentionMetrics: DashboardAttentionItem[];
   criticalMetrics: DashboardAttentionItem[];
   onClose: () => void;
 }) {
-  const title = kind === "score" ? "Health Score" : `${prettyStatus(kind)} metrics`;
-  const usesTrendList = kind === "normal" || kind === "score";
+  const title = `${prettyStatus(kind)} metrics`;
+  const usesTrendList = kind === "normal";
   const trendsQuery = useQuery({
     queryKey: protectedQueryKey(userId, "dashboard", "metric-modal", "trends", familyId, memberId),
     queryFn: () => trendsApi.list(familyId!, memberId!),
@@ -346,7 +395,7 @@ function DashboardMetricModal({
   const normalItems = trendsQuery.data
     ? trendsQuery.data.categories
         .flatMap((category) => category.metrics)
-        .filter((metric) => (kind === "score" ? metric.has_readings !== false : metric.has_readings !== false && !metric.has_attention))
+        .filter((metric) => metric.has_readings !== false && !metric.has_attention)
     : normalMetrics;
   const attentionFallback = kind === "critical" ? criticalMetrics : attentionMetrics;
   const attentionItems = attentionQuery.data?.items ?? attentionFallback;
@@ -364,12 +413,6 @@ function DashboardMetricModal({
             <BioIcon name="icon_action_reject" size={18} />
           </button>
         </div>
-        {kind === "score" ? (
-          <div className="dashboard-score-header">
-            <strong>{healthScore}</strong>
-            <span>Percent of metrics in normal range</span>
-          </div>
-        ) : null}
         <div className="dashboard-modal-list">
           {usesTrendList ? (
             normalItems.length ? normalItems.map((metric) => (
