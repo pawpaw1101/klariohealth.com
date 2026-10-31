@@ -49,6 +49,7 @@ Open `http://localhost:3000`.
 |----------|-------------|
 | `NEXT_PUBLIC_KLARIO_API_BASE_URL` | `https://klario-backend.onrender.com/api/v1` |
 | `NEXT_PUBLIC_KLARIO_API_ROOT` | `https://klario-backend.onrender.com` |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Google OAuth Web client ID (required to show Google sign-in) |
 
 The API client lives in `lib/api/`. Backend route references live under `../Biolens_backend/app/api/v1/`.
 

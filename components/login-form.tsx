@@ -7,6 +7,7 @@ import { useKlarioApi } from "@/components/klario-api-provider";
 import { NavIcon } from "@/components/nav-icon";
 import { authApi } from "@/lib/api/klario-api";
 import { ApiError } from "@/lib/api/client";
+import { GoogleLoginButton } from "@/components/google-login-button";
 
 /**
  * Only same-origin paths inside the signed-in app are accepted, so a crafted `next` cannot
@@ -21,7 +22,7 @@ function safeDestination(next?: string) {
 
 export function LoginForm({ notice, next }: { notice?: string; next?: string }) {
   const router = useRouter();
-  const { completeOtpLogin } = useKlarioApi();
+  const { completeOtpLogin, completeGoogleLogin } = useKlarioApi();
   const [step, setStep] = useState<"credentials" | "code">("credentials");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -30,6 +31,20 @@ export function LoginForm({ notice, next }: { notice?: string; next?: string }) 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+
+  const finishGoogleLogin = async (credential: string) => {
+    setIsSubmitting(true);
+    setError("");
+    try {
+      await completeGoogleLogin(credential);
+      window.dispatchEvent(new Event("klario:navigation-start"));
+      router.push(safeDestination(next));
+    } catch (loginError) {
+      setError(loginError instanceof ApiError ? loginError.message : "Could not sign in with Google.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const sendCode = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -157,12 +172,15 @@ export function LoginForm({ notice, next }: { notice?: string; next?: string }) 
         </div>
       </div>
       {error ? <p className="form-alert">{error}</p> : null}
+      <GoogleLoginButton onCredential={finishGoogleLogin} onError={setError} busy={isSubmitting} />
+      <p className="note" aria-hidden="true">or continue with email</p>
       <button type="submit" disabled={isSubmitting}>
         {isSubmitting ? "Sending code" : "Continue"}
       </button>
       <p className="note">
         New here? <Link href="/register">Create an account</Link>.<br />
         Forgot your password? <Link href="/forgot-password">Reset it</Link>.
+        <br /><Link href="/terms">Terms of Service</Link> · <Link href="/privacy">Privacy Policy</Link>
       </p>
     </form>
   );

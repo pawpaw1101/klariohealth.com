@@ -1545,7 +1545,7 @@ button[type="submit"]:hover {
 
 .footer-inner {
   display: grid;
-  grid-template-columns: 1.4fr repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1.4fr repeat(3, minmax(0, 1fr));
   gap: 40px;
   width: 100%;
   max-width: var(--content-max, 100%);
@@ -1602,6 +1602,113 @@ button[type="submit"]:hover {
   max-width: none;
   margin: 0;
   color: var(--text-muted);
+}
+
+.legal-page {
+  max-width: 920px;
+  padding-top: clamp(40px, 7vw, 88px);
+}
+
+.legal-page-header {
+  margin-bottom: 24px;
+}
+
+.legal-page-header h1 {
+  margin: 4px 0 10px;
+  color: var(--text-primary);
+  font: var(--type-display-xl);
+  letter-spacing: -0.04em;
+}
+
+.legal-eyebrow,
+.legal-updated {
+  color: var(--text-muted);
+  font: var(--type-caption);
+}
+
+.legal-eyebrow {
+  margin-bottom: 8px;
+  color: var(--text-brand);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.legal-updated { margin: 0; }
+
+.legal-draft-notice {
+  display: grid;
+  gap: 4px;
+  margin: 22px 0;
+  border: 1px solid rgba(180, 83, 9, 0.2);
+  border-radius: var(--radius-md);
+  background: #fffbeb;
+  padding: 14px 16px;
+  color: #78350f;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.legal-intro {
+  color: var(--text-secondary);
+  font-size: 1.05rem;
+  line-height: 1.7;
+}
+
+.legal-toc {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 22px 0 38px;
+}
+
+.legal-toc a {
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-full);
+  padding: 8px 14px;
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.legal-toc a[aria-current="page"] {
+  border-color: rgba(13, 148, 136, 0.25);
+  background: var(--color-teal-50);
+  color: var(--color-teal-800);
+  font-weight: 700;
+}
+
+.legal-sections {
+  display: grid;
+  gap: 28px;
+}
+
+.legal-section {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 20px;
+}
+
+.legal-section h2 {
+  margin: 0 0 12px;
+  color: var(--text-primary);
+  font: var(--type-title-ui);
+}
+
+.legal-section p,
+.legal-section li,
+.legal-contact {
+  color: var(--text-secondary);
+  font: var(--type-body-m);
+  line-height: 1.75;
+}
+
+.legal-section p { margin: 0 0 12px; }
+.legal-section p:last-child { margin-bottom: 0; }
+.legal-contact { margin: 34px 0 0; }
+
+.legal-register-links {
+  margin: -8px 0 0;
+  color: var(--text-muted);
+  font: var(--type-caption);
 }
 
 /* ==========================================================================

@@ -345,6 +345,7 @@ export function SettingsWorkspace() {
           <p>Account details, family profiles, reports, parsed health values, dashboard summaries, and trends are uploaded to and stored by the Klario service.</p>
           <p>Klario may retain user-scoped response caches and protected temporary upload files for network resilience. Signing out clears account caches.</p>
           <p>Klario Health organizes information extracted from uploaded health reports. It does not provide a medical diagnosis or replace professional medical advice.</p>
+          <p><Link href="/privacy">Read the Privacy Policy</Link> · <Link href="/terms">Read the Terms of Service</Link></p>
         </Card>
 
         <Card className={`settings-section-card settings-wide-card settings-danger-zone${activeSection === "privacy" ? "" : " is-hidden"}`}>

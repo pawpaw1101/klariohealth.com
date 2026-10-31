@@ -142,6 +142,13 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
                 <li><Link href="/register">Create account</Link></li>
               </ul>
             </div>
+            <div>
+              <p className="footer-heading">Legal</p>
+              <ul className="footer-links">
+                <li><Link href="/privacy">Privacy Policy</Link></li>
+                <li><Link href="/terms">Terms of Service</Link></li>
+              </ul>
+            </div>
           </div>
           <div className="footer-bottom">
             <p>&copy; 2026 Klario. For organization and education - not a substitute for professional medical advice.</p>
