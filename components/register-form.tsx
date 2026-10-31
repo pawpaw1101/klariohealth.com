@@ -164,8 +164,9 @@ export function RegisterForm() {
       </div>
       <label className="auth-terms">
         <input type="checkbox" checked={acceptsTerms} onChange={(event) => setAcceptsTerms(event.target.checked)} />
-        <span>I agree to the Terms of Service and Privacy Policy</span>
+        <span>I agree to the Terms of Service and Privacy Policy.</span>
       </label>
+      <p className="legal-register-links"><Link href="/terms" target="_blank" rel="noreferrer">Read the Terms of Service</Link><span aria-hidden="true"> · </span><Link href="/privacy" target="_blank" rel="noreferrer">Read the Privacy Policy</Link></p>
       {error ? <p className="form-alert">{error}</p> : null}
       <button type="submit" disabled={isSubmitting || !fullName.trim() || !isValidEmail(email) || !isAcceptablePassword(password) || password !== confirmation || !acceptsTerms}>
         {isSubmitting ? "Creating account" : "Create account"}

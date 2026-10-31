@@ -76,6 +76,7 @@ type KlarioApiContextValue = {
   setActiveMemberId: (memberId: string | null) => void;
   login: (credentials: LoginRequest) => Promise<OtpRequestResponse>;
   completeOtpLogin: (request: OtpVerifyRequest) => Promise<User>;
+  completeGoogleLogin: (idToken: string) => Promise<User>;
   register: (request: RegisterRequest) => Promise<OtpRequestResponse>;
   logout: () => void;
   backendLogout: () => Promise<void>;
@@ -307,6 +308,21 @@ function KlarioSessionProvider({ children }: { children: React.ReactNode }) {
     },
     [loadWorkspace, queryClient]
   );
+
+  const completeGoogleLogin = useCallback(async (idToken: string) => {
+    const tokenResponse = await authApi.googleLogin(idToken);
+    queryClient.clear();
+    setStoredActiveFamilyId(null);
+    setStoredActiveMemberId(null);
+    setAuthTokens(tokenResponse.access_token, tokenResponse.refresh_token);
+    const currentUser = await queryClient.fetchQuery({
+      queryKey: ["klario", "auth", "me"],
+      queryFn: authApi.authMe,
+      staleTime: 0
+    });
+    await loadWorkspace(currentUser, "original");
+    return currentUser;
+  }, [loadWorkspace, queryClient]);
 
   const register = useCallback(async (request: RegisterRequest) => {
     return authApi.register(request);
@@ -559,6 +575,7 @@ function KlarioSessionProvider({ children }: { children: React.ReactNode }) {
       setActiveMemberId,
       login,
       completeOtpLogin,
+      completeGoogleLogin,
       register,
       logout,
       backendLogout,
@@ -586,6 +603,7 @@ function KlarioSessionProvider({ children }: { children: React.ReactNode }) {
       lastSyncAt,
       login,
       completeOtpLogin,
+      completeGoogleLogin,
       logout,
       members,
       message,

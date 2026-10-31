@@ -84,6 +84,8 @@ import type {
 } from "@/lib/api/types";
 
 export const authApi = {
+  googleLogin: (idToken: string) =>
+    apiFetch<TokenResponse>("/auth/google", { method: "POST", body: { id_token: idToken }, auth: false, credentials: "include", headers: REFRESH_TRANSPORT_HEADER }),
   register: (body: RegisterRequest) =>
     apiFetch<OtpRequestResponse>("/auth/register", { method: "POST", body, auth: false }),
   login: (body: LoginRequest) =>

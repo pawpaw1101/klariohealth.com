@@ -40,7 +40,7 @@ export default async function LoginPage({
 
           <h1>Sign in to Klario.</h1>
           <p className="hero-lead">
-            Sign in with your password, then confirm with a one-time code sent to your email.
+            Sign in with Google or your password and email verification code.
           </p>
           <div className="login-benefits">
             {benefits.map((benefit) => (
