@@ -53,6 +53,8 @@ Open `http://localhost:3000`.
 
 For deployed builds, add `NEXT_PUBLIC_GOOGLE_CLIENT_ID` to the hosting project's environment variables before building. Next.js embeds `NEXT_PUBLIC_` values at build time, so redeploy after changing this value.
 
+Only put browser-safe configuration in `NEXT_PUBLIC_` variables; those values are included in client-side JavaScript. Keep Supabase service-role keys and OAuth client secrets in server-only variables.
+
 The API client lives in `lib/api/`. Backend route references live under `../Biolens_backend/app/api/v1/`.
 
 ### 3. Local assets
@@ -74,3 +76,4 @@ These files are loaded locally by `app/layout.tsx` and `components/brand.tsx`; t
 4. Dashboard, trends, and attention update after parsing completes
 
 Legacy `.html` URLs redirect to the new React routes.
+
